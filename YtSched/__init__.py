@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+#
+# (c) Yoichi Tanibayashi
+#
 from . import *
 
 import click

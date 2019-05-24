@@ -2,7 +2,6 @@
 #
 # (c) Yoichi Tanibayashi
 #
-
 '''
 YTスケジューラー
 '''
@@ -10,12 +9,12 @@ __author__  = 'Yoichi Tanibayashi'
 __date__    = '2019/05/24'
 __version__ = '0.0.1'
 
-import sys
+from . import *
+
 import time
 import os, shutil
 
-my_name = sys.argv.pop(0)
-
+#####
 class SchedDataEnt:
     '''
     スケジュール・データ・エントリー    
@@ -29,7 +28,9 @@ class SchedDataEnt:
                  sde_type='', sde_title='', sde_place='', sde_text='',
                  debug=False):
         self.debug = debug
-
+        self.logger = get_logger(__class__.__name__, self.debug)
+        self.logger.debug('')
+        
         self.sde_id    = sde_id
         self.sde_date  = sde_date
         self.sde_time  = sde_time
@@ -54,11 +55,14 @@ class SchedDataEnt:
         '''
         ファイル保存用の文字列を生成
         '''
+        self.logger.debug('')
         return '\t'.join((self.sde_id, self.sde_date, self.sde_time,
                           self.sde_type, self.sde_title, self.sde_place,
                           self.sde_text))
 
     def print1(self):
+        self.logger.debug('')
+
         print('=====')
         print('ID=%s' % self.sde_id)
         print('%s, %s' % (self.sde_date, self.sde_time))
@@ -73,20 +77,24 @@ class SchedDataEnt:
         print('%s' % self.sde_text)
 
     def new_id(self):
+        self.logger.debug('')
         sde_id = str(time.time()).replace('.','-')
         return sde_id
 
     def is_todo(self):
+        self.logger.debug('')
         if self.sde_type == '':
             return False
         return self.sde_type.startswith(self.TYPE_PREFIX_TODO)
 
     def is_holiday(self):
+        self.logger.debug('')
         if self.sde_type == '':
             return False
         return self.sde_type in self.TYPE_HOLYDAY
 
     def is_important(self):
+        self.logger.debug('')
         if self.sde_title == '':
             return False
         return self.sde_title[0] in self.TITLE_PREFIX_IMPORTANT
@@ -97,12 +105,15 @@ class SchedDataEnt:
         -------
         (year, month, day)
         '''
+        self.logger.debug('')
         return [int(i) for i in self.sde_date.split('/')]
 
     def set_date(self, d=None):
         '''
         d = (year, month, day)
         '''
+        self.logger.debug('d=%s', d)
+
         if d == None or len(d) < 3:
             lt = time.localtime()
             yyyy = lt.tm_year
@@ -127,6 +138,8 @@ class SchedDataEnt:
         (None, None)
 
         '''
+        self.logger.debug('')
+
         (t1, t2) = self.sde_time.split('-')
         if t1 == ':':
             t1 = None
@@ -147,6 +160,8 @@ class SchedDataEnt:
         t1 = (hour1, minute1)
         t2 = (hour2, minute2)
         '''
+        self.logger.debug('t1=%s, t2=%s', t1, t2)
+
         if t1 == None or len(t1) < 2:
             h1 = ''
             m1 = ''
@@ -163,12 +178,13 @@ class SchedDataEnt:
         self.sde_time = '%s:%s-%s:%s' % (h1, m1, h2, m2)
 
 
+#####
 class SchedDataFile:
     '''
     スケジュール・データ・ファイル
     '''
     
-    TOP_DIR     = '/home/pi/work'
+    TOP_DIR     = '/home/ytani/ytsched/data'
     PATH_FORMAT = '%s/%04d/%02d/%02d.cgi'
     BACKUP_EXT  = '.bak'
     ENCODE      = ['utf-8', 'euc_jp']
@@ -176,6 +192,8 @@ class SchedDataFile:
     def __init__(self, y=None, m=None, d=None, topdir=TOP_DIR,
                  debug=False):
         self.debug  = debug
+        self.logger = get_logger(__class__.__name__, debug=self.debug)
+        self.logger.debug('y/m/d = %s/%s/%s', y, m, d)
         
         self.topdir = topdir
         self.y      = y
@@ -188,9 +206,11 @@ class SchedDataFile:
         self.filename = pl.pop()
         self.dirname  = '/'.join(pl)
         
-        sde_list = self.load()
+        self.sde_list = self.load()
 
     def date2path(self, y, m, d, topdir=TOP_DIR):
+        self.logger.debug('y/m/d = %s/%s/%s', y, m, d)
+
         return self.PATH_FORMAT % (self.topdir, self.y, self.m, self.d)
 
     def load(self):
@@ -201,12 +221,20 @@ class SchedDataFile:
         -----
         初期化時に自動的に実行される
         '''
+        self.logger.debug('')
+        
         ok = False
         for e in self.ENCODE:
-            f = open(self.pathname, encoding=e)
+            try:
+                f = open(self.pathname, encoding=e)
+            except FileNotFoundError:
+                self.logger.warn('%s: not found', self.pathname)
+                return []
+            
             try:
                 lines = f.readlines()
             except UnicodeDecodeError:
+                self.logger.info('%s: decode error', e)
                 f.close()
                 continue
             else:
@@ -214,7 +242,8 @@ class SchedDataFile:
                 ok = True
 
         if not ok:
-            return None
+            self.logger.warn('%s: invalid encoding', self.pathname)
+            return []
         
         out = []
         for l in lines:
@@ -234,6 +263,8 @@ class SchedDataFile:
         全て上書きされる。
         ファイルが存在する場合は、バックアップされる。
         '''
+        self.logger.debug('')
+        
         if os.path.exists(self.pathname):
             backup_pathname = self.pathname + BACKUP_EXT
             shutil.move(self.pathname, backup_pathname)
@@ -245,42 +276,44 @@ class SchedDataFile:
         f.close()
     
 
-###########
-enc_list = ['utf-8', 'euc_jp']
-def read_datafile(filename):
-    ok = False
-    for e in enc_list:
-        print('e =', e)
-        fo = open(filename, encoding=e)
-        try:
-            l = fo.readlines()
-        except UnicodeDecodeError:
-            fo.close()
-            continue
-        else:
-            fo.close()
-            ok = True
-            break
+#####
+class Sample:
+    def __init__(self, yyyy, mm, dd, debug=False):
+        self.debug = debug
+        self.logger = get_logger(__class__.__name__, self.debug)
+        self.logger.debug('')
 
-    if ok:
-        out = []
-        for l1 in l:
-            sd = l1.split('\t')
-            sde = SchedDataEnt(*(l1.split('\t')))
-            out.append(sde)
-    else:
-        out = None
-    return out
+        self.sdf = SchedDataFile(yyyy, mm, dd, debug=self.debug)
 
+    def main(self):
+        self.logger.debug('')
 
-file_names = sys.argv
-for f1 in file_names:
-    print('file:', f1)
-    sched_data = read_datafile(f1)
-    if sched_data == None:
-        print('Error!')
-        continue
+        for sde in self.sdf.sde_list:
+            sde.print1()
 
-    print('n=', len(sched_data))
-    for d1 in sched_data:
-        d1.print1()
+    def end(self):
+        self.logger.debug('')
+       
+
+#####
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('year', type=int, default=2019)
+@click.argument('month', type=int, default=1)
+@click.argument('day', type=int, default=1)
+@click.option('--debug', '-d', 'debug', is_flag=True, default=False,
+              help='debug flag')
+def main(year, month, day, debug):
+    logger = get_logger('', debug)
+    logger.info('%d/%d/%d', year, month, day)
+    logger.info('debug=%s', debug)
+
+    app = Sample(year, month, day, debug=debug)
+    try:
+        app.main()
+    finally:
+        app.end()
+        
+if __name__ == '__main__':
+    main()
+    
