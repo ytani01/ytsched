@@ -1,10 +1,11 @@
-from . import *
+print(__name__)
+from . import mylogger
 
 #####
 class A:
     def __init__(self, debug=False):
         self.debug = debug
-        self.logger = get_logger(__class__.__name__, self.debug)
+        self.logger = mylogger.get_logger(__class__.__name__, self.debug)
         self.logger.debug('')
         
 
@@ -13,13 +14,14 @@ class A:
         return a*2
 
 #####
+import click
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('a', type=int, default=1)
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
 def main(a, debug):
-    logger = get_logger('', debug)
+    logger = mylogger.get_logger('main', debug)
     logger.info('a=%d', a)
 
     obj = A(debug=debug)

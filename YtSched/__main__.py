@@ -1,33 +1,23 @@
+print(__name__)
 from . import *
-from . import a
-
 #####
-class Sample:
-    def __init__(self, debug=False):
-        self.debug = debug
-        self.logger = get_logger(__class__.__name__, self.debug)
-        self.logger.debug('')
-
-        self.o = a.A(debug=self.debug)
-        
-    def main(self):
-        self.logger.debug('')
-        print(self.o.func1(3))
-
-    def end(self):
-        self.logger.debug('')
-
-#####
+import click
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.argument('a', type=int, default=1)
+@click.argument('year', type=int, default=2019)
+@click.argument('month', type=int, default=1)
+@click.argument('day', type=int, default=1)
+@click.option('--data-dir', '--dir', 'dirname', type=click.Path(), default='',
+              help='data directory')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(a, debug):
-    logger = get_logger(__name__, debug)
-    logger.info('a=%d, debug=%s', a, debug)
+def main(year, month, day, dirname, debug):
+    logger = mylogger.get_logger(__name__, debug)
+    logger.info('%d/%d/%d', year, month, day)
+    logger.info('dirname=%s', dirname)
+    logger.info('debug=%s', debug)
 
-    obj = Sample(debug=debug)
+    obj = Sample.Sample(year, month, day, dirname, debug=debug)
     try:
         obj.main()
     finally:
@@ -35,4 +25,3 @@ def main(a, debug):
 
 if __name__ == '__main__':
     main()
-    

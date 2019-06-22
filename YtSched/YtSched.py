@@ -3,13 +3,11 @@
 # (c) Yoichi Tanibayashi
 #
 '''
-YTスケジューラー
+YTスケジューラ
 '''
 __author__  = 'Yoichi Tanibayashi'
-__date__    = '2019/05/24'
-__version__ = '0.0.1'
-
-from . import *
+__date__    = '2019'
+__version__ = '0.0.2'
 
 import time
 import os, shutil
@@ -184,12 +182,12 @@ class SchedDataFile:
     スケジュール・データ・ファイル
     '''
     
-    TOP_DIR     = '/home/ytani/ytsched/data'
+    DEF_TOP_DIR     = '/home/ytani/ytsched/data'
     PATH_FORMAT = '%s/%04d/%02d/%02d.cgi'
     BACKUP_EXT  = '.bak'
     ENCODE      = ['utf-8', 'euc_jp']
     
-    def __init__(self, y=None, m=None, d=None, topdir=TOP_DIR,
+    def __init__(self, y=None, m=None, d=None, topdir=DEF_TOP_DIR,
                  debug=False):
         self.debug  = debug
         self.logger = get_logger(__class__.__name__, debug=self.debug)
@@ -208,10 +206,13 @@ class SchedDataFile:
         
         self.sde_list = self.load()
 
-    def date2path(self, y, m, d, topdir=TOP_DIR):
+    def date2path(self, y, m, d, topdir=''):
         self.logger.debug('y/m/d = %s/%s/%s', y, m, d)
 
-        return self.PATH_FORMAT % (self.topdir, self.y, self.m, self.d)
+        if topdir == '':
+            topdir = self.topdir
+            
+        return self.PATH_FORMAT % (topdir, self.y, self.m, self.d)
 
     def load(self):
         '''
@@ -278,37 +279,46 @@ class SchedDataFile:
 
 #####
 class Sample:
-    def __init__(self, yyyy, mm, dd, debug=False):
+    def __init__(self, yyyy, mm, dd, topdir='', debug=False):
         self.debug = debug
         self.logger = get_logger(__class__.__name__, self.debug)
         self.logger.debug('')
 
-        self.sdf = SchedDataFile(yyyy, mm, dd, debug=self.debug)
+        self.sdf = SchedDataFile(yyyy, mm, dd, topdir=topdir,
+                                 debug=self.debug)
 
     def main(self):
         self.logger.debug('')
 
-        for sde in self.sdf.sde_list:
-            sde.print1()
+        if self.sdf.sde_list == []:
+            print('===== No data =====')
+
+        else:
+            for sde in self.sdf.sde_list:
+                sde.print1()
 
     def end(self):
         self.logger.debug('')
        
 
 #####
+import click
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('year', type=int, default=2019)
 @click.argument('month', type=int, default=1)
 @click.argument('day', type=int, default=1)
+@click.option('--data-dir', '--dir', 'dirname', type=click.Path(), default='',
+              help='data directory')
 @click.option('--debug', '-d', 'debug', is_flag=True, default=False,
               help='debug flag')
-def main(year, month, day, debug):
-    logger = get_logger('', debug)
+def main(year, month, day, dirname, debug):
+    logger = get_logger(__name__, debug)
     logger.info('%d/%d/%d', year, month, day)
+    logger.info('dirname=%s', dirname)
     logger.info('debug=%s', debug)
 
-    app = Sample(year, month, day, debug=debug)
+    app = Sample(year, month, day, topdir=dirname, debug=debug)
     try:
         app.main()
     finally:
@@ -316,4 +326,3 @@ def main(year, month, day, debug):
         
 if __name__ == '__main__':
     main()
-    
