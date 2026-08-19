@@ -63,7 +63,7 @@ Python 3.14 / uv / pytest の環境へ移行している途中。
   項目の範囲外に手を出さない。気づいたことは直さず報告に書く
 - **git commit / git tag はしない。** main（管理者）が行う
 - **`TODO.md` は編集しない。** main が行う
-- 詳しい報告は `archives/agents/TODO-NNN/report-<自分の名前>.md` に書く。
+- 詳しい報告は `archives/agents/TODO-NNN/<自分の名前>-report.md` に書く。
   **返事は 5 行以内**にして、(1) 終わったかどうか (2) 報告ファイルのパス
   (3) main の判断が要る点、だけを書く。**ファイルの全文を返事に貼らない**
 - 日本語で書く
