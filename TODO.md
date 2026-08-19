@@ -28,46 +28,76 @@ TODO-006 に進める）。着手する項目は利用者が指定する。
 
 見込み: main = Opus 5 / effort medium、担当 = implementer + verifier + reviewer
 
-立てたときに挙げたもの:
+直し方に選択肢があったものは、着手する前に決めてある（下記）。
+
+### 削除するだけのもの
 
 - [ ] `SchedDataEnt.set_time()` を**丸ごと削除する**
       （`'02d' % t1[0]` は `%` 抜けで必ず TypeError。ただし
       `set_time()` は `src/` のどこからも呼ばれず、設定する `self.time` も
       読まれない死にコードなので、`'%02d'` に直しても何も改善しない。
       TODO-003 で分かった）
-- [ ] `SchedDataEnt.__init__` の既定値 `date=datetime.date.today()`
-      （import 時に 1 回だけ評価される）
-- [ ] `main_handler.py` の `print('DAYS_YEAR=...')`（import 時に出る）
+- [ ] `MainHandler.get()` 先頭の `modified_sde_id = self.get_argument(
+      'sde_id', '')` は直後に `None` で上書きされる（死んだコード）
 - [ ] `main_handler.py` の `if sde.date == datetime.date(2021, 3, 1):`（残骸）
-- [ ] `handler.load_conf()` がタブの無い行で `ValueError`。**空行でも同じ**
-      （`if line:` は `'\n'` を真と判定する）
-- [ ] `HandlerBase.__init__` が `super().__init__()` を最後に呼んでいる
-- [ ] `webapp.py` の `except Exception as ex: raise ex`
-- [ ] 正常系のキャッシュミスを `warning` で出している
-- [ ] `autoreload=True` が固定
+- [ ] `main_handler.py` の `print('DAYS_YEAR=...')`（import 時に出る）
 
-TODO-003（テスト整備）で新たに見つかったもの:
+### データが失われるもの
 
-- [ ] `handler.load_conf()` の `line.split('\t', maxsplit=2)` — 最大 3 個に
-      分かれるので、**値にタブが含まれると `ValueError`**。`maxsplit=1` が正しい
+- [ ] `SchedDataFile.save()` が**データファイルを消す**。既存ファイルを
+      `.bak` へ `move` したあと、`if self.sde:` が偽だと新しいファイルを
+      書かない。ある日の予定を全部削除すると、その日のデータファイル自体が
+      無くなる（`.bak` には残る）。**空でもファイルを書く**
+- [ ] `SchedDataFile.load()` が 1 行 7 項目であることと、時刻欄に `-` が
+      あることを前提にしている（`d[6]`、`time1[1]` で `IndexError`）。
+      **足りない項目は空文字で埋めて読む**（`d = (d + [''] * 7)[:7]`）。
+      時刻欄に `-` が無ければ、開始・終了とも空として扱う。
+      読み飛ばす方法にしないのは、飛ばした行が保存時に消えてしまうため
+
+### 例外で落ちるもの
+
 - [ ] `SchedDataFile.save()` / `handler.save_conf()` / `handler.load_conf()` に
       `encoding=` が無い — ロケール依存になり、`LANG=C` では日本語の保存で
       落ちる。読む側（`load()`）は utf-8 → euc_jp を明示しており非対称
-- [ ] `SchedDataFile.load()` が 1 行 7 項目を前提にしている — 項目が足りない
-      行があると `IndexError`。壊れたデータファイルへの備えが無い
-- [ ] `SchedData.get_sdf()` の破棄数が `int(cache_size * 0.1)` — `cache_size`
-      が 10 未満だと 0 件になり、キャッシュが上限を超えて増え続ける
-      （既定の 20000 では問題にならない）
+- [ ] `handler.load_conf()` の `line.split('\t', maxsplit=2)` — 最大 3 個に
+      分かれるので、**値にタブが含まれると `ValueError`**。`maxsplit=1` が正しい
+- [ ] `handler.load_conf()` がタブの無い行で `ValueError`。**空行でも同じ**
+      （`if line:` は `'\n'` を真と判定する）
+
+### 挙動の直し
+
 - [ ] `SchedDataEnt.new_id()` の ID 衝突 — `str(time.time())` なので連続 2 回が
       同じ float を返すと重複する。今は `_mylog.debug()` が時間を稼いでいて
-      通っているだけで、**TODO-007 でロガーを差し替えて速くなると衝突しうる**
-- [ ] `MainHandler.get()` 先頭の `modified_sde_id = self.get_argument(
-      'sde_id', '')` は直後に `None` で上書きされる（死んだコード）
+      通っているだけで、**TODO-007 でロガーを差し替えて速くなると衝突しうる**。
+      **`str(uuid.uuid4())` にする。** ID はソートにも表示にも使われず、
+      データファイルでは単なる識別子なので、形式を変えても既存データは読める
 - [ ] `MainHandler.get()` の `search_str` の処理が 2 回ある（109〜123 行と
-      252〜267 行）。前半の結果は後半で上書きされるが、前半でも `set_conf()` が
-      走るので `Conf.cgi` への書き込みが二度起きうる
-- [ ] `htmlstr2text()` の変換表の `r'&amp;nbsp:'` — 末尾がセミコロンでなく
-      コロンで、`&amp;nbsp;` の書き損じに見える
+      252〜267 行）。`cmd=update` のときは前半で `return` するので後半へは
+      進まず、**`update` 経由だけ検索のクリアが効かない**（前半は
+      `if search_str:` なので空文字を保存せず、`.lower()` もしない）。
+      **解決する処理を `get()` の先頭 1 か所にまとめ、後半のやり方
+      （空文字も保存する＝検索をクリアする、`.lower()` する）に揃える。**
+      これで `update` 経由の edit 画面に渡る検索語も小文字になる
+      （メイン画面は今もそうなっている）
+- [ ] `SchedDataEnt.__init__` の既定値 `date=datetime.date.today()`
+      （import 時に 1 回だけ評価される）
+- [ ] `HandlerBase.__init__` が `super().__init__()` を最後に呼んでいる
+- [ ] `webapp.py` の `except Exception as ex: raise ex`
+- [ ] 正常系のキャッシュミスを `warning` で出している
+- [ ] `autoreload=True` が固定 — **`autoreload=self._dbg` にする**
+      （開発中は今までどおり効き、通常の起動では無効になる）
+- [ ] `htmlstr2text()` の変換表の `r'&nbsp:'` — 末尾がセミコロンでなく
+      コロンで、`&nbsp;` の書き損じに見える
+
+### やらないと決めたもの
+
+- `SchedData.get_sdf()` の破棄数 `int(cache_size * 0.1)` — `cache_size` が
+  10 未満だと 0 件になり、キャッシュが上限を超えて増え続ける。ただし既定の
+  20000 では問題にならず、`cache_size` を 10 未満にする使い方も無いので
+  **直さない**
+- `SchedDataEnt.__init__` が `self.__class__._mylog` を上書きしている件
+  （インスタンス 1 個の `debug=True` がクラス全体のロガーを差し替える）は、
+  ロガーの持ち方そのものの話なので **TODO-007 で扱う**
 
 TODO-003 のテストが通る状態を保ったまま直す。
 `Conf.cgi` の形式はタブ区切りのままと決めたので（TODO-011）、
@@ -97,6 +127,9 @@ TODO-003 のテストが通る状態を保ったまま直す。
 
 - [ ] `my_logger.py` を廃止
 - [ ] `tmr` と同じ `__log = getLogger(__qualname__)` 規約に揃える
+- [ ] `SchedDataEnt.__init__` の `self.__class__._mylog` 上書きをやめる
+      （インスタンス 1 個の `debug=True` がクラス全体のロガーを
+      差し替えてしまう。TODO-005 から回した）
 
 ---
 
