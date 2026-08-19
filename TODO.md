@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-004、TODO-006〜TODO-010、TODO-012。**
+**残っている項目: TODO-004、TODO-006〜TODO-010、TODO-012、TODO-015。**
 これまでに 7 件を決着させた。
-新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-015` から。**
+新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-016` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
@@ -95,6 +95,29 @@
 利用者の入力をそのまま `re.search` に渡している（不正な正規表現は
 warning で握り潰している）。単一ユーザかつリバースプロキシで認証する
 前提なので、どこまでやるかを先に決める。**決めるだけの項目。**
+
+---
+
+## TODO-015. ruff の整形・書き換え系の指摘を解消
+
+見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
+
+- [ ] `UP031`（printf 書式 → f-string、35 件）
+- [ ] `DTZ011` / `DTZ005`（`date.today()` などに tz が無い、14 件）
+- [ ] `FLY002`（テスト内の `'\t'.join([...])`、13 件）
+- [ ] `D419`（空の docstring、10 件）
+- [ ] `RUF012`（mutable-class-default、5 件）
+- [ ] `EXE001`（shebang-not-executable、4 件）— TODO-008
+      （`uv tool install` 方式）で起動方法を決めたあとに扱う
+- [ ] `SIM102` / `C408` / `PERF402` / `PLC0206` / `SIM118`（残り 6 件）
+- [ ] `uv run ruff check --fix --extend-select I src tests` が通ることを
+      確認する
+
+TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実行した際、
+`ruff check` が 97 件のエラーで止まった。うち `RUF013`
+（implicit-optional）はいずれも TODO-006（型ヒントの整備）の範囲なので
+ここでは扱わない。`EXE001` は起動スクリプトの扱いが決まる TODO-008 の
+あとに回す。
 
 ---
 
