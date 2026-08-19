@@ -31,7 +31,9 @@ class WebServer:
     URL_PREFIX = '/ytsched'
 
     DEF_PORT = 10085
-    DEF_WEBROOT = './webroot/'
+    # パッケージに同梱した webroot（templates/, static/）
+    DEF_WEBROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'webroot')
     DEF_WORKDIR = os.path.expanduser('~/ytsched')
     DEF_DATADIR = os.path.join(DEF_WORKDIR, 'data')
 

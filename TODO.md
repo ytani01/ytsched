@@ -1,32 +1,14 @@
 # TODO
 
-**残っている項目: TODO-002〜TODO-012。** これまでに 1 件を決着させた。
+**残っている項目: TODO-003〜TODO-012。** これまでに 2 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-013` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
-進める順序は依存関係で決めてある（TODO-002 → TODO-003 → TODO-005・TODO-006）。
+進める順序は依存関係で決めてある（TODO-003 → TODO-005・TODO-006）。
 着手する項目は利用者が指定する。
-
----
-
-## TODO-002. uv プロジェクトへの移行
-
-見込み: Opus 5 / effort medium（サブエージェントなし）
-
-- [ ] `setup.py` + `setup.cfg` + `entry_points.cfg` → `pyproject.toml`
-      （hatchling + hatch-vcs）
-- [ ] `ytsched/` → `src/ytsched/`
-- [ ] `webroot/` を `src/ytsched/` 配下へ移し、パッケージデータに含める
-- [ ] `requires-python = ">=3.14"`、`.python-version`
-- [ ] 未使用の依存（`monthdelta`、`html2text`）を外す
-- [ ] `uv.lock` を作る
-- [ ] `uv run ytsched webapp` が起動することを確認
-
-webroot を同梱するのは、TODO-008 の `uv tool install` で
-`ytsched` コマンド 1 つで動くようにするため。
 
 ---
 
@@ -159,4 +141,5 @@ warning で握り潰している）。単一ユーザかつリバースプロキ
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-002.** uv プロジェクトへの移行](archives/todo/TODO-002.%20uv%20プロジェクトへの移行.md)
 - [**TODO-001.** git リポジトリの初期化](archives/todo/TODO-001.%20git%20リポジトリの初期化.md)
