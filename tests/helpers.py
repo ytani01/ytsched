@@ -6,6 +6,7 @@
 ``webapp.WebServer`` が組み立てているのと同じ ``Application`` を、
 ``datadir`` だけ差し替えて作る。
 """
+
 import os
 import subprocess
 import sys
@@ -33,38 +34,34 @@ def make_app(datadir, days=MainHandler.DEF_DAYS):
 
     return tornado.web.Application(
         [
-            (r'/', MainHandler),
-            (r'%s' % URL_PREFIX, MainHandler),
-            (r'%s/' % URL_PREFIX, MainHandler),
-
-            (r'%s/edit' % URL_PREFIX, EditHandler),
-            (r'%s/edit/' % URL_PREFIX, EditHandler),
+            (r"/", MainHandler),
+            (r"%s" % URL_PREFIX, MainHandler),
+            (r"%s/" % URL_PREFIX, MainHandler),
+            (r"%s/edit" % URL_PREFIX, EditHandler),
+            (r"%s/edit/" % URL_PREFIX, EditHandler),
         ],
-        static_path=os.path.join(webroot, 'static'),
-        static_url_prefix=URL_PREFIX + '/static/',
-        template_path=os.path.join(webroot, 'templates'),
-
-        title='Ytsched',
-        author='Yoichi Tanibayashi',
-        version='0.0.0',
-
-        url_prefix=URL_PREFIX + '/',
-
+        static_path=os.path.join(webroot, "static"),
+        static_url_prefix=URL_PREFIX + "/static/",
+        template_path=os.path.join(webroot, "templates"),
+        title="Ytsched",
+        author="Yoichi Tanibayashi",
+        version="0.0.0",
+        url_prefix=URL_PREFIX + "/",
         datadir=datadir,
         days=days,
         sd=SchedData(datadir),
-
         debug=False,
     )
 
 
-def make_handler(app, handler_class, uri=URL_PREFIX + '/'):
+def make_handler(app, handler_class, uri=URL_PREFIX + "/"):
     """リクエストを実際に送らずに handler を作る。
 
     ``HandlerBase`` の ``load_conf()`` などを直に試すために使う。
     """
     req = tornado.httputil.HTTPServerRequest(
-        method='GET', uri=uri, connection=mock.Mock())
+        method="GET", uri=uri, connection=mock.Mock()
+    )
     return handler_class(app, req)
 
 
@@ -79,15 +76,21 @@ def run_in_c_locale(tmp_path, script, *args):
     -------
     subprocess.CompletedProcess
     """
-    script_path = tmp_path / '_c_locale_script.py'
-    script_path.write_text(script, encoding='utf-8')
+    script_path = tmp_path / "_c_locale_script.py"
+    script_path.write_text(script, encoding="utf-8")
 
-    env = dict(os.environ,
-               LC_ALL='C',
-               PYTHONUTF8='0',
-               PYTHONCOERCECLOCALE='0',
-               PYTHONPATH=os.path.dirname(os.path.abspath(__file__)))
+    env = dict(
+        os.environ,
+        LC_ALL="C",
+        PYTHONUTF8="0",
+        PYTHONCOERCECLOCALE="0",
+        PYTHONPATH=os.path.dirname(os.path.abspath(__file__)),
+    )
 
     return subprocess.run(
         [sys.executable, str(script_path)] + [str(a) for a in args],
-        capture_output=True, text=True, env=env, check=False)
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )

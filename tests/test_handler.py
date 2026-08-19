@@ -2,12 +2,13 @@
 # (c) 2026 Yoichi Tanibayashi
 #
 """HandlerBase（Conf.cgi の読み書き）と days2y_offset のテスト"""
+
 import subprocess
 import sys
 
 import pytest
-
 from helpers import make_app, make_handler, run_in_c_locale
+
 from ytsched.handler import HandlerBase
 from ytsched.main_handler import days2y_offset
 
@@ -16,7 +17,7 @@ CONF_FNAME = HandlerBase.CONF_FNAME
 
 @pytest.fixture
 def datadir(tmp_path):
-    path = tmp_path / 'data'
+    path = tmp_path / "data"
     path.mkdir()
     return path
 
@@ -30,83 +31,83 @@ def test_load_conf_no_file(datadir):
 
 def test_load_conf(datadir):
     (datadir / CONF_FNAME).write_text(
-        'ToDo_Days\t365\nFilterStr\t会議\n', encoding='utf-8')
+        "ToDo_Days\t365\nFilterStr\t会議\n", encoding="utf-8"
+    )
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == '365'
-    assert handler.get_conf(HandlerBase.CONF_KEY_FILTER_STR) == '会議'
-    assert handler.get_conf('NoSuchKey') is None
+    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "365"
+    assert handler.get_conf(HandlerBase.CONF_KEY_FILTER_STR) == "会議"
+    assert handler.get_conf("NoSuchKey") is None
 
 
 def test_save_conf_is_tab_separated(datadir):
     handler = make_handler(make_app(datadir), HandlerBase)
-    handler.set_conf(HandlerBase.CONF_KEY_SEARCH_STR, '会議')
+    handler.set_conf(HandlerBase.CONF_KEY_SEARCH_STR, "会議")
 
-    text = (datadir / CONF_FNAME).read_text(encoding='utf-8')
-    assert text == 'SearchStr\t会議\n'
+    text = (datadir / CONF_FNAME).read_text(encoding="utf-8")
+    assert text == "SearchStr\t会議\n"
 
 
 def test_conf_round_trip(datadir):
     app = make_app(datadir)
 
     handler = make_handler(app, HandlerBase)
-    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, '30')
-    handler.set_conf(HandlerBase.CONF_KEY_SEARCH_N, '5')
+    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, "30")
+    handler.set_conf(HandlerBase.CONF_KEY_SEARCH_N, "5")
 
     handler2 = make_handler(app, HandlerBase)
-    assert handler2.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == '30'
-    assert handler2.get_conf(HandlerBase.CONF_KEY_SEARCH_N) == '5'
+    assert handler2.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "30"
+    assert handler2.get_conf(HandlerBase.CONF_KEY_SEARCH_N) == "5"
 
 
 def test_set_conf_overwrite(datadir):
     app = make_app(datadir)
 
     handler = make_handler(app, HandlerBase)
-    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, '30')
-    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, '7')
+    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, "30")
+    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, "7")
 
     handler2 = make_handler(app, HandlerBase)
-    assert handler2.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == '7'
+    assert handler2.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "7"
 
 
 def test_load_conf_empty_value(datadir):
     """値が空文字列の行も読める。"""
-    (datadir / CONF_FNAME).write_text('SearchStr\t\n', encoding='utf-8')
+    (datadir / CONF_FNAME).write_text("SearchStr\t\n", encoding="utf-8")
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == ''
+    assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == ""
 
 
 def test_load_conf_empty_line(datadir):
     """空行があっても、他の行は読める。"""
-    (datadir / CONF_FNAME).write_text(
-        'ToDo_Days\t365\n\n', encoding='utf-8')
+    (datadir / CONF_FNAME).write_text("ToDo_Days\t365\n\n", encoding="utf-8")
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == '365'
+    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "365"
 
 
 def test_load_conf_line_without_tab(datadir):
     """タブの無い行があっても、他の行は読める。"""
     (datadir / CONF_FNAME).write_text(
-        'ToDo_Days\t365\nbroken\n', encoding='utf-8')
+        "ToDo_Days\t365\nbroken\n", encoding="utf-8"
+    )
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == '365'
+    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "365"
 
 
 def test_load_conf_value_with_tab(datadir):
     """値にタブが含まれる行も読める。"""
-    (datadir / CONF_FNAME).write_text(
-        'SearchStr\ta\tb\n', encoding='utf-8')
+    (datadir / CONF_FNAME).write_text("SearchStr\ta\tb\n", encoding="utf-8")
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == 'a\tb'
+    assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == "a\tb"
 
 
 C_LOCALE_CONF_SCRIPT = """\
@@ -132,7 +133,8 @@ def test_conf_is_not_locale_dependent(tmp_path, datadir):
 
     assert res.returncode == 0, res.stderr
     assert (datadir / CONF_FNAME).read_text(
-        encoding='utf-8') == 'SearchStr\t会議\n'
+        encoding="utf-8"
+    ) == "SearchStr\t会議\n"
 
 
 #
@@ -158,7 +160,10 @@ def test_days2y_offset_is_monotonic():
 def test_import_prints_nothing():
     """``import`` しただけで標準出力に何か出てはいけない。"""
     result = subprocess.run(
-        [sys.executable, '-c', 'import ytsched.main_handler'],
-        capture_output=True, text=True, check=True)
+        [sys.executable, "-c", "import ytsched.main_handler"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
 
-    assert result.stdout == ''
+    assert result.stdout == ""

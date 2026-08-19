@@ -1,0 +1,88 @@
+[tasks.upgradeapt]
+description = "upgrade apt packages"
+run = '''
+echo "# upgrade apt packages"
+export LANG=C
+sudo apt update
+sudo apt upgrade
+sudo apt autoremove -y
+'''
+alias = "upapt"
+
+[tasks.upgrademise]
+description = "upgrade mise"
+run = '''
+echo "# upgrade mise"
+export LANG=C
+mise self-update
+mise up
+'''
+alias = "upmise"
+depends = ["upgradeapt"]
+
+[tasks.upgradeuv]
+description = "upgrade uv"
+run = '''
+echo "# upgrade uv"
+export LANG=C
+uv tool upgrade --all
+'''
+alias = "upuv"
+depends = ["upgrademise"]
+
+[tasks.upgradeproject]
+description = "upgrade in this project"
+run = '''
+# upgrade this project
+
+echo "# rm -f uv.lock"
+rm -f uv.lock
+echo "# uv sync"
+uv sync
+
+echo "# pip"
+uv pip install -U -e .
+uv pip install -U --group dev -e .
+
+uv run ytsched --help
+'''
+alias = "uppj"
+# depends = ["upgradeuv"]
+
+[tasks.lint]
+description = "linting"
+run = '''
+# format and linting
+
+echo "# ruff"
+uv run ruff format --line-length 78 src tests
+uv run ruff check --fix --extend-select I  src tests
+
+echo "# basedpyright"
+uv run basedpyright src tests
+
+echo "# mypy"
+uv run mypy src tests
+
+uv run ytsched --help
+'''
+depends = ["upgradeproject"]
+
+[tasks.test]
+description = "test"
+run = '''
+uv run pytest tests
+
+uv run ytsched --help
+'''
+depends = ["lint"]
+
+[tasks.build]
+description = "build"
+run = '''
+echo "# build"
+rm -rf dist
+uv build
+uv run ytsched --help
+'''
+depends = ["test"]

@@ -1,19 +1,20 @@
-# -*- coding: utf-8 -*-
 #
 # (c) Yoichi Tanibayashi
 #
 """
 YTスケジューラ
 """
-__author__  = 'Yoichi Tanibayashi'
-__date__    = '2021/01'
 
-import os
-import shutil
-import re
-import datetime
+__author__ = "Yoichi Tanibayashi"
+__date__ = "2021/01"
+
 import collections
+import datetime
+import os
+import re
+import shutil
 import uuid
+
 from .my_logger import get_logger
 
 
@@ -29,21 +30,21 @@ def htmlstr2text(intext: str) -> str:
 
     """
     resub_tbl = {
-        r'&amp;#160;': ' ',
-        r'&gt;': '>',
-        r'&lt;': '<',
+        r"&amp;#160;": " ",
+        r"&gt;": ">",
+        r"&lt;": "<",
         # r'&amp;': '&',
-        r'&nbsp;': ' ',
-        r'&#160;': ' ',
-        r'\<BR *\/*\>': '\n'
+        r"&nbsp;": " ",
+        r"&#160;": " ",
+        r"\<BR *\/*\>": "\n",
     }
 
     outtext = intext
     # outtext = html2text.html2text(intext)
 
-    outtext = outtext.replace('&nbsp;', ' ')
-    outtext = outtext.replace('（', '(')
-    outtext = outtext.replace('）', ')')
+    outtext = outtext.replace("&nbsp;", " ")
+    outtext = outtext.replace("（", "(")
+    outtext = outtext.replace("）", ")")
 
     for k in resub_tbl:
         # outtext = outtext.replace(k, replace_tbl[k])
@@ -64,16 +65,16 @@ def text2htmlstr(intext: str) -> str:
     outtext: str
         HTML text
     """
-    outtext = intext.rstrip('\n')
+    outtext = intext.rstrip("\n")
 
-#    outtext = outtext.replace('&', '&amp;')
-#    outtext = outtext.replace('>', '&gt;')
-#    outtext = outtext.replace('<', '&lt;')
-#    outtext = outtext.replace(' ', '&nbsp;')
+    #    outtext = outtext.replace('&', '&amp;')
+    #    outtext = outtext.replace('>', '&gt;')
+    #    outtext = outtext.replace('<', '&lt;')
+    #    outtext = outtext.replace(' ', '&nbsp;')
 
-    outtext = outtext.replace('\t', ' ')
-    outtext = outtext.replace('\r', '')
-    outtext = outtext.replace('\n', '<br />')
+    outtext = outtext.replace("\t", " ")
+    outtext = outtext.replace("\r", "")
+    outtext = outtext.replace("\n", "<br />")
     return outtext
 
 
@@ -81,38 +82,52 @@ class SchedDataEnt:
     """
     スケジュール・データ・エンティティ
     """
-    TIME_NULL = ':-:'
-    TITLE_NULL = ''
 
-    TYPE_PREFIX_TODO = '□'
-    TYPE_HOLYDAY = ['休日', '祝日']
+    TIME_NULL = ":-:"
+    TITLE_NULL = ""
 
-    TITLE_PREFIX_IMPORTANT = ['(重要)', '!', '！', '★', '☆']
+    TYPE_PREFIX_TODO = "□"
+    TYPE_HOLYDAY = ["休日", "祝日"]
+
+    TITLE_PREFIX_IMPORTANT = ["(重要)", "!", "！", "★", "☆"]
     TITLE_PREFIX_CANCELED = [
-        '(キャンセル',
-        '(欠',
-        '(中止',
-        '(休',
-        '(無効',
-        '(不要',
-        'x'
+        "(キャンセル",
+        "(欠",
+        "(中止",
+        "(休",
+        "(無効",
+        "(不要",
+        "x",
     ]
 
     _mylog = get_logger(__name__, False)
 
-    def __init__(self, sde_id=None,
-                 date: datetime.date = None,
-                 time_start: datetime.time = '',
-                 time_end: datetime.time = '',
-                 sde_type='', title=TITLE_NULL, place='', detail='',
-                 debug=False):
-        """ Constructor """
+    def __init__(
+        self,
+        sde_id=None,
+        date: datetime.date = None,
+        time_start: datetime.time = "",
+        time_end: datetime.time = "",
+        sde_type="",
+        title=TITLE_NULL,
+        place="",
+        detail="",
+        debug=False,
+    ):
+        """Constructor"""
         self._dbg = debug
-        self.__class__._mylog = get_logger(self.__class__.__name__,
-                                           self._dbg)
-        self._mylog.debug('(%s)%s %s-%s [%s] %s @%s:\'%s\'',
-                          sde_id, date, time_start, time_end,
-                          sde_type, title, place, detail)
+        self.__class__._mylog = get_logger(self.__class__.__name__, self._dbg)
+        self._mylog.debug(
+            "(%s)%s %s-%s [%s] %s @%s:'%s'",
+            sde_id,
+            date,
+            time_start,
+            time_end,
+            sde_type,
+            title,
+            place,
+            detail,
+        )
 
         self.sde_id = sde_id
         self.date = date
@@ -133,23 +148,23 @@ class SchedDataEnt:
             self.sde_id = SchedDataEnt.new_id()
 
     def __str__(self):
-        """ str(self) """
-        out_str = '(%s) ' % (self.sde_id)
-        out_str += self.date.strftime('%Y/%m/%d ')
+        """str(self)"""
+        out_str = "(%s) " % (self.sde_id)
+        out_str += self.date.strftime("%Y/%m/%d ")
 
         if self.time_start:
-            out_str += self.time_start.strftime('%H:%M-')
+            out_str += self.time_start.strftime("%H:%M-")
         else:
-            out_str += ':-'
+            out_str += ":-"
 
         if self.time_end:
-            out_str += self.time_end.strftime('%H:%M ')
+            out_str += self.time_end.strftime("%H:%M ")
         else:
-            out_str += ': '
+            out_str += ": "
 
-        out_str += '[%s]' % (htmlstr2text(self.type))
-        out_str += '%s' % (htmlstr2text(self.title))
-        out_str += '@%s: ' % (htmlstr2text(self.place))
+        out_str += "[%s]" % (htmlstr2text(self.type))
+        out_str += "%s" % (htmlstr2text(self.title))
+        out_str += "@%s: " % (htmlstr2text(self.place))
         out_str += htmlstr2text(self.detail)
 
         return out_str
@@ -158,22 +173,30 @@ class SchedDataEnt:
         """
         ファイル保存用の文字列を生成
         """
-        date_str = self.date.strftime('%Y/%m/%d')
+        date_str = self.date.strftime("%Y/%m/%d")
 
-        time_start_str = ':'
+        time_start_str = ":"
         if self.time_start:
-            time_start_str = self.time_start.strftime('%H:%M')
+            time_start_str = self.time_start.strftime("%H:%M")
 
-        time_end_str = ':'
+        time_end_str = ":"
         if self.time_end:
-            time_end_str = self.time_end.strftime('%H:%M')
+            time_end_str = self.time_end.strftime("%H:%M")
 
-        time_str = time_start_str + '-' + time_end_str
+        time_str = time_start_str + "-" + time_end_str
         text_htmlstr = text2htmlstr(self.detail)
 
-        return '\t'.join([self.sde_id, date_str, time_str,
-                          self.type, self.title, self.place,
-                          text_htmlstr])
+        return "\t".join(
+            [
+                self.sde_id,
+                date_str,
+                time_str,
+                self.type,
+                self.title,
+                self.place,
+                text_htmlstr,
+            ]
+        )
 
     def search_str(self):
         """
@@ -182,16 +205,19 @@ class SchedDataEnt:
         search_str: str
 
         """
-        search_str = '#%s +%s @%s detail:%s' % (
-            self.type, self.title, self.place,
-            self.detail.replace('\n', ' '))
+        search_str = "#%s +%s @%s detail:%s" % (
+            self.type,
+            self.title,
+            self.place,
+            self.detail.replace("\n", " "),
+        )
 
         return search_str.lower()
 
     @classmethod
     def new_id(cls):
         sde_id = str(uuid.uuid4())
-        cls._mylog.debug('sde_id=%s', sde_id)
+        cls._mylog.debug("sde_id=%s", sde_id)
         return sde_id
 
     @classmethod
@@ -202,15 +228,14 @@ class SchedDataEnt:
         sde_type: str
 
         """
-        cls._mylog.debug('sde_type=%s', sde_type)
+        cls._mylog.debug("sde_type=%s", sde_type)
         if sde_type:
             return sde_type.startswith(cls.TYPE_PREFIX_TODO)
 
         return False
 
     def is_todo(self):
-        """
-        """
+        """ """
         # self._mylog.debug('')
         if self.type:
             return self.type.startswith(self.TYPE_PREFIX_TODO)
@@ -218,17 +243,15 @@ class SchedDataEnt:
         return False
 
     def is_holiday(self):
-        """
-        """
+        """ """
         # self._mylog.debug('')
-        if self.type == '':
+        if self.type == "":
             return False
         return self.type in self.TYPE_HOLYDAY
 
     def is_important(self):
-        """
-        """
-        if self.title == '':
+        """ """
+        if self.title == "":
             return False
         for start_str in self.TITLE_PREFIX_IMPORTANT:
             if self.title.lower().startswith(start_str):
@@ -237,9 +260,8 @@ class SchedDataEnt:
         return False
 
     def is_canceled(self):
-        """
-        """
-        if self.title == '':
+        """ """
+        if self.title == "":
             return False
 
         for start_str in self.TITLE_PREFIX_CANCELED:
@@ -249,18 +271,20 @@ class SchedDataEnt:
         return False
 
     def get_sortkey(self):
-        """
-        """
-        sort_key = '%02d%02d%02d %s' % (
-            self.date.year, self.date.month, self.date.day,
-            self.get_timestr())
-        if sort_key.endswith(':-:'):
+        """ """
+        sort_key = "%02d%02d%02d %s" % (
+            self.date.year,
+            self.date.month,
+            self.date.day,
+            self.get_timestr(),
+        )
+        if sort_key.endswith(":-:"):
             if self.is_holiday():
-                sort_key = sort_key.replace(':-:', '  :  -  :  ')
-            elif self.title.startswith('('):
-                sort_key = sort_key.replace(':-:', '99:99-99:99')
+                sort_key = sort_key.replace(":-:", "  :  -  :  ")
+            elif self.title.startswith("("):
+                sort_key = sort_key.replace(":-:", "99:99-99:99")
             else:
-                sort_key = sort_key.replace(':-:', '33:33-33:33')
+                sort_key = sort_key.replace(":-:", "33:33-33:33")
         # self._mylog.debug('sort_key=\'%s\'', sort_key)
         return sort_key
 
@@ -279,7 +303,7 @@ class SchedDataEnt:
         d: datetime.date
 
         """
-        self._mylog.debug('d=%s', d)
+        self._mylog.debug("d=%s", d)
 
         if d is None:
             self.date = datetime.date.today()
@@ -295,15 +319,15 @@ class SchedDataEnt:
         ':-:', ':-HH:MM', 'HH:MM-'
 
         """
-        time_start_str = ':'
+        time_start_str = ":"
         if self.time_start:
-            time_start_str = self.time_start.strftime('%H:%M')
+            time_start_str = self.time_start.strftime("%H:%M")
 
-        time_end_str = ':'
+        time_end_str = ":"
         if self.time_end:
-            time_end_str = self.time_end.strftime('%H:%M')
+            time_end_str = self.time_end.strftime("%H:%M")
 
-        time_str = '%s-%s' % (time_start_str, time_end_str)
+        time_str = "%s-%s" % (time_start_str, time_end_str)
 
         return time_str
 
@@ -312,15 +336,17 @@ class SchedDataFile:
     """
     スケジュール・データ・ファイル
     """
-    DEF_TOP_DIR = '~/ytsched/data'
-    PATH_FORMAT = '%s/%04s/%02s/%02s.cgi'
-    TODO_PATH_FORMAT = '%s/ToDo.cgi'
 
-    BACKUP_EXT = '.bak'
-    ENCODE = ['utf-8', 'euc_jp']
+    DEF_TOP_DIR = "~/ytsched/data"
+    PATH_FORMAT = "%s/%04s/%02s/%02s.cgi"
+    TODO_PATH_FORMAT = "%s/ToDo.cgi"
 
-    def __init__(self, date: datetime.date = None, topdir=DEF_TOP_DIR,
-                 debug=False):
+    BACKUP_EXT = ".bak"
+    ENCODE = ["utf-8", "euc_jp"]
+
+    def __init__(
+        self, date: datetime.date = None, topdir=DEF_TOP_DIR, debug=False
+    ):
         """
         date: datetime.date
             None: ToDo
@@ -329,29 +355,32 @@ class SchedDataFile:
         """
         self._dbg = debug
         self._mylog = get_logger(__class__.__name__, self._dbg)
-        self._mylog.debug('date=%s, topdir=%s', date, topdir)
+        self._mylog.debug("date=%s, topdir=%s", date, topdir)
 
         self.date = date
         self.topdir = os.path.expanduser(topdir)
 
         self.pathname = self.date2path(self.date, self.topdir)
 
-        pl = self.pathname.split('/')
+        pl = self.pathname.split("/")
         self.filename = pl.pop()
-        self.dirname  = '/'.join(pl)
+        self.dirname = "/".join(pl)
 
         self.is_holiday = False
         self.sde = self.load()
 
     def __str__(self):
-        """ __str__ """
-        out_str = 'file:%s, sde:%s, holiday:%s' % (
-            self.pathname, len(self.sde), self.is_holiday)
+        """__str__"""
+        out_str = "file:%s, sde:%s, holiday:%s" % (
+            self.pathname,
+            len(self.sde),
+            self.is_holiday,
+        )
         return out_str
 
-    def date2path(self,
-                  date: datetime.date = None,
-                  topdir: str = DEF_TOP_DIR) -> str:
+    def date2path(
+        self, date: datetime.date = None, topdir: str = DEF_TOP_DIR
+    ) -> str:
         """
         Parameters
         ----------
@@ -363,10 +392,12 @@ class SchedDataFile:
 
         """
         if date:
-            pathname = self.PATH_FORMAT % (topdir,
-                                           date.strftime('%Y'),
-                                           date.strftime('%m'),
-                                           date.strftime('%d'))
+            pathname = self.PATH_FORMAT % (
+                topdir,
+                date.strftime("%Y"),
+                date.strftime("%m"),
+                date.strftime("%d"),
+            )
         else:
             pathname = self.TODO_PATH_FORMAT % (topdir)
 
@@ -394,63 +425,71 @@ class SchedDataFile:
                     ok = True
                     break
             except FileNotFoundError:
-                self._mylog.debug('%s: not found .. ignored',
-                                  self.pathname)
+                self._mylog.debug("%s: not found .. ignored", self.pathname)
                 return []
             except UnicodeDecodeError:
-                self._mylog.debug('%s: decode error .. try next ..', enc)
+                self._mylog.debug("%s: decode error .. try next ..", enc)
 
         if not ok:
-            self._mylog.warning('%s: invalid encoding', self.pathname)
+            self._mylog.warning("%s: invalid encoding", self.pathname)
             return []
 
         # self._mylog.debug('lines=%s', lines)
         out = []
         for l in lines:
-            d = [htmlstr2text(d1) for d1 in l.split('\t')]
+            d = [htmlstr2text(d1) for d1 in l.split("\t")]
             if len(d) < 7:
                 # 項目が足りない行は、空文字で埋めて読む。
                 # 行末の改行が最終項目に残らないようにする
-                d[-1] = d[-1].rstrip('\n')
-                d += [''] * (7 - len(d))
+                d[-1] = d[-1].rstrip("\n")
+                d += [""] * (7 - len(d))
 
             d = d[:7]
             # self._mylog.debug('d=%s', d)
 
-            date1 = d[1].split('/')
-            date2 = datetime.date(int(date1[0]),
-                                  int(date1[1]),
-                                  int(date1[2]))
+            date1 = d[1].split("/")
+            date2 = datetime.date(int(date1[0]), int(date1[1]), int(date1[2]))
 
-            time1 = d[2].split('-')
+            time1 = d[2].split("-")
             if len(time1) < 2:
                 # `-` が無い時刻欄は、開始・終了とも空として扱う
-                time1 = ['', '']
+                time1 = ["", ""]
 
-            time_start1 = time1[0].split(':')
+            time_start1 = time1[0].split(":")
             # self._mylog.debug('time_start1=%s', time_start1)
 
-            time_end1 = time1[1].split(':')
+            time_end1 = time1[1].split(":")
             # self._mylog.debug('time_end1=%s', time_end1)
 
             if time_start1[0]:
                 time_start2 = datetime.time(
-                    int(time_start1[0]) % 24, int(time_start1[1]) % 60)
+                    int(time_start1[0]) % 24, int(time_start1[1]) % 60
+                )
             else:
-                time_start2 = ''
+                time_start2 = ""
 
             if time_end1[0]:
                 time_end2 = datetime.time(
-                    int(time_end1[0]) % 24, int(time_end1[1]) % 60)
+                    int(time_end1[0]) % 24, int(time_end1[1]) % 60
+                )
             else:
-                time_end2 = ''
+                time_end2 = ""
 
-            sde = SchedDataEnt(d[0], date2, time_start2, time_end2,
-                               d[3], d[4], d[5], d[6], debug=self._dbg)
+            sde = SchedDataEnt(
+                d[0],
+                date2,
+                time_start2,
+                time_end2,
+                d[3],
+                d[4],
+                d[5],
+                d[6],
+                debug=self._dbg,
+            )
             if not self.is_holiday:
                 self.is_holiday = sde.is_holiday()
                 if self.is_holiday:
-                    self._mylog.debug('is_holiday=%s', self.is_holiday)
+                    self._mylog.debug("is_holiday=%s", self.is_holiday)
 
             out.append(sde)
 
@@ -470,21 +509,22 @@ class SchedDataFile:
         空のファイルをバックアップしないのは、``.bak`` にしか残って
         いないデータを空で上書きしないため。
         """
-        self._mylog.debug('')
+        self._mylog.debug("")
 
-        if os.path.exists(self.pathname) \
-           and os.path.getsize(self.pathname) > 0:
+        if (
+            os.path.exists(self.pathname)
+            and os.path.getsize(self.pathname) > 0
+        ):
             backup_pathname = self.pathname + self.BACKUP_EXT
             shutil.move(self.pathname, backup_pathname)
 
         os.makedirs(os.path.dirname(self.pathname), exist_ok=True)
 
         # 読み込み時の第一候補(utf-8)で書く
-        with open(self.pathname, mode='w',
-                  encoding=self.ENCODE[0]) as f:
+        with open(self.pathname, mode="w", encoding=self.ENCODE[0]) as f:
             for sde in self.sde:
                 line = sde.mk_dataline()
-                f.write(line + '\n')
+                f.write(line + "\n")
 
     def add_sde(self, sde: SchedDataEnt) -> None:
         """
@@ -493,7 +533,7 @@ class SchedDataFile:
         sde: SchedDataEnt
 
         """
-        self._mylog.debug('sde=%s', sde)
+        self._mylog.debug("sde=%s", sde)
         self.sde.append(sde)
         self.sde = sorted(self.sde, key=lambda x: x.get_sortkey())
 
@@ -504,15 +544,15 @@ class SchedDataFile:
         sde_id: str
 
         """
-        self._mylog.debug('sde_id=%s', sde_id)
+        self._mylog.debug("sde_id=%s", sde_id)
         for sde in self.sde:
             if sde.sde_id == sde_id:
-                self._mylog.debug('DEL:%s', sde)
+                self._mylog.debug("DEL:%s", sde)
                 self.sde.remove(sde)
                 break
 
         for sde in self.sde:
-            self._mylog.debug('%s', sde)
+            self._mylog.debug("%s", sde)
 
     def get_sde(self, sde_id: str = None) -> SchedDataEnt:
         """
@@ -525,7 +565,7 @@ class SchedDataFile:
         sde: SchedDataEnt
 
         """
-        self._mylog.debug('sde_id=%s', sde_id)
+        self._mylog.debug("sde_id=%s", sde_id)
 
         for sde in self.sde:
             if sde_id == sde.sde_id:
@@ -535,7 +575,7 @@ class SchedDataFile:
 
 
 class SchedData:
-    """ スケジュール・データ
+    """スケジュール・データ
 
     SchedDataFile をキャッシングする
 
@@ -549,16 +589,19 @@ class SchedData:
     sdf1, sf2, ..    : SchedDataFile
 
     """
+
     DEF_CACHE_SIZE = 20000
     CACHE_DISCARD_RATE = 0.1
 
     _mylog = get_logger(__name__, False)
 
-    def __init__(self,
-                 topdir: str = SchedDataFile.DEF_TOP_DIR,
-                 cache_size: int = DEF_CACHE_SIZE,
-                 debug=False):
-        """ Constructor
+    def __init__(
+        self,
+        topdir: str = SchedDataFile.DEF_TOP_DIR,
+        cache_size: int = DEF_CACHE_SIZE,
+        debug=False,
+    ):
+        """Constructor
         Parameters
         ----------
         cache_size: int
@@ -566,17 +609,21 @@ class SchedData:
         """
         self._dbg = debug
         self._mylog = get_logger(self.__class__.__name__, self._dbg)
-        self._mylog.debug('cache_size=%s, topdir=%s', cache_size, topdir)
+        self._mylog.debug("cache_size=%s, topdir=%s", cache_size, topdir)
 
         self._cache_size = cache_size
         self._topdir = topdir
 
-        self._sdf_cache = collections.OrderedDict()
+        self._sdf_cache: collections.OrderedDict[
+            datetime.date, SchedDataFile
+        ] = collections.OrderedDict()
 
     def __str__(self):
-        """ __str__ """
-        out_str = 'topdir:%s, cache_size:%s' % (
-            self._topdir, len(self._sdf_cache))
+        """__str__"""
+        out_str = "topdir:%s, cache_size:%s" % (
+            self._topdir,
+            len(self._sdf_cache),
+        )
         return out_str
 
     def get_keys(self):
@@ -584,11 +631,11 @@ class SchedData:
         Returns
         -------
         date_list: list of str ['2021-01-01', '2021-01-02', .. ]
-        
+
         """
         date_list = []
         for k in self._sdf_cache.keys():
-            date_list.append('%s' % k)
+            date_list.append("%s" % k)
 
         return date_list
 
@@ -619,27 +666,27 @@ class SchedData:
             self._sdf_cache[date] = sdf
             # self._mylog.debug('_sdf.keys=%s', self.get_keys())
         except KeyError:
-            self._mylog.debug('cache miss: date=%s', date)
+            self._mylog.debug("cache miss: date=%s", date)
 
             if self.get_cache_size() >= self._cache_size:
-                discard_size = int(
-                    self._cache_size * self.CACHE_DISCARD_RATE)
+                discard_size = int(self._cache_size * self.CACHE_DISCARD_RATE)
                 for i in range(discard_size):
-                    sdf = self._sdf_cache.popitem(last=False)
+                    _discarded = self._sdf_cache.popitem(last=False)
                     # self._mylog.debug('discard[%s/%s]: date=%s',
-                    #                   i + 1, discard_size, sdf[0])
+                    #                   i + 1, discard_size, _discarded[0])
 
             sdf = SchedDataFile(date, self._topdir, debug=self._dbg)
             self._sdf_cache[date] = sdf
             # self._mylog.debug('_sdf.keys=%s', self.get_keys())
 
         # if not sdf.sde:
-            # self._mylog.warning('%s sdf.sde=%s', date, sdf.sde)
+        # self._mylog.warning('%s sdf.sde=%s', date, sdf.sde)
 
         return sdf
 
-    def get_sde(self, date: datetime.date = None, sde_id: str = ''
-                ) -> SchedDataEnt:
+    def get_sde(
+        self, date: datetime.date = None, sde_id: str = ""
+    ) -> SchedDataEnt:
         """
         Parameters
         ----------
@@ -655,31 +702,30 @@ class SchedData:
         sde: SchedDataEnt
 
         """
-        self._mylog.debug('date=%s, sde_id=%s', date, sde_id)
+        self._mylog.debug("date=%s, sde_id=%s", date, sde_id)
 
         sdf = self.get_sdf(date)
         sde = sdf.get_sde(sde_id)
-        self._mylog.debug('sde=%s', sde)
+        self._mylog.debug("sde=%s", sde)
         return sde
 
-    def add_sde(self,
-                date: datetime.date = None,
-                sde: SchedDataEnt = None) -> None:
+    def add_sde(
+        self, date: datetime.date = None, sde: SchedDataEnt = None
+    ) -> None:
         """
         Parameters
         ----------
         sde: SchedDataEnt
 
         """
-        self._mylog.debug('date=%s, sde=%s', date, sde)
+        self._mylog.debug("date=%s, sde=%s", date, sde)
 
         sdf = self.get_sdf(date)
         sdf.add_sde(sde)
         sdf.save()
 
-    def del_sde(self, date: datetime.date = None, sde_id: str = ''
-                ) -> None:
-        """ del_sde
+    def del_sde(self, date: datetime.date = None, sde_id: str = "") -> None:
+        """del_sde
 
         Parameters
         ----------
@@ -690,7 +736,7 @@ class SchedData:
         sde_id: str
 
         """
-        self._mylog.debug('date=%s, sde_id=%s', date, sde_id)
+        self._mylog.debug("date=%s, sde_id=%s", date, sde_id)
 
         sdf = self.get_sdf(date)
         sdf.del_sde(sde_id)

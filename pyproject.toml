@@ -28,9 +28,34 @@ packages = ["src/ytsched"]
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.39.10",
+    "mypy>=2.3.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "ruff>=0.16.3",
 ]
+
+[tool.mypy]
+python_version = "3.14"
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "click,tornado,tornado.*,pytest,pytest.*"
+ignore_missing_imports = true
+follow_untyped_imports = true
 
 # [tool.pytest.ini_options]
 # addopts = "-v --cov=ytsched --cov-report=term-missing --cov-branch"
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+reportMissingSuperCall = false
+reportPossiblyUnboundVariable = "none"
+reportMissingImports = "none"
+reportOptionalCall = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportDuplicateImport = "warning"
+reportUnreachable = "warning"
+reportDeprecated = "warning"
+useLibraryCodeForTypes = true

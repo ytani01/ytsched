@@ -1,27 +1,15 @@
 # TODO
 
-**残っている項目: TODO-004、TODO-006〜TODO-010、TODO-012、TODO-015。**
-これまでに 7 件を決着させた。
+**残っている項目: TODO-006〜TODO-010、TODO-012、TODO-015。**
+これまでに 8 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-016` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
-進める順序は依存関係で決めてある（TODO-005 が済んだので、TODO-006 に
+進める順序は依存関係で決めてある（TODO-004 が済んだので、TODO-006 に
 進める）。着手する項目は利用者が指定する。
-
----
-
-## TODO-004. lint・型チェックと mise タスク
-
-見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
-
-- [ ] ruff / mypy / basedpyright を dev 依存に追加
-- [ ] `mise.toml`（`upgradeproject` → `lint` → `test` → `build`）
-- [ ] 行長 78 で整形
-
-`tmr` と同じ構成に揃える。
 
 ---
 
@@ -126,6 +114,7 @@ TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-004.** lint・型チェックと mise タスク](archives/todo/TODO-004.%20lint・型チェックと%20mise%20タスク.md)
 - [**TODO-014.** サブエージェントの報告ファイル名](archives/todo/TODO-014.%20サブエージェントの報告ファイル名.md)
 - [**TODO-005.** 明らかなバグの修正](archives/todo/TODO-005.%20明らかなバグの修正.md)
 - [**TODO-003.** pytest によるテスト整備](archives/todo/TODO-003.%20pytest%20によるテスト整備.md)

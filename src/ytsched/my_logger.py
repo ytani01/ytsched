@@ -4,18 +4,18 @@
 """
 my_logger.py
 """
-__author__ = 'Yoichi Tanibayashi'
-__date__ = '2021'
+
+__author__ = "Yoichi Tanibayashi"
+__date__ = "2021"
 
 import inspect
-from logging import getLogger, StreamHandler, Formatter
-from logging import DEBUG, INFO
+from logging import DEBUG, INFO, Formatter, StreamHandler, getLogger
+
 # from logging import NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-FMT_HDR = '%(asctime)s %(levelname)s '
-FMT_LOC = '%(name)s.%(funcName)s:%(lineno)d> '
-HANDLER_FMT = Formatter(FMT_HDR + FMT_LOC + '%(message)s',
-                        datefmt='%H:%M:%S')
+FMT_HDR = "%(asctime)s %(levelname)s "
+FMT_LOC = "%(name)s.%(funcName)s:%(lineno)d> "
+HANDLER_FMT = Formatter(FMT_HDR + FMT_LOC + "%(message)s", datefmt="%H:%M:%S")
 
 CONSOLE_HANDLER = StreamHandler()
 CONSOLE_HANDLER.setFormatter(HANDLER_FMT)
@@ -26,8 +26,8 @@ def get_logger(name, dbg=False):
     """
     get logger
     """
-    filename = inspect.stack()[1].filename.split('/')[-1]
-    name = filename + '.' + name
+    filename = inspect.stack()[1].filename.split("/")[-1]
+    name = filename + "." + name
     logger = getLogger(name)
     logger.propagate = False
     logger.addHandler(CONSOLE_HANDLER)
@@ -47,4 +47,4 @@ def get_logger(name, dbg=False):
         logger.setLevel(dbg)
         return logger
 
-    raise ValueError('invalid `dbg` value: %s' % (dbg))
+    raise ValueError("invalid `dbg` value: %s" % (dbg))
