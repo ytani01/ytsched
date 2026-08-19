@@ -14,7 +14,7 @@
 
 ## TODO-003. pytest によるテスト整備
 
-見込み: Opus 5 / effort high（サブエージェント編成を検討）
+見込み: main = Opus 5 / effort high、担当 = implementer + verifier + reviewer
 
 - [ ] `tests/` を作る
 - [ ] `SchedDataEnt` / `SchedDataFile` / `SchedData` のユニットテスト
@@ -22,13 +22,14 @@
 - [ ] `pytest-cov`
 
 テストが 1 つも無い。**現状の挙動を固定してから** TODO-005・TODO-006 の
-修正に進む。着手時にサブエージェントの分担案を示す。
+修正に進む。`reviewer` を入れるのは、テストが現状の挙動を正しく写して
+いるか（バグごと固定していないか）を見るため。
 
 ---
 
 ## TODO-004. lint・型チェックと mise タスク
 
-見込み: Sonnet 5 / effort medium（サブエージェントなし）
+見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
 
 - [ ] ruff / mypy / basedpyright を dev 依存に追加
 - [ ] `mise.toml`（`upgradeproject` → `lint` → `test` → `build`）
@@ -40,7 +41,7 @@
 
 ## TODO-005. 明らかなバグの修正
 
-見込み: Opus 5 / effort medium（サブエージェントなし）
+見込み: main = Opus 5 / effort medium、担当 = implementer + verifier + reviewer
 
 - [ ] `SchedDataEnt.set_time()` の `'02d' % t1[0]`（`%` 抜けで必ず TypeError）
 - [ ] `SchedDataEnt.__init__` の既定値 `date=datetime.date.today()`
@@ -61,7 +62,7 @@ TODO-003 のテストが通る状態を保ったまま直す。
 
 ## TODO-006. 型ヒントの整備
 
-見込み: Opus 5 / effort medium（サブエージェントなし）
+見込み: main = Opus 5 / effort medium、担当 = implementer + verifier + reviewer
 
 - [ ] `time_start: datetime.time = ''` → `datetime.time | None`
 - [ ] `-> (datetime.date, str)` → `tuple[datetime.date, str]`
@@ -73,7 +74,7 @@ TODO-003 のテストが通る状態を保ったまま直す。
 
 ## TODO-007. loguru への移行
 
-見込み: Sonnet 5 / effort medium（サブエージェントなし）
+見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
 
 - [ ] `my_logger.py` を廃止
 - [ ] `tmr` と同じ `__log = getLogger(__qualname__)` 規約に揃える
@@ -82,7 +83,7 @@ TODO-003 のテストが通る状態を保ったまま直す。
 
 ## TODO-008. uv tool install 方式へ
 
-見込み: Sonnet 5 / effort medium（サブエージェントなし）
+見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
 
 - [ ] `install.sh` と `Ytsched.src` を廃止
 - [ ] 起動スクリプトの扱いを決める
@@ -94,27 +95,30 @@ TODO-003 のテストが通る状態を保ったまま直す。
 
 ## TODO-009. README の更新
 
-見込み: Sonnet 5 / effort low（サブエージェントなし）
+見込み: main = Sonnet 5 / effort low、担当 = writer + verifier
 
 - [ ] 「Install: TBD」を書く
 - [ ] 「使用環境」を Python 3.14 / uv に直す
 - [ ] 「課題・問題点」を見直す
 
+`verifier` には、README に書いたコマンドが実際に動くかを確かめさせる。
+
 ---
 
 ## TODO-010. CLAUDE.md の作成
 
-見込み: Opus 5 / effort medium（サブエージェントなし）
+見込み: main = Opus 5 / effort medium、担当 = verifier
 
 - [ ] 移行後の構成・コマンド・設計の勘所をまとめる
 
-移行が一通り済んでから書く。
+移行が一通り済んでから書く。全体を把握している main が書き、
+`verifier` に「書いた内容が実物と合っているか」を確かめさせる。
 
 ---
 
 ## TODO-012. `autoescape None` と正規表現入力の扱い（判断）
 
-見込み: Opus 5 / effort medium（サブエージェントなし）
+見込み: main = Opus 5 / effort medium、担当 = main のみ
 
 - [ ] どこまで対処するか決める
 
@@ -128,12 +132,13 @@ warning で握り潰している）。単一ユーザかつリバースプロキ
 
 ## TODO-013. サブエージェントの常設定義と運用の見直し
 
-見込み: Opus 5 / effort high（サブエージェントなし）
-担当: main のみ。**定義そのものを作る項目なので分担しない**
+見込み: main = Opus 5 / effort high、担当 = main のみ
+（定義そのものを作る項目なので分担しない）
 
-- [ ] `.claude/agents/` に常設の定義を 4 つ置く
+- [x] `.claude/agents/` に常設の定義を 4 つ置く
       （`implementer` / `verifier` / `reviewer` / `writer`）
-- [ ] `~/.claude/CLAUDE.md` の 4 点を直す
+- [x] `~/.claude/CLAUDE.md` の運用を直す
+- [x] 残っている各項目の `見込み:` 行に担当を書く
 - [ ] Claude Code を再起動し、定義が読まれることを確認する
 
 TODO-002 をサブエージェントで実施して分かったことを反映する。
@@ -150,15 +155,21 @@ TODO-002 をサブエージェントで実施して分かったことを反映�
 3. プロジェクトの前提（データ形式、`tmr` に揃える、シェルのエイリアス）を
    定義に持たせれば、依頼のたびに書き写さなくて済む。書き写しの漏れも防げる
 
-`CLAUDE.md` で直すのは次の 4 点。
+`CLAUDE.md` で直すのは次の 5 点。
 
 - `.claude/agents/*.md` を archives へ**移さない**（使い回すため）。
-  定義は git 管理下に残し、archives には分担と理由だけ書く
+  定義は git 管理下に残し、archives には分担と理由と報告を残す
 - 「規模の大きい項目は編成する」→ **確認担当は規模によらず立てる。**
-  実装担当を分けるかを規模で決める
-- 分担は**項目を立てるときに決めて項目へ書く**。着手時の分担確認は不要にする
+  実装担当を分けるかを規模で決める。決めるだけの項目は例外
+- **`見込み:` `実施:` の行に、main のモデル・effort と担当を書く。**
+  `見込み: main = Opus 5 / effort high、担当 = implementer + verifier` の形。
+  担当のモデルと effort は定義ファイル側にあるので書かない
+- 分担は**項目を立てるときに決める**。着手時の分担確認は不要にする
 - **報告はファイル、返事は要点のみ**という指示を定型にする
   （置き場所は `archives/agents/TODO-NNN/`）
+
+**決着済みの項目（`archives/todo/`）の `見込み:` `実施:` 行は書き換えない。**
+そのときの記録なので、古い形式のまま残す。
 
 `.claude/agents/` は Claude Code の起動時にしか読まれないので、
 **置いたら再起動が要る。** 再起動するのは利用者。
