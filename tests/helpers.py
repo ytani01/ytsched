@@ -7,6 +7,8 @@
 ``datadir`` だけ差し替えて作る。
 """
 import os
+import subprocess
+import sys
 from unittest import mock
 
 import tornado.httputil
@@ -24,7 +26,7 @@ def make_app(datadir, days=MainHandler.DEF_DAYS):
     """テスト用の ``tornado.web.Application`` を作る。
 
     ``autoreload`` は付けない（テストでは邪魔になるため。
-    ``webapp.py`` 側の ``autoreload=True`` は TODO-005 の範囲）。
+    ``webapp.py`` 側は ``debug`` のときだけ有効になる）。
     """
     datadir = str(datadir)
     webroot = WebServer.DEF_WEBROOT
@@ -64,3 +66,28 @@ def make_handler(app, handler_class, uri=URL_PREFIX + '/'):
     req = tornado.httputil.HTTPServerRequest(
         method='GET', uri=uri, connection=mock.Mock())
     return handler_class(app, req)
+
+
+def run_in_c_locale(tmp_path, script, *args):
+    """ASCII ロケール（``LC_ALL=C``）で Python スクリプトを実行する。
+
+    ``open()`` に ``encoding=`` が無いとロケール依存になるので、
+    日本語の読み書きがロケールに依らないことを確かめるために使う。
+    UTF-8 モードと、C ロケールの自動置き換え（C.UTF-8）は無効にする。
+
+    Returns
+    -------
+    subprocess.CompletedProcess
+    """
+    script_path = tmp_path / '_c_locale_script.py'
+    script_path.write_text(script, encoding='utf-8')
+
+    env = dict(os.environ,
+               LC_ALL='C',
+               PYTHONUTF8='0',
+               PYTHONCOERCECLOCALE='0',
+               PYTHONPATH=os.path.dirname(os.path.abspath(__file__)))
+
+    return subprocess.run(
+        [sys.executable, str(script_path)] + [str(a) for a in args],
+        capture_output=True, text=True, env=env, check=False)

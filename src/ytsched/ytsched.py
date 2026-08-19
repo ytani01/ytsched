@@ -8,12 +8,12 @@ YTスケジューラ
 __author__  = 'Yoichi Tanibayashi'
 __date__    = '2021/01'
 
-import time
 import os
 import shutil
 import re
 import datetime
 import collections
+import uuid
 from .my_logger import get_logger
 
 
@@ -33,7 +33,7 @@ def htmlstr2text(intext: str) -> str:
         r'&gt;': '>',
         r'&lt;': '<',
         # r'&amp;': '&',
-        r'&nbsp:': ' ',
+        r'&nbsp;': ' ',
         r'&#160;': ' ',
         r'\<BR *\/*\>': '\n'
     }
@@ -101,7 +101,7 @@ class SchedDataEnt:
     _mylog = get_logger(__name__, False)
 
     def __init__(self, sde_id=None,
-                 date: datetime.date = datetime.date.today(),
+                 date: datetime.date = None,
                  time_start: datetime.time = '',
                  time_end: datetime.time = '',
                  sde_type='', title=TITLE_NULL, place='', detail='',
@@ -116,6 +116,9 @@ class SchedDataEnt:
 
         self.sde_id = sde_id
         self.date = date
+        if self.date is None:
+            self.date = datetime.date.today()
+
         self.time_start = time_start
         self.time_end = time_end
         self.type = sde_type
@@ -187,7 +190,7 @@ class SchedDataEnt:
 
     @classmethod
     def new_id(cls):
-        sde_id = str(time.time()).replace('.', '-')
+        sde_id = str(uuid.uuid4())
         cls._mylog.debug('sde_id=%s', sde_id)
         return sde_id
 
@@ -304,31 +307,6 @@ class SchedDataEnt:
 
         return time_str
 
-    def set_time(self, t1=None, t2=None):
-        """
-        Parameters
-        ----------
-        t1: (hour1, minute1)
-        t2: (hour2, minute2)
-        """
-        self._mylog.debug('t1=%s, t2=%s', t1, t2)
-
-        if t1 is None or len(t1) < 2:
-            h1 = ''
-            m1 = ''
-        else:
-            h1 = '02d' % t1[0]
-            m1 = '02d' % t1[1]
-
-        if t2 is None or len(t2) < 2:
-            h2 = ''
-            m2 = ''
-        else:
-            h2 = '02d' % t2[0]
-            m2 = '02d' % t2[1]
-
-        self.time = '%s:%s-%s:%s' % (h1, m1, h2, m2)
-
 
 class SchedDataFile:
     """
@@ -430,6 +408,13 @@ class SchedDataFile:
         out = []
         for l in lines:
             d = [htmlstr2text(d1) for d1 in l.split('\t')]
+            if len(d) < 7:
+                # 項目が足りない行は、空文字で埋めて読む。
+                # 行末の改行が最終項目に残らないようにする
+                d[-1] = d[-1].rstrip('\n')
+                d += [''] * (7 - len(d))
+
+            d = d[:7]
             # self._mylog.debug('d=%s', d)
 
             date1 = d[1].split('/')
@@ -438,6 +423,9 @@ class SchedDataFile:
                                   int(date1[2]))
 
             time1 = d[2].split('-')
+            if len(time1) < 2:
+                # `-` が無い時刻欄は、開始・終了とも空として扱う
+                time1 = ['', '']
 
             time_start1 = time1[0].split(':')
             # self._mylog.debug('time_start1=%s', time_start1)
@@ -476,21 +464,27 @@ class SchedDataFile:
         Notes
         -----
         全て上書きされる。
-        ファイルが存在する場合は、バックアップされる。
+        ファイルが存在し、空でない場合は、バックアップされる。
+
+        スケジュールが 1 件も無い場合は、空のファイルを書く。
+        空のファイルをバックアップしないのは、``.bak`` にしか残って
+        いないデータを空で上書きしないため。
         """
         self._mylog.debug('')
 
-        if os.path.exists(self.pathname):
+        if os.path.exists(self.pathname) \
+           and os.path.getsize(self.pathname) > 0:
             backup_pathname = self.pathname + self.BACKUP_EXT
             shutil.move(self.pathname, backup_pathname)
 
         os.makedirs(os.path.dirname(self.pathname), exist_ok=True)
 
-        if self.sde:
-            with open(self.pathname, mode='w') as f:
-                for sde in self.sde:
-                    line = sde.mk_dataline()
-                    f.write(line + '\n')
+        # 読み込み時の第一候補(utf-8)で書く
+        with open(self.pathname, mode='w',
+                  encoding=self.ENCODE[0]) as f:
+            for sde in self.sde:
+                line = sde.mk_dataline()
+                f.write(line + '\n')
 
     def add_sde(self, sde: SchedDataEnt) -> None:
         """
@@ -625,7 +619,7 @@ class SchedData:
             self._sdf_cache[date] = sdf
             # self._mylog.debug('_sdf.keys=%s', self.get_keys())
         except KeyError:
-            self._mylog.warning('cache miss: date=%s', date)
+            self._mylog.debug('cache miss: date=%s', date)
 
             if self.get_cache_size() >= self._cache_size:
                 discard_size = int(

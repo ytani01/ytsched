@@ -3,12 +3,14 @@
 #
 """MainHandler / EditHandler のテスト（tornado.testing）"""
 import datetime
+from unittest import mock
 from urllib.parse import urlencode
 
 import pytest
 import tornado.testing
 
 from helpers import URL_PREFIX, make_app
+from ytsched.main_handler import MainHandler
 
 DATE1 = datetime.date(2021, 3, 1)
 DATE1_STR = '2021-03-01'
@@ -55,6 +57,10 @@ class WebTestBase(tornado.testing.AsyncHTTPTestCase):
     def data_path(self, date):
         return (self.datadir / date.strftime('%Y')
                 / date.strftime('%m') / (date.strftime('%d') + '.cgi'))
+
+    def backup_path(self, date):
+        path = self.data_path(date)
+        return path.parent / (path.name + '.bak')
 
     def get_body(self, path, **args):
         """GET して、200 を確かめて、本文を返す。"""
@@ -342,10 +348,80 @@ class TestUpdate(WebTestBase):
                        orig_date=DATE1_STR, date=DATE1_STR,
                        sde_type='会議', title='新しい予定')
 
-        assert not self.data_path(DATE1).exists()
+        # 空になってもデータファイルは残る
+        assert self.data_path(DATE1).read_text(encoding='utf-8') == ''
 
         body = self.get_body(URL_PREFIX + '/', date=DATE1_STR)
         assert '新しい予定' not in body
+
+    def test_update_keeps_backup(self):
+        """1 件しか予定が無い日を編集しても、``.bak`` が空にならない。
+
+        ``cmd=update`` は 1 リクエストで ``save()`` が 2 回走る。
+        2 回目は 0 バイトのファイルを ``.bak`` へ移してはいけない。
+        """
+        sde_id = self.add_sde()
+
+        self.post_body(URL_PREFIX + '/',
+                       cmd='update', sde_id=sde_id,
+                       orig_date=DATE1_STR, date=DATE1_STR,
+                       time_start='09:05', time_end='10:30',
+                       sde_type='会議', title='変更後', place='会議室',
+                       detail='詳細')
+
+        assert '変更後' in self.data_path(DATE1).read_text(
+            encoding='utf-8')
+        assert '新しい予定' in self.backup_path(DATE1).read_text(
+            encoding='utf-8')
+
+    def test_del_twice_keeps_backup(self):
+        """``cmd=del`` が 2 回走っても、``.bak`` が空にならない。
+
+        削除後の画面をリロードすると POST が再送される。
+        """
+        sde_id = self.add_sde()
+
+        for _ in range(2):
+            self.post_body(URL_PREFIX + '/',
+                           cmd='del', sde_id=sde_id,
+                           orig_date=DATE1_STR, date=DATE1_STR,
+                           sde_type='会議', title='新しい予定')
+
+        assert self.data_path(DATE1).read_text(encoding='utf-8') == ''
+        assert '新しい予定' in self.backup_path(DATE1).read_text(
+            encoding='utf-8')
+
+    def test_update_clears_search_str(self):
+        """``cmd=update`` 経由でも、検索がクリアされる。"""
+        sde_id = self.add_sde()
+        self.get_body(URL_PREFIX + '/',
+                      date=DATE1_STR, search_str='会議')
+
+        self.post_body(URL_PREFIX + '/',
+                       cmd='update', sde_id=sde_id,
+                       orig_date=DATE1_STR, date=DATE1_STR,
+                       sde_type='会議', title='新しい予定',
+                       search_str='')
+
+        conf = (self.datadir / 'Conf.cgi').read_text(encoding='utf-8')
+        assert 'SearchStr\t\n' in conf
+
+    def test_update_search_str_is_lowered(self):
+        """``cmd=update`` 経由でも、検索語が小文字になる。
+
+        edit 画面に渡る値を、``render()`` の引数で見る。
+        """
+        sde_id = self.add_sde()
+
+        with mock.patch.object(MainHandler, 'render') as render:
+            self.post_body(URL_PREFIX + '/',
+                           cmd='update', sde_id=sde_id,
+                           orig_date=DATE1_STR, date=DATE1_STR,
+                           sde_type='会議', title='新しい予定',
+                           search_str='ABC')
+
+        assert render.call_args.args[0] == MainHandler.HTML_EDIT
+        assert render.call_args.kwargs['search_str'] == 'abc'
 
     def test_todo_done(self):
         """ToDo を完了（種別を ToDo から外す）と、今日の予定になる。"""

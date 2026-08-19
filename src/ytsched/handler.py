@@ -16,6 +16,7 @@ from .my_logger import get_logger
 class HandlerBase(tornado.web.RequestHandler):
     """ HandlerBase """
     CONF_FNAME = 'Conf.cgi'
+    CONF_ENCODE = 'utf-8'
     CONF_KEY_TODO_DAYS = 'ToDo_Days'
     CONF_KEY_FILTER_STR = 'FilterStr'
     CONF_KEY_SEARCH_STR = 'SearchStr'
@@ -26,6 +27,8 @@ class HandlerBase(tornado.web.RequestHandler):
 
     def __init__(self, app, req):
         """ Constructor """
+        super().__init__(app, req)
+
         self._dbg = app.settings.get('debug')
         self._mylog = get_logger(self.__class__.__name__, self._dbg)
         self._mylog.debug('debug=%s', self._dbg)
@@ -61,8 +64,6 @@ class HandlerBase(tornado.web.RequestHandler):
 
         self._conf = self.load_conf()
 
-        super().__init__(app, req)
-
     def load_conf(self):
         """
         """
@@ -71,18 +72,25 @@ class HandlerBase(tornado.web.RequestHandler):
         conf = {}
 
         try:
-            with open(self._conf_file) as f:
+            with open(self._conf_file, encoding=self.CONF_ENCODE) as f:
                 lines = f.readlines()
         except FileNotFoundError:
             return conf
 
         for line in lines:
-            if line:
-                self._mylog.debug('line=%s', line)
-                (param, value) = line.split('\t', maxsplit=2)
-                value = value.rstrip('\n')
-                self._mylog.debug('%a,%a.', param, value)
-                conf[param] = value
+            line = line.rstrip('\n')
+            if not line:
+                continue
+
+            self._mylog.debug('line=%s', line)
+
+            if '\t' not in line:
+                self._mylog.warning('%a: no tab .. ignored', line)
+                continue
+
+            (param, value) = line.split('\t', maxsplit=1)
+            self._mylog.debug('%a,%a.', param, value)
+            conf[param] = value
 
         return conf
 
@@ -91,7 +99,8 @@ class HandlerBase(tornado.web.RequestHandler):
         """
         self._mylog.debug('')
 
-        with open(self._conf_file, mode='w') as f:
+        with open(self._conf_file, mode='w',
+                  encoding=self.CONF_ENCODE) as f:
             for p in self._conf:
                 f.write('%s\t%s\n' % (p, self._conf[p]))
 

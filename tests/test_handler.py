@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from helpers import make_app, make_handler
+from helpers import make_app, make_handler, run_in_c_locale
 from ytsched.handler import HandlerBase
 from ytsched.main_handler import days2y_offset
 
@@ -79,13 +79,8 @@ def test_load_conf_empty_value(datadir):
     assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == ''
 
 
-@pytest.mark.xfail(reason='TODO-005 で直す', strict=True)
 def test_load_conf_empty_line(datadir):
-    """空行があっても、他の行は読める。
-
-    ``if line:`` は ``'\n'`` を真と判定するので、空行でも
-    ``split('\t')`` されて ``ValueError`` になる。
-    """
+    """空行があっても、他の行は読める。"""
     (datadir / CONF_FNAME).write_text(
         'ToDo_Days\t365\n\n', encoding='utf-8')
 
@@ -94,7 +89,6 @@ def test_load_conf_empty_line(datadir):
     assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == '365'
 
 
-@pytest.mark.xfail(reason='TODO-005 で直す', strict=True)
 def test_load_conf_line_without_tab(datadir):
     """タブの無い行があっても、他の行は読める。"""
     (datadir / CONF_FNAME).write_text(
@@ -103,6 +97,42 @@ def test_load_conf_line_without_tab(datadir):
     handler = make_handler(make_app(datadir), HandlerBase)
 
     assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == '365'
+
+
+def test_load_conf_value_with_tab(datadir):
+    """値にタブが含まれる行も読める。"""
+    (datadir / CONF_FNAME).write_text(
+        'SearchStr\ta\tb\n', encoding='utf-8')
+
+    handler = make_handler(make_app(datadir), HandlerBase)
+
+    assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == 'a\tb'
+
+
+C_LOCALE_CONF_SCRIPT = """\
+import sys
+
+from helpers import make_app, make_handler
+from ytsched.handler import HandlerBase
+
+datadir = sys.argv[1]
+
+handler = make_handler(make_app(datadir), HandlerBase)
+handler.set_conf(HandlerBase.CONF_KEY_SEARCH_STR, '会議')
+
+handler2 = make_handler(make_app(datadir), HandlerBase)
+value = handler2.get_conf(HandlerBase.CONF_KEY_SEARCH_STR)
+assert value == '会議', value
+"""
+
+
+def test_conf_is_not_locale_dependent(tmp_path, datadir):
+    """``LC_ALL=C`` でも、日本語の設定を保存・読み込みできる。"""
+    res = run_in_c_locale(tmp_path, C_LOCALE_CONF_SCRIPT, datadir)
+
+    assert res.returncode == 0, res.stderr
+    assert (datadir / CONF_FNAME).read_text(
+        encoding='utf-8') == 'SearchStr\t会議\n'
 
 
 #
@@ -125,7 +155,6 @@ def test_days2y_offset_is_monotonic():
 #
 # import 時の副作用
 #
-@pytest.mark.xfail(reason='TODO-005 で直す', strict=True)
 def test_import_prints_nothing():
     """``import`` しただけで標準出力に何か出てはいけない。"""
     result = subprocess.run(

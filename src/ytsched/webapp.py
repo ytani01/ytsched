@@ -80,10 +80,7 @@ class WebServer:
             print('%s %s by %s' % (PROG_NAME, VERSION, AUTHOR))
             sys.exit(0)
 
-        try:
-            os.makedirs(self._datadir, exist_ok=True)
-        except Exception as ex:
-            raise ex
+        os.makedirs(self._datadir, exist_ok=True)
 
         self._app = tornado.web.Application(
             [
@@ -98,7 +95,7 @@ class WebServer:
             static_url_prefix=self.URL_PREFIX + '/static/',
             template_path=os.path.join(self._webroot, "templates"),
 
-            autoreload=True,
+            autoreload=self._dbg,
 
             title=PROG_NAME,
             author=AUTHOR,

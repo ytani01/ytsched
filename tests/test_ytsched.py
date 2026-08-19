@@ -1,17 +1,15 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""ytsched.ytsched のユニットテスト
-
-現状の挙動を固定する。TODO-005 で直すバグは、あるべき挙動を assert して
-``xfail(strict=True)`` を付けてある。
-"""
+"""ytsched.ytsched のユニットテスト"""
 import datetime
 import inspect
+import uuid
 from unittest import mock
 
 import pytest
 
+from helpers import run_in_c_locale
 from ytsched.ytsched import (
     SchedData,
     SchedDataEnt,
@@ -46,7 +44,7 @@ def mk_sde(**kwargs):
     ('a&amp;#160;b', 'a b'),
     ('a&gt;b', 'a>b'),
     ('a&lt;b', 'a<b'),
-    ('a&nbsp:b', 'a b'),
+    ('a&NBSP;b', 'a b'),
     ('a&#160;b', 'a b'),
     ('a&nbsp;b', 'a b'),
     ('（かっこ）', '(かっこ)'),
@@ -101,6 +99,13 @@ def test_sde_init_id_is_generated():
 def test_new_id_is_unique():
     ids = [SchedDataEnt.new_id() for _ in range(100)]
     assert len(set(ids)) == len(ids)
+
+
+def test_new_id_is_uuid():
+    """``sde_id`` は uuid4。"""
+    sde_id = SchedDataEnt.new_id()
+    assert str(uuid.UUID(sde_id)) == sde_id
+    assert uuid.UUID(sde_id).version == 4
 
 
 def test_new_id_has_no_tab_and_no_dot():
@@ -261,32 +266,16 @@ def test_is_canceled(title, expected):
     assert mk_sde(title=title).is_canceled() is expected
 
 
-def test_set_time_is_dead_code():
-    """``set_time()`` は死にコード。
-
-    ``src/`` のどこからも呼ばれておらず、設定する ``self.time`` も
-    読まれない。``'02d' % t1[0]`` の書き損じで、時刻を渡すと必ず
-    ``TypeError`` になる。**TODO-005 で丸ごと削除する**ので、
-    消したらこのテストも消すこと（このテストが落ちて気づく）。
-    """
-    assert hasattr(SchedDataEnt, 'set_time')
-
-    # 時刻を渡すと落ちる
-    with pytest.raises(TypeError):
-        mk_sde().set_time((9, 5), (10, 30))
-
-    # 渡さないときだけは通り、`self.time` に文字列を残す
-    sde = mk_sde()
-    sde.set_time(None, None)
-    assert sde.time == SchedDataEnt.TIME_NULL
-
-
-@pytest.mark.xfail(reason='TODO-005 で直す', strict=True)
 def test_sde_init_date_default_is_not_fixed():
-    """``date`` の既定値が import 時の日付に固定されている。"""
+    """``date`` の既定値が import 時の日付に固定されていない。"""
     default = inspect.signature(
         SchedDataEnt.__init__).parameters['date'].default
     assert not isinstance(default, datetime.date)
+
+
+def test_sde_init_date_none_is_today():
+    """``date=None`` は今日の日付になる。"""
+    assert mk_sde(date=None).date == datetime.date.today()
 
 
 #
@@ -398,6 +387,56 @@ def test_load_hour_and_minute_are_normalized(tmp_path):
     assert sde.time_end == datetime.time(10, 10)
 
 
+def test_load_short_line(tmp_path):
+    """項目が足りない行も読める（足りない分は空文字）。"""
+    line = '\t'.join(['id-1', '2021/03/01', '09:05-10:30', '予定'])
+    write_data(tmp_path, DATE1, [line])
+
+    sde = SchedDataFile(DATE1, topdir=str(tmp_path)).sde[0]
+
+    assert sde.sde_id == 'id-1'
+    assert sde.time_start == datetime.time(9, 5)
+    assert sde.type == '予定'
+    assert sde.title == ''
+    assert sde.place == ''
+    assert sde.detail == ''
+
+
+def test_load_short_line_is_not_lost(tmp_path):
+    """項目が足りない行も、保存し直したときに消えない。"""
+    line = '\t'.join(['id-1', '2021/03/01', '09:05-10:30', '予定'])
+    write_data(tmp_path, DATE1, [line])
+
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.save()
+
+    assert [s.sde_id
+            for s in SchedDataFile(DATE1, topdir=str(tmp_path)).sde
+            ] == ['id-1']
+
+
+def test_load_time_without_hyphen(tmp_path):
+    """時刻欄に ``-`` が無い行も読める（開始・終了とも空）。"""
+    line = DATALINE1.replace('09:05-10:30', '09:05')
+    write_data(tmp_path, DATE1, [line])
+
+    sde = SchedDataFile(DATE1, topdir=str(tmp_path)).sde[0]
+
+    assert not sde.time_start
+    assert not sde.time_end
+
+
+def test_load_empty_time_field(tmp_path):
+    """時刻欄が空の行も読める。"""
+    line = DATALINE1.replace('09:05-10:30', '')
+    write_data(tmp_path, DATE1, [line])
+
+    sde = SchedDataFile(DATE1, topdir=str(tmp_path)).sde[0]
+
+    assert not sde.time_start
+    assert not sde.time_end
+
+
 def test_save_and_load_round_trip(tmp_path):
     """保存して読み直すと、同じ内容になる。"""
     sde = mk_sde(detail='a\nb')
@@ -453,20 +492,46 @@ def test_save_makes_backup(tmp_path):
     assert len(path.read_text(encoding='utf-8').splitlines()) == 2
 
 
-def test_save_empty_removes_file(tmp_path):
-    """空になったら、``.bak`` へ退避したままファイルは作られない。
-
-    最後の 1 件を消すとデータファイルごと無くなる。``.bak`` は残るので
-    中身は失われず、意図的な作りに見えるため現状のまま固定した。
-    仕様として違うなら、TODO-005 とは別に項目が要る。
-    """
+def test_save_empty_writes_empty_file(tmp_path):
+    """空になっても、ファイルは空で書かれる（消さない）。"""
     path = write_data(tmp_path, DATE1, [DATALINE1])
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
     sdf.del_sde('id-1')
     sdf.save()
 
-    assert not path.exists()
-    assert (path.parent / (path.name + SchedDataFile.BACKUP_EXT)).exists()
+    assert path.exists()
+    assert path.read_text(encoding='utf-8') == ''
+
+    backup = path.parent / (path.name + SchedDataFile.BACKUP_EXT)
+    assert backup.read_text(encoding='utf-8') == DATALINE1 + '\n'
+
+
+def test_save_empty_keeps_backup(tmp_path):
+    """空のファイルは ``.bak`` へ退避しない。
+
+    退避してしまうと、``.bak`` にしか残っていないデータを空で
+    上書きしてしまう。
+    """
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.del_sde('id-1')
+
+    sdf.save()  # 1 回目: 元データが `.bak` へ移る
+    sdf.save()  # 2 回目: 空のファイルは移さない
+
+    backup = path.parent / (path.name + SchedDataFile.BACKUP_EXT)
+    assert backup.read_text(encoding='utf-8') == DATALINE1 + '\n'
+    assert path.read_text(encoding='utf-8') == ''
+
+
+def test_save_empty_and_load(tmp_path):
+    """空のファイルは、そのまま読み直せる。"""
+    write_data(tmp_path, DATE1, [DATALINE1])
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.del_sde('id-1')
+    sdf.save()
+
+    assert SchedDataFile(DATE1, topdir=str(tmp_path)).sde == []
 
 
 def test_add_sde_is_sorted(tmp_path):
@@ -502,6 +567,32 @@ def test_get_sde(tmp_path):
 
     assert sdf.get_sde('id-1') is sde
     assert sdf.get_sde('id-x') is None
+
+
+C_LOCALE_SAVE_SCRIPT = """\
+import datetime
+import sys
+
+from ytsched.ytsched import SchedDataEnt, SchedDataFile
+
+topdir = sys.argv[1]
+
+sdf = SchedDataFile(datetime.date(2021, 3, 1), topdir=topdir)
+sdf.add_sde(SchedDataEnt('id-1', datetime.date(2021, 3, 1),
+                         None, None, '予定', 'タイトル', '場所', '詳細'))
+sdf.save()
+"""
+
+
+def test_save_is_not_locale_dependent(tmp_path):
+    """``LC_ALL=C`` でも日本語を保存できる。"""
+    topdir = tmp_path / 'data'
+
+    res = run_in_c_locale(tmp_path, C_LOCALE_SAVE_SCRIPT, topdir)
+
+    assert res.returncode == 0, res.stderr
+    assert (topdir / '2021/03/01.cgi').read_text(
+        encoding='utf-8').split('\t')[4] == 'タイトル'
 
 
 #
@@ -578,10 +669,11 @@ def test_sched_data_del_sde(tmp_path):
     sd.del_sde(DATE1, 'id-1')
 
     assert sd.get_sde(DATE1, 'id-1') is None
-    assert not (tmp_path / '2021/03/01.cgi').exists()
+    # 空になってもファイルは残る
+    assert (tmp_path / '2021/03/01.cgi').read_text(
+        encoding='utf-8') == ''
 
 
-@pytest.mark.xfail(reason='TODO-005 で直す', strict=True)
 def test_get_sdf_cache_miss_is_not_warning(tmp_path):
     """正常系のキャッシュミスで warning を出さない。"""
     sd = SchedData(str(tmp_path))

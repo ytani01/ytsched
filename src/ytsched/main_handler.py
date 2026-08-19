@@ -42,7 +42,6 @@ def days2y_offset(days: float) -> int:
 
 DAYS_YEAR = 31 + 28.25 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
 DAYS_MONTH = DAYS_YEAR / 12
-print('DAYS_YEAR=%s, DAYS_MONTH=%s' % (DAYS_YEAR, DAYS_MONTH))
 
 GAGE = [
     {'label': '-30y', 'y_offset': days2y_offset(-DAYS_YEAR * 30)},
@@ -101,14 +100,13 @@ class MainHandler(HandlerBase):
         self._mylog.debug('request=%s', self.request)
         self._mylog.debug('request.path=%s', self.request.path)
 
-        modified_sde_id = self.get_argument('sde_id', '')
-
         #
         # search_str
         #
         search_str0 = self.get_conf(self.CONF_KEY_SEARCH_STR)
         search_str = self.get_argument('search_str', None)
-        if search_str:
+        self._mylog.debug('search_str=\'%s\'', search_str)
+        if search_str is not None:
             if search_str != search_str0:
                 self.set_conf(self.CONF_KEY_SEARCH_STR, search_str)
             else:
@@ -116,10 +114,10 @@ class MainHandler(HandlerBase):
 
         elif search_str0:
             search_str = search_str0
-
         else:
             search_str = ''
 
+        search_str = search_str.lower()
         self._mylog.debug('search_str=\'%s\'', search_str)
 
         #
@@ -247,26 +245,6 @@ class MainHandler(HandlerBase):
         self._mylog.debug('filter_str=%a', filter_str)
 
         #
-        # search_str
-        #
-        search_str0 = self.get_conf(self.CONF_KEY_SEARCH_STR)
-        search_str = self.get_argument('search_str', None)
-        self._mylog.debug('search_str=\'%s\'', search_str)
-        if search_str is not None:
-            if search_str != search_str0:
-                self.set_conf(self.CONF_KEY_SEARCH_STR, search_str)
-            else:
-                pass
-
-        elif search_str0:
-            search_str = search_str0
-        else:
-            search_str = ''
-
-        search_str = search_str.lower()
-        self._mylog.debug('search_str=\'%s\'', search_str)
-
-        #
         # search_n
         #
         search_n_str0 = self.get_conf(self.CONF_KEY_SEARCH_N)
@@ -391,9 +369,6 @@ class MainHandler(HandlerBase):
                         continue
 
                 if search_str:
-                    if sde.date == datetime.date(2021, 3, 1):
-                        self._mylog.debug('sde.search_str()=%s',
-                                          sde.search_str())
                     try:
                         if not re.search(search_str, sde.search_str()):
                             continue

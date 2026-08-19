@@ -52,7 +52,12 @@ def test_datadir_is_expanded(tmp_path, monkeypatch):
         tmp_path / 'ytsched_test/data')
 
 
-@pytest.mark.xfail(reason='TODO-005 で直す', strict=True)
 def test_autoreload_is_not_forced(svr):
-    """``autoreload`` が ``True`` に固定されている。"""
+    """``autoreload`` は固定でなく、``debug`` のときだけ有効になる。"""
     assert not svr._app.settings.get('autoreload')
+
+
+def test_autoreload_with_debug(tmp_path):
+    svr = WebServer(datadir=str(tmp_path / 'data'), debug=True)
+
+    assert svr._app.settings.get('autoreload') is True
