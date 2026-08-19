@@ -25,3 +25,12 @@ source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ytsched"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+
+# [tool.pytest.ini_options]
+# addopts = "-v --cov=ytsched --cov-report=term-missing --cov-branch"
