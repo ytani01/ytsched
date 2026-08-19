@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# (c) 2021 Yoichi Tanibayashi
+#
+
+MY_PKG="%%% MY_PKG %%%"
+
+VENVDIR="%%% VENVDIR %%%"
+DATADIR="%%% DATADIR %%%"
+WEBROOT="%%% WEBROOT %%%"
+
+#
+# main
+#
+if [ x$VIRTUAL_ENV != x$VENVDIR ]; then
+    ACTIVATE=$VENVDIR/bin/activate
+    if [ -f $ACTIVATE ]; then
+        . $ACTIVATE
+    else
+        echo
+        echo "ERROR(venv): can not activate python3 Virtualenv"
+        echo
+        exit 1
+    fi
+fi
+echo "(VIRTUAL_ENV=$VIRTUAL_ENV)"
+echo
+
+SUBCMD=$1
+shift
+if [ x$SUBCMD = xwebapp ]; then
+    exec python -m $MY_PKG $SUBCMD \
+         --datadir $DATADIR --webroot $WEBROOT $*
+fi
+
+if [ x$SUBCMD = xdata ]; then
+    exec python -m $MY_PKG $SUBCMD \
+         --datadir $DATADIR $*
+fi
+    
+exec python -m $MY_PKG $*
+
+
+### Local Variables: ***
+### mode:shell-script ***
+### End: ***

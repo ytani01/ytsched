@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% set orig_date = sde.date %}
+{% set deadline_date = '' %}
+{% set deadline_time_start = '' %}
+{% set deadline_time_end = '' %}
+
+{% if sde.is_todo() %}
+  {% set orig_date = None %}
+  {% set deadline_date = sde.date %}
+
+  {% if sde.time_start %}
+    {% set deadline_time_start = sde.time_start.strftime('%H:%M') %}
+  {% end %}
+
+  {% if sde.time_end %}
+    {% set deadline_time_end = sde.time_end.strftime('%H:%M') %}
+  {% end %}
+{% end %}
+
+<header>
+  <script>
+    const wdayList = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    const mkInput = (cmd) => {
+        const input = document.createElement("input");
+        input.setAttribute("type", "hidden");
+        input.setAttribute("name", "cmd");
+        input.setAttribute("value", cmd);
+        return input;
+    };
+
+    let busyFlag = false;
+
+    /**
+     * 不要？
+     */
+    const clearBusyFlag = () => {
+        busyFlag = false;
+    };
+
+    const submitCmd = (cmd) => {
+        if ( busyFlag ) {
+            return;
+        }
+        busyFlag = true;
+        // setTimeout(clearBusyFlag,30000);
+        console.log(`cmd=${cmd}`);
+        const form = document.forms["input_form"];
+        form.appendChild(mkInput(cmd));
+        loadingSpinner(true);
+        form.submit();
+    };
+
+    const update_wday = (el_date) => {
+        if ( el_date === undefined ) {
+            el_date = document.getElementById("date");
+        }
+        const d1 = new Date(el_date.value);
+
+        const el_wday = document.getElementById("wday");
+        el_wday.innerHTML = wdayList[d1.getDay()];
+    };
+
+    const setElDate = (date_value, el_date) => {
+        let d1 = new Date(); // today
+        if ( date_value ) {
+            d1 = new Date(date_value);
+        }
+        if ( el_date === undefined ) {
+            el_date = document.getElementById("date");
+        }
+        el_date.value = d1.toISOString().replace(/T.*$/, '');
+
+        update_wday(el_date);
+    };
+
+    const changeElDate = (d, el_date) => {
+        if ( el_date === undefined ) {
+            el_date = document.getElementById("date");
+        }
+        let d1 = new Date(el_date.value);
+        d1.setDate(d1.getDate() + d);
+
+        setElDate(d1, el_date);
+    };
+
+    const changeDetailHeight = () => {
+      const el_detail = document.getElementById("detail");
+      const detail_y = el_detail.parentElement.offsetTop;
+
+      const el_id = document.getElementById("div_id");
+      const id_h = el_id.offsetHeight;
+
+      const win_h = document.documentElement.clientHeight
+      const detail_h = win_h - detail_y - id_h - 7 - 150;
+      if (detail_h < 100) {
+            detail_h = 100;
+      }
+
+      el_detail.style.height = `${detail_h}px`;
+    };
+
+    window.addEventListener('load', function() {
+      changeDetailHeight();
+    });
+    /*
+    window.addEventListener('resize', function() {
+      changeDetailHeight();
+    });
+    */
+    window.addEventListener('rotationchange', function() {
+      changeDetailHeight();
+    });
+
+    const onloadHdr = (event) => {
+      elLoadingSpinner = document.getElementById("loadingSpinner");
+      loadingSpinner(false);
+    };      
+
+    window.addEventListener('load', onloadHdr);
+  </script>
+  
+  <div id="menu" name="menu"
+       class="container-fluid p-0 fixed-bottom my-bar">
+    <div class="row p-0 m-1">
+
+      <!--
+      <div class="col-2 text-center my-btn"
+           onmousedown="history.back();">
+        <i class="fas fa-reply fa-2x" ></i>
+      </div>
+      -->
+
+      <div class="col-2 text-center my-btn"
+           onmousedown="submitCmd('update');">
+        <i class="fas fa-sync fa-2x"></i>
+      </div><!-- col -->
+
+      <div class="col-2 text-center my-btn"
+           onmousedown="submitCmd('fix');">
+        <i class="fas fa-check-square fa-2x"></i>
+      </div><!-- col -->
+
+      {% if new_flag %}
+      <div class="col-2 text-center">
+      </div><!-- col -->
+      {% else %}
+      <div class="col-2 text-center my-btn"
+           onmousedown="submitCmd('add');">
+        <i class="fas fa-clone fa-2x"></i>
+      </div><!-- col -->
+      {% end %}
+
+      <div class="col-4">
+      </div>
+      
+      <div class="col-2 text-center my-btn"
+           onmousedown="submitCmd('del');">
+        <i class="fas fa-trash-alt fa-2x"></i>
+      </div><!-- col -->
+
+    </div><!-- row -->
+  </div><!-- container -->
+</header>
+<main style="background-color: #FFF; padding-bottom: 45px;">
+  <div id="loadingSpinner"
+       style="position: fixed;
+              left: 50%; bottom: 55%; transform: translate(-50%, 50%);
+              opacity: 0.3;
+              z-index: 1000;">
+    <!-- <i class="fas fa-sync fa-9x fa-spin"></i> -->
+    <i class="fas fa-spinner fa-9x fa-spin"></i>
+  </div>
+  <form id="input_form" name="input_form"
+        action="{{ post_url }}" method="POST">
+
+    {% if orig_date %}
+    <input id="orig_date" name="orig_date"
+           type="hidden" value="{{ orig_date }}" />
+    {% end %}
+
+    {% if deadline_date %}
+    <input id="deadline_date" name="deadline_date"
+           type="hidden" value="{{ deadline_date }}" />
+    {% end %}
+    
+    {% if deadline_time_start %}
+    <input id="deadline_time_start" name="deadline_time_start"
+           type="hidden" value="{{ deadline_time_start }}" />
+    {% end %}
+
+    {% if deadline_time_end %}
+    <input id="deadline_time_end" name="deadline_time_end"
+           type="hidden" value="{{ deadline_time_end }}" />
+    {% end %}
+
+    {% if search_str %}
+    <input id="sde_align" name="sde_align"
+           type="hidden" value="bottom" />
+    {% else %}
+    <input id="sde_align" name="sde_align"
+           type="hidden" value="top" />
+    {% end %}
+
+    <div class="container-fluid"
+         style="background-color: #EEE;">
+      <!-- 日付 -->
+      <div class="row p-1" style="font-size: large">
+        <div class="col-1 p-0 text-center my-btn">
+          <i class="far fa-arrow-alt-circle-up fa-lg"
+             style="vertical-align: bottom;"
+             onmousedown="changeElDate(-1);"></i>
+        </div>
+        <div class="col-1 p-0 text-center my-btn">
+          <i class="far fa-dot-circle fa-lg"
+             style="vertical-align: bottom;"
+             onmousedown="setElDate();"></i>
+        </div>
+        <div class="col-1 p-0 text-center my-btn">
+          <i class="far fa-arrow-alt-circle-down fa-lg"
+             style="vertical-align: bottom;"
+             onmousedown="changeElDate(1);"></i>
+        </div>
+
+        <div class="col-9 p-1 text-left">
+          <input id="date" name="date"
+                 type="date" value="{{ sde.date }}"
+                 onchange="update_wday();" />
+          (<span id="wday" style="font-size: small;">
+            {{ date.strftime('%a') }}</span>)
+        </div><!-- col -->
+      </div><!-- row -->
+
+      <!-- 時刻 -->
+      {% set time_start_str = '' %}
+      {% set time_end_str = '' %}
+      
+      {% if sde.time_start %}
+      {% set time_start_str = str(sde.time_start) %}
+      {% end %}
+
+      {% if sde.time_end %}
+      {% set time_end_str = str(sde.time_end) %}
+      {% end %}
+      <div class="row p-1" style="font-size: large">
+        <div class="col">
+          <input id="time_start" name="time_start"
+                 style="width: 100px;"
+                 type="time" value="{{ time_start_str }}" />
+          ～
+          <input id="time_end" name="time_end"
+                 style="width: 100px;"
+                 type="time" value="{{ time_end_str }}" />
+        </div><!-- col -->
+      </div><!-- row -->
+
+      <!-- Type -->
+      <div class="row">
+        <div class="col" style="font-size: large;">
+          <span style="font-size: x-large; font-width: bold;">【</span>
+          <input id="sde_type" name="sde_type"
+                 type="text" value="{{ sde.type }}"
+                 style="width:70%;" />
+          <span style="font-size: x-large; font-width: bold">】</span>
+        </div><!-- col -->
+      </div><!-- row -->
+
+      <!-- タイトル -->
+      <div class="row" style="font-size: large;">
+        <div class="col">
+          <input id="title" name="title" style="width: 100%;"
+                 type="text" value="{{ sde.title }}" />
+        </div><!-- col -->
+      </div><!-- row -->
+
+      <!-- 場所 -->
+      <div class="row" style="font-size: large;">
+        <div class="col">
+          <span style="font-size: large">@</span>
+          <input id="place" name="place" style="width: 93.5%;"
+                 type="text" value="{{ sde.place }}" size="30" />
+        </div><!-- col -->
+      </div><!-- row -->
+
+      <!-- 詳細 -->
+      <div id="div_detail" class="row p-0" style="font-size: large;">
+        <div class="col p-0">
+          <textarea id="detail" name="detail" style="width: 100%;"
+                    onchange="submitCmd('update');">
+            {{ sde.detail }}</textarea>
+        </div><!-- col -->
+      </div><!-- row -->
+
+      <!-- ID -->
+      <div id="div_id" class="row text-right" style="font-size: x-small"
+           onmousedown="">
+        <div class="col p-0">
+          <input id="sde_id" name="sde_id" size="15"
+                 type="text" value="{{ sde.sde_id }}" readonly>
+        </div><!-- col -->
+      </div><!-- row -->
+
+    </div><!-- container -->
+  </form>
+</main>
+{% end %}

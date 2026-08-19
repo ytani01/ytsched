@@ -1,0 +1,151 @@
+<!--
+{% set sde_count = sde_count + 1 %}
+{% set url = url_prefix + 'edit/' %}
+
+{% set bg_color = '#FFF' %}
+{% if sde.is_holiday() %}
+  {% set bg_color = '#FAA' %}
+{% end %}
+
+{% set orig_date = sched_date %}
+
+{% set sw_id = 'sw%s-%s' % (sde.sde_id, today_flag) %}
+
+{% if sde.is_todo() %}
+  {% set orig_date = None %}
+
+  {% set bg_color = '#FFE' %}
+  {% if sde.date < today %}
+    {% set bg_color = '#EEB' %}
+  {% elif sde.date <= today + delta_day1 * 7 %}
+    {% set bg_color = '#FFC' %}
+  {% end %}
+{% end %}
+
+{% set time_start = '' %}
+{% if sde.time_start %}
+  {% set time_start = sde.time_start.strftime('%H:%M') %}
+{% end %}
+
+{% set time_end = '' %}
+{% if sde.time_end %}
+  {% set time_end = '-' + sde.time_end.strftime('%H:%M') %}
+{% end %}
+
+{% set sde_type = '' %}
+{% if sde.type %}
+  {% if sde.is_todo() %}
+    {% if len(sde.type) > 1 %}
+      {% set sde_type = '[' + sde.type[1:] + ']' %}
+    {% end %}
+  {% else %}
+    {% set sde_type = '[' + sde.type + ']' %}
+  {% end %}
+{% end %}
+
+{% set sde_title = '__' %}
+{% if sde.title %}
+  {% set sde_title = sde.title %}
+{% end %}
+
+{% set detail = sde.detail.rstrip('\n') %}
+
+-->
+<input id="sde_id" name="sde_id"
+       type="hidden" value="{{ sde.sde_id }}" />
+
+{% if sde.is_canceled() %}
+<del>
+{% end %}
+
+{% set class_blink = '' %}
+{% if sde.sde_id == modified_sde_id %}
+  {% set class_blink = 'blink' %}
+{% end %}
+
+<div class="container-fluid p-0 border {{ class_blink }}"
+     style="font-size: 0;
+            background-color: {{ bg_color }};
+            border-radius: 0px 15px 15px 10px;">
+    <div class="row m-0">
+      {% if not sde.is_todo() %}
+      <div class="col-1 p-0 text-left"
+           style="font-size:xx-small;
+                  font-weight:bold;
+                  line-height: 12px">
+        {{ time_start }}<br/>{{ time_end }}
+      </div>
+      {% else %}
+      <div class="col-1 p-1 text-center">
+        <i class="far fa-square"
+           style="font-size: small;"></i>
+      </div>
+      {% end %}<!-- if not todo -->
+      <div class="col-11 p-0 my-btn"
+           onmousedown="doPost('{{ url }}',
+                    {
+                    orig_date: '{{ orig_date }}',
+                    date:'{{ sched_date }}',
+                    sde_id: '{{ sde.sde_id }}',
+                    todo_flag: {{ str(sde.is_todo()).lower() }},
+                    cur_date: '{{ date }}',
+                    date_from: '{{ date_from }}',
+                    date_to: '{{ date_to }}',
+                    search_str: '{{ search_str }}',
+                    });">
+        {% if sde.is_todo() %}
+          {% if sde.date != sched_date %}
+            {% set sde_date = str(sde.date).replace('-', '/') %}
+        <span style="font-size:xx-small;
+                     font-weight:bold;
+                     display:inline-flex;
+                     vertical-align:top;
+                     line-height:12px">
+          {{ sde_date[0:4] }}<br />{{ sde_date[5:] }}
+        </span>
+          {% end %}
+
+        <span style="font-size:xx-small;
+                     font-weight:bold;
+                     display:inline-flex;
+                     vertical-align:top;
+                     line-height:12px">
+          {{ time_start }}<br />{{ time_end }}
+        </span>
+        {% end %}
+
+        {% set type_font="font-size: small; font-weight: normal" %}
+        {% set title_font="font-size: medium; font-weight: normal" %}
+        {% if sde.is_important() %}
+          {% set type_font="font-size: small; font-weight: bold" %}
+          {% set title_font="font-size: medium; font-weight: bold" %}
+        {% end %}
+        <span style="{{ type_font }}">{{ sde_type }}</span>
+        <span style="{{ title_font }}">{{ sde_title }}</span>
+        {% if sde.place %}
+        <span style="font-size: small;">
+          @{{ sde.place }}
+        </span>
+        {% end %}
+      </div>
+    </div>
+    {% if detail %}
+    <div class="row m-0">
+      <input id="{{ sw_id }}"
+             type="checkbox"
+             class="longtext-sw"
+             style="display: none;">
+      <div class="col-1 p-0 m-0 text-center my-btn longtext-sw-label"
+           style="font-size: small; line-height: 10px;">
+        <label class="m-1" for="{{ sw_id }}">
+          <i class="fas fa-angle-down fa-lg"></i>
+        </label>
+      </div>
+      <div class="col-11 p-0 longtext" tabindex="0"
+           style="font-size: x-small;">{{ detail }}</div>
+    </div>
+    {% end %}
+</div><!-- container -->
+{% if sde.is_canceled() %}
+</del>
+{% end %}
