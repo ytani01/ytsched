@@ -1,35 +1,15 @@
 # TODO
 
-**残っている項目: TODO-008〜TODO-010、TODO-012、TODO-015、TODO-016。**
-これまでに 10 件を決着させた。
+**残っている項目: TODO-009、TODO-010、TODO-012、TODO-015、TODO-016。**
+これまでに 11 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-017` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
-進める順序は依存関係で決めてある（TODO-007 が済んだので、TODO-008 に
+進める順序は依存関係で決めてある（TODO-008 が済んだので、TODO-009 に
 進める）。着手する項目は利用者が指定する。
-
----
-
-## TODO-008. uv tool install 方式へ
-
-見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
-
-- [ ] `install.sh` と `Ytsched.src` を廃止
-- [ ] `uv tool install` での手順を確認
-- [ ] 常駐させるための systemd --user のユニット例をまとめる
-      （README への記載は TODO-009）
-
-データディレクトリは `~/ytsched/data` のまま。
-
-**起動スクリプト（`~/bin/Ytsched`）は廃止すると決めた**（2026-08-20）。
-`uv tool install` で入る `ytsched webapp --datadir ~/ytsched/data` を直接
-使い、常駐は systemd --user のユニット例を README に載せる
-（ユニットファイル自体はリポジトリに同梱しない。ポートや datadir は
-環境ごとに違うため）。`install.sh` が help に書いている
-`boot-Ytsched.sh` は、実際には生成されていない。
 
 ---
 
@@ -160,6 +140,7 @@ TODO-007（loguru への移行）で消えている。
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-008.** uv tool install 方式へ](archives/todo/TODO-008.%20uv%20tool%20install%20方式へ.md)
 - [**TODO-007.** loguru への移行](archives/todo/TODO-007.%20loguru%20への移行.md)
 - [**TODO-006.** 型ヒントの整備](archives/todo/TODO-006.%20型ヒントの整備.md)
 - [**TODO-004.** lint・型チェックと mise タスク](archives/todo/TODO-004.%20lint・型チェックと%20mise%20タスク.md)
