@@ -10,25 +10,25 @@ import datetime
 import click
 
 from . import MainHandler, SchedDataFile, WebServer, __prog_name__
-from .my_logger import get_logger
+from .mylog import getLogger, loggerInit
 
 __author__ = "Yoichi Tanibayashi"
 __date__ = "2021/01"
 
+_log = getLogger("main")
+
 
 class DataFileApp:
-    def __init__(self, yyyy, mm, dd, topdir="", debug=False):
-        self._dbg = debug
-        self._log = get_logger(__class__.__name__, self._dbg)
-        self._log.debug("yyyy/mm/dd=%s/%s/%s", yyyy, mm, dd)
-        self._log.debug("topdir=%s", topdir)
+    __log = getLogger(__qualname__)
 
-        self.sdf = SchedDataFile(
-            datetime.date(yyyy, mm, dd), topdir=topdir, debug=self._dbg
-        )
+    def __init__(self, yyyy, mm, dd, topdir=""):
+        self.__log.debug(f"yyyy/mm/dd={yyyy}/{mm}/{dd}")
+        self.__log.debug(f"topdir={topdir}")
+
+        self.sdf = SchedDataFile(datetime.date(yyyy, mm, dd), topdir=topdir)
 
     def main(self):
-        self._log.debug("sdf.sde=%s", self.sdf.sde)
+        self.__log.debug(f"sdf.sde={self.sdf.sde}")
 
         if self.sdf.sde:
             for sde in sorted(self.sdf.sde, key=lambda x: x.get_timestr()):
@@ -38,7 +38,7 @@ class DataFileApp:
             print("===== No data =====")
 
     def end(self):
-        self._log.debug("")
+        self.__log.debug("")
 
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -80,15 +80,15 @@ test """
 )
 def x_data1(year, month, day, datadir, debug):
     """data"""
-    log = get_logger(__name__, debug)
+    loggerInit(debug=debug)
 
-    app = DataFileApp(year, month, day, datadir, debug)
+    app = DataFileApp(year, month, day, datadir)
     try:
         app.main()
     finally:
-        log.debug("finally")
+        _log.debug("finally")
         app.end()
-        log.info("end")
+        _log.info("end")
 
 
 @cli.command(
@@ -147,7 +147,7 @@ Web server"""
 )
 def webapp(port, webroot, datadir, days, size_limit, version, debug):
     """webapp"""
-    log = get_logger(__name__, debug)
+    loggerInit(debug=debug)
 
     app = WebServer(
         port, webroot, datadir, days, size_limit, version, debug=debug
@@ -155,7 +155,7 @@ def webapp(port, webroot, datadir, days, size_limit, version, debug):
     try:
         app.main()
     finally:
-        log.info("end")
+        _log.info("end")
 
 
 if __name__ == "__main__":

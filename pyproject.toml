@@ -10,6 +10,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "click>=8.3.1",
+    "loguru>=0.7.3",
     "tornado>=6.5.2",
 ]
 
@@ -40,7 +41,7 @@ python_version = "3.14"
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = "click,tornado,tornado.*,pytest,pytest.*"
+module = "click,loguru,loguru.*,tornado,tornado.*,pytest,pytest.*"
 ignore_missing_imports = true
 follow_untyped_imports = true
 

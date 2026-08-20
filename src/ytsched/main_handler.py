@@ -14,6 +14,7 @@ import math
 import re
 
 from .handler import HandlerBase
+from .mylog import getLogger
 from .ytsched import SchedDataEnt
 
 
@@ -70,6 +71,8 @@ class MainHandler(HandlerBase):
     Web request handler
     """
 
+    __log = getLogger(__qualname__)
+
     DEF_DAYS = 45
     SEARCH_MODE_MAX_DAYS = 365 * 5
     SEARCH_MODE_DAYS = 365
@@ -92,24 +95,24 @@ class MainHandler(HandlerBase):
 
     def post(self):
         """POST"""
-        self._mylog.debug("request=%s", self.request.__dict__)
-        self._mylog.debug(
-            "request.body_arguments=%s", self.request.body_arguments
+        self.__log.debug(f"request={self.request.__dict__}")
+        self.__log.debug(
+            f"request.body_arguments={self.request.body_arguments}"
         )
 
         self.get()
 
     def get(self):
         """GET method and rendering"""
-        self._mylog.debug("request=%s", self.request)
-        self._mylog.debug("request.path=%s", self.request.path)
+        self.__log.debug(f"request={self.request}")
+        self.__log.debug(f"request.path={self.request.path}")
 
         #
         # search_str
         #
         search_str0 = self.get_conf(self.CONF_KEY_SEARCH_STR)
         search_str = self.get_argument("search_str", None)
-        self._mylog.debug("search_str='%s'", search_str)
+        self.__log.debug(f"search_str='{search_str}'")
         if search_str is not None:
             if search_str != search_str0:
                 self.set_conf(self.CONF_KEY_SEARCH_STR, search_str)
@@ -122,7 +125,7 @@ class MainHandler(HandlerBase):
             search_str = ""
 
         search_str = search_str.lower()
-        self._mylog.debug("search_str='%s'", search_str)
+        self.__log.debug(f"search_str='{search_str}'")
 
         #
         # command (add/fix/del)
@@ -133,16 +136,15 @@ class MainHandler(HandlerBase):
         modified_sde_id = None
         if cmd in ["add", "fix", "update", "del"]:
             modified_date, modified_sde_id = self.exec_update(cmd)
-            self._mylog.debug(
-                "modified_date=%s, modified_sde_id=%s",
-                modified_date,
-                modified_sde_id,
+            self.__log.debug(
+                f"modified_date={modified_date},"
+                f" modified_sde_id={modified_sde_id}"
             )
 
             if cmd not in ["del"]:
                 sdf = self._sd.get_sdf(modified_date)
                 sde = sdf.get_sde(modified_sde_id)
-                self._mylog.debug("sde=%s", sde)
+                self.__log.debug(f"sde={sde}")
 
                 todo_flag = False
                 if sde is not None:
@@ -150,15 +152,12 @@ class MainHandler(HandlerBase):
                     if todo_flag:
                         modified_date = sde.date
                 else:
-                    self._mylog.warning(
-                        "sde not found: modified_date=%s,"
-                        " modified_sde_id=%s (cmd=%s)",
-                        modified_date,
-                        modified_sde_id,
-                        cmd,
+                    self.__log.warning(
+                        f"sde not found: modified_date={modified_date},"
+                        f" modified_sde_id={modified_sde_id} (cmd={cmd})"
                     )
 
-            self._mylog.debug("modified_date=%s", modified_date)
+            self.__log.debug(f"modified_date={modified_date}")
 
             if cmd in ["update"]:
                 self.render(
@@ -184,12 +183,12 @@ class MainHandler(HandlerBase):
         cur_day_str = self.get_argument("cur_day", None)
         if cur_day_str:
             cur_day = datetime.date.fromisoformat(cur_day_str)
-        self._mylog.debug("cur_day=%s", cur_day)
+        self.__log.debug(f"cur_day={cur_day}")
 
         date = None  # default
 
         date_str = self.get_argument("date", None)
-        self._mylog.debug("date_str=%s", date_str)
+        self.__log.debug(f"date_str={date_str}")
         if date_str:
             date = datetime.date.fromisoformat(date_str)
 
@@ -206,13 +205,13 @@ class MainHandler(HandlerBase):
         if not date:
             date = cur_day
 
-        self._mylog.debug("date=%s", date)
+        self.__log.debug(f"date={date}")
 
         #
         # todo_days_value
         #
         todo_days_value0 = self.get_conf(self.CONF_KEY_TODO_DAYS)
-        self._mylog.debug("todo_days_value0=%s", todo_days_value0)
+        self.__log.debug(f"todo_days_value0={todo_days_value0}")
 
         todo_days_str = self.get_argument("todo_days", None)
         if todo_days_str:
@@ -228,24 +227,24 @@ class MainHandler(HandlerBase):
             todo_days_str = str(self.DEF_TODO_DAYS)
 
         todo_days_value = int(todo_days_str)
-        self._mylog.debug("todo_days_value=%a", todo_days_value)
+        self.__log.debug(f"todo_days_value={todo_days_value!a}")
 
         #
         # sde_align
         #
         sde_align = self.get_argument("sde_align", None)
-        self._mylog.debug("sde_align=%s", sde_align)
+        self.__log.debug(f"sde_align={sde_align}")
         if not sde_align:
             sde_align = "top"
-            self._mylog.debug("[fix]sde_align=%s", sde_align)
+            self.__log.debug(f"[fix]sde_align={sde_align}")
 
         #
         # filter_str
         #
         filter_str0 = self.get_conf(self.CONF_KEY_FILTER_STR)
-        self._mylog.debug("filter_str0=%a", filter_str0)
+        self.__log.debug(f"filter_str0={filter_str0!a}")
         filter_str = self.get_argument("filter_str", "")
-        self._mylog.debug("filter_str=%a", filter_str)
+        self.__log.debug(f"filter_str={filter_str!a}")
         if filter_str:
             if filter_str != filter_str0:
                 self.set_conf(self.CONF_KEY_FILTER_STR, filter_str)
@@ -259,7 +258,7 @@ class MainHandler(HandlerBase):
             filter_str = ""
 
         filter_str = filter_str.lower()
-        self._mylog.debug("filter_str=%a", filter_str)
+        self.__log.debug(f"filter_str={filter_str!a}")
 
         #
         # search_n
@@ -278,7 +277,7 @@ class MainHandler(HandlerBase):
             search_n_str = str(self.DEF_SEARCH_N)
 
         search_n = int(search_n_str)
-        self._mylog.debug("search_n=%s", search_n)
+        self.__log.debug(f"search_n={search_n}")
 
         #
         # load ToDo
@@ -299,12 +298,9 @@ class MainHandler(HandlerBase):
                         continue
 
             except re.error as ex:
-                self._mylog.warning(
-                    "%s:%s:%s:%s",
-                    type(ex).__name__,
-                    ex,
-                    filter_str,
-                    sde.search_str(),
+                self.__log.warning(
+                    f"{type(ex).__name__}:{ex}:{filter_str}"
+                    f":{sde.search_str()}"
                 )
                 continue
 
@@ -314,17 +310,14 @@ class MainHandler(HandlerBase):
                         continue
 
                 except re.error as ex:
-                    self._mylog.warning(
-                        "%s:%s:%s:%s",
-                        type(ex).__name__,
-                        ex,
-                        search_str,
-                        sde.search_str(),
+                    self.__log.warning(
+                        f"{type(ex).__name__}:{ex}:{search_str}"
+                        f":{sde.search_str()}"
                     )
                     continue
 
             todo_sde.append(sde)
-            self._mylog.debug("sde=%s", sde)
+            self.__log.debug(f"sde={sde}")
 
             if sde.date > today + datetime.timedelta(todo_days_value):
                 continue
@@ -333,7 +326,7 @@ class MainHandler(HandlerBase):
                 continue
 
             todo_today_sde.append(sde)
-            self._mylog.debug("sde=%s", sde)
+            self.__log.debug(f"sde={sde}")
 
         #
         # load schedule data
@@ -366,18 +359,15 @@ class MainHandler(HandlerBase):
 
             out_sde = []
             for sde in sdf.sde:
-                # self._mylog.debug('sde=%s', sde)
+                # self.__log.debug(f"sde={sde}")
                 if filter_str.startswith("!"):
                     try:
                         if re.search(filter_str[1:], sde.search_str()):
                             continue
                     except re.error as ex:
-                        self._mylog.warning(
-                            "%s:%s:%s:%s",
-                            type(ex).__name__,
-                            ex,
-                            filter_str,
-                            sde.search_str(),
+                        self.__log.warning(
+                            f"{type(ex).__name__}:{ex}:{filter_str}"
+                            f":{sde.search_str()}"
                         )
                         continue
                 else:
@@ -385,12 +375,9 @@ class MainHandler(HandlerBase):
                         if not re.search(filter_str, sde.search_str()):
                             continue
                     except re.error as ex:
-                        self._mylog.warning(
-                            "%s:%s:%s:%s",
-                            type(ex).__name__,
-                            ex,
-                            filter_str,
-                            sde.search_str(),
+                        self.__log.warning(
+                            f"{type(ex).__name__}:{ex}:{filter_str}"
+                            f":{sde.search_str()}"
                         )
                         continue
 
@@ -399,12 +386,9 @@ class MainHandler(HandlerBase):
                         if not re.search(search_str, sde.search_str()):
                             continue
                     except re.error as ex:
-                        self._mylog.warning(
-                            "%s:%s:%s:%s",
-                            type(ex).__name__,
-                            ex,
-                            search_str,
-                            sde.search_str(),
+                        self.__log.warning(
+                            f"{type(ex).__name__}:{ex}:{search_str}"
+                            f":{sde.search_str()}"
                         )
                         continue
 
@@ -420,7 +404,7 @@ class MainHandler(HandlerBase):
 
                     if sde.date == date1:
                         out_sde.append(sde)
-                        self._mylog.debug("out_sde.append:%s", sde)
+                        self.__log.debug(f"out_sde.append:{sde}")
 
                 # todo_today_sde
                 if not search_str:
@@ -480,7 +464,7 @@ class MainHandler(HandlerBase):
         modified_sde_id: str | None
             更新されたスケジュールID。``del`` の場合は None
         """
-        self._mylog.debug("")
+        self.__log.debug("")
 
         # get orig_date
         orig_date = None
@@ -488,7 +472,7 @@ class MainHandler(HandlerBase):
         if orig_date_str:
             orig_date = datetime.date.fromisoformat(orig_date_str)
 
-        self._mylog.debug("orig_date=%s", orig_date)
+        self.__log.debug(f"orig_date={orig_date}")
 
         # get (new) date
         date = None
@@ -496,7 +480,7 @@ class MainHandler(HandlerBase):
         if date_str:
             date = datetime.date.fromisoformat(date_str)
 
-        self._mylog.debug("date=%s", date)
+        self.__log.debug(f"date={date}")
 
         # get times
         time_start_str = self.get_argument("time_start", None)
@@ -511,17 +495,17 @@ class MainHandler(HandlerBase):
         else:
             time_end = None
 
-        self._mylog.debug("time_start, time_end: %s-%s", time_start, time_end)
+        self.__log.debug(f"time_start, time_end: {time_start}-{time_end}")
 
         # get sde_type, title, place
         sde_type = self.get_argument("sde_type", "")
         title = self.get_argument("title", "")
         place = self.get_argument("place", "")
-        self._mylog.debug("[%s]%s@%s", sde_type, title, place)
+        self.__log.debug(f"[{sde_type}]{title}@{place}")
 
         # get detail
         detail = self.get_argument("detail", "")
-        self._mylog.debug("detail:'%s'", detail)
+        self.__log.debug(f"detail:'{detail}'")
 
         # set deadline_*
         deadline_date_str = self.get_argument("deadline_date", "")
@@ -529,11 +513,9 @@ class MainHandler(HandlerBase):
         deadline_time_end_str = self.get_argument("deadline_time_end", "")
         if deadline_time_end_str:
             deadline_time_end_str = "-" + deadline_time_end_str
-        self._mylog.debug(
-            "deadline: %s %s%s",
-            deadline_date_str,
-            deadline_time_start_str,
-            deadline_time_end_str,
+        self.__log.debug(
+            f"deadline: {deadline_date_str} {deadline_time_start_str}"
+            f"{deadline_time_end_str}"
         )
 
         if deadline_date_str and not SchedDataEnt.type_is_todo(sde_type):
@@ -542,14 +524,14 @@ class MainHandler(HandlerBase):
             # ``date``, ``time_start``を現在日時にする
             #
             date = datetime.date.today()
-            self._mylog.debug("[fix] date=%s", date)
+            self.__log.debug(f"[fix] date={date}")
 
             time_start = datetime.datetime.now().time()
             # msec を切り捨てる
             time_start = datetime.time.fromisoformat(
                 time_start.strftime("%H:%M")
             )
-            self._mylog.debug("[fix] time_start=%s", time_start)
+            self.__log.debug(f"[fix] time_start={time_start}")
             time_end = None
 
             detail = "〆%s %s%s\n%s" % (
@@ -558,14 +540,14 @@ class MainHandler(HandlerBase):
                 deadline_time_end_str,
                 detail,
             )
-            self._mylog.debug("[fix] detail=%s", detail)
+            self.__log.debug(f"[fix] detail={detail}")
 
         # sde_id
         sde_id: str | None = self.get_argument("sde_id")
-        self._mylog.debug("sde_id=%s", sde_id)
+        self.__log.debug(f"sde_id={sde_id}")
 
         # exec cmd
-        self._mylog.debug("EXEC: %s", cmd)
+        self.__log.debug(f"EXEC: {cmd}")
 
         new_sde = None
         modified_sde_id = None
@@ -594,9 +576,7 @@ class MainHandler(HandlerBase):
             if new_sde.is_todo():
                 date = None
 
-        self._mylog.debug(
-            "date=%s, modified_sde_id=%s", date, modified_sde_id
-        )
+        self.__log.debug(f"date={date}, modified_sde_id={modified_sde_id}")
         return date, modified_sde_id
 
     def cmd_add(
@@ -626,7 +606,7 @@ class MainHandler(HandlerBase):
         new_sde: SchedDataEnt
 
         """
-        self._mylog.debug("sde_id=%s, date=%s", sde_id, date)
+        self.__log.debug(f"sde_id={sde_id}, date={date}")
 
         new_sde = SchedDataEnt(
             sde_id,
@@ -637,7 +617,6 @@ class MainHandler(HandlerBase):
             title,
             place,
             detail,
-            debug=self._dbg,
         )
         if new_sde.is_todo():
             self._sd.add_sde(None, new_sde)
@@ -655,6 +634,6 @@ class MainHandler(HandlerBase):
         sde_id: str
 
         """
-        self._mylog.debug("date=%s, sde_id=%s", date, sde_id)
+        self.__log.debug(f"date={date}, sde_id={sde_id}")
 
         self._sd.del_sde(date, sde_id)

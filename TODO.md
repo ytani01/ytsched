@@ -1,27 +1,15 @@
 # TODO
 
-**残っている項目: TODO-007〜TODO-010、TODO-012、TODO-015、TODO-016。**
-これまでに 9 件を決着させた。
+**残っている項目: TODO-008〜TODO-010、TODO-012、TODO-015、TODO-016。**
+これまでに 10 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-017` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
-進める順序は依存関係で決めてある（TODO-006 が済んだので、TODO-007 に
+進める順序は依存関係で決めてある（TODO-007 が済んだので、TODO-008 に
 進める）。着手する項目は利用者が指定する。
-
----
-
-## TODO-007. loguru への移行
-
-見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
-
-- [ ] `my_logger.py` を廃止
-- [ ] `tmr` と同じ `__log = getLogger(__qualname__)` 規約に揃える
-- [ ] `SchedDataEnt.__init__` の `self.__class__._mylog` 上書きをやめる
-      （インスタンス 1 個の `debug=True` がクラス全体のロガーを
-      差し替えてしまう。TODO-005 から回した）
 
 ---
 
@@ -127,6 +115,7 @@ TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-007.** loguru への移行](archives/todo/TODO-007.%20loguru%20への移行.md)
 - [**TODO-006.** 型ヒントの整備](archives/todo/TODO-006.%20型ヒントの整備.md)
 - [**TODO-004.** lint・型チェックと mise タスク](archives/todo/TODO-004.%20lint・型チェックと%20mise%20タスク.md)
 - [**TODO-014.** サブエージェントの報告ファイル名](archives/todo/TODO-014.%20サブエージェントの報告ファイル名.md)

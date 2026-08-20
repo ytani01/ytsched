@@ -15,7 +15,7 @@ import re
 import shutil
 import uuid
 
-from .my_logger import get_logger
+from .mylog import getLogger
 
 
 def htmlstr2text(intext: str) -> str:
@@ -83,6 +83,8 @@ class SchedDataEnt:
     スケジュール・データ・エンティティ
     """
 
+    __log = getLogger(__qualname__)
+
     TIME_NULL = ":-:"
     TITLE_NULL = ""
 
@@ -100,8 +102,6 @@ class SchedDataEnt:
         "x",
     ]
 
-    _mylog = get_logger(__name__, False)
-
     def __init__(
         self,
         sde_id: str | None = None,
@@ -112,21 +112,11 @@ class SchedDataEnt:
         title: str = TITLE_NULL,
         place: str = "",
         detail: str = "",
-        debug: bool = False,
     ):
         """Constructor"""
-        self._dbg = debug
-        self.__class__._mylog = get_logger(self.__class__.__name__, self._dbg)
-        self._mylog.debug(
-            "(%s)%s %s-%s [%s] %s @%s:'%s'",
-            sde_id,
-            date,
-            time_start,
-            time_end,
-            sde_type,
-            title,
-            place,
-            detail,
+        self.__log.debug(
+            f"({sde_id}){date} {time_start}-{time_end}"
+            f" [{sde_type}] {title} @{place}:'{detail}'"
         )
 
         # ``sde_id`` が空なら、新しい ID を発行する
@@ -214,7 +204,7 @@ class SchedDataEnt:
     @classmethod
     def new_id(cls):
         sde_id = str(uuid.uuid4())
-        cls._mylog.debug("sde_id=%s", sde_id)
+        cls.__log.debug(f"sde_id={sde_id}")
         return sde_id
 
     @classmethod
@@ -225,7 +215,7 @@ class SchedDataEnt:
         sde_type: str | None
 
         """
-        cls._mylog.debug("sde_type=%s", sde_type)
+        cls.__log.debug(f"sde_type={sde_type}")
         if sde_type:
             return sde_type.startswith(cls.TYPE_PREFIX_TODO)
 
@@ -233,7 +223,7 @@ class SchedDataEnt:
 
     def is_todo(self):
         """ """
-        # self._mylog.debug('')
+        # self.__log.debug("")
         if self.type:
             return self.type.startswith(self.TYPE_PREFIX_TODO)
 
@@ -241,7 +231,7 @@ class SchedDataEnt:
 
     def is_holiday(self):
         """ """
-        # self._mylog.debug('')
+        # self.__log.debug("")
         if self.type == "":
             return False
         return self.type in self.TYPE_HOLYDAY
@@ -282,7 +272,7 @@ class SchedDataEnt:
                 sort_key = sort_key.replace(":-:", "99:99-99:99")
             else:
                 sort_key = sort_key.replace(":-:", "33:33-33:33")
-        # self._mylog.debug('sort_key=\'%s\'', sort_key)
+        # self.__log.debug(f"sort_key='{sort_key}'")
         return sort_key
 
     def get_date(self):
@@ -300,7 +290,7 @@ class SchedDataEnt:
         d: datetime.date | None
 
         """
-        self._mylog.debug("d=%s", d)
+        self.__log.debug(f"d={d}")
 
         if d is None:
             self.date = datetime.date.today()
@@ -334,6 +324,8 @@ class SchedDataFile:
     スケジュール・データ・ファイル
     """
 
+    __log = getLogger(__qualname__)
+
     DEF_TOP_DIR = "~/ytsched/data"
     PATH_FORMAT = "%s/%04s/%02s/%02s.cgi"
     TODO_PATH_FORMAT = "%s/ToDo.cgi"
@@ -345,7 +337,6 @@ class SchedDataFile:
         self,
         date: datetime.date | None = None,
         topdir: str = DEF_TOP_DIR,
-        debug: bool = False,
     ):
         """
         date: datetime.date | None
@@ -353,9 +344,7 @@ class SchedDataFile:
         topdir: str
 
         """
-        self._dbg = debug
-        self._mylog = get_logger(__class__.__name__, self._dbg)
-        self._mylog.debug("date=%s, topdir=%s", date, topdir)
+        self.__log.debug(f"date={date}, topdir={topdir}")
 
         self.date = date
         self.topdir = os.path.expanduser(topdir)
@@ -413,28 +402,28 @@ class SchedDataFile:
 
         休日・祝日が含まれる場合は、``is_holiday``をTrueにする
         """
-        # self._mylog.debug('')
+        # self.__log.debug("")
 
         self.is_holiday = False
         ok = False
         for enc in self.ENCODE:
-            # self._mylog.debug('enc=%s', enc)
+            # self.__log.debug(f"enc={enc}")
             try:
                 with open(self.pathname, encoding=enc) as f:
                     lines = f.readlines()
                     ok = True
                     break
             except FileNotFoundError:
-                self._mylog.debug("%s: not found .. ignored", self.pathname)
+                self.__log.debug(f"{self.pathname}: not found .. ignored")
                 return []
             except UnicodeDecodeError:
-                self._mylog.debug("%s: decode error .. try next ..", enc)
+                self.__log.debug(f"{enc}: decode error .. try next ..")
 
         if not ok:
-            self._mylog.warning("%s: invalid encoding", self.pathname)
+            self.__log.warning(f"{self.pathname}: invalid encoding")
             return []
 
-        # self._mylog.debug('lines=%s', lines)
+        # self.__log.debug(f"lines={lines}")
         out = []
         for l in lines:
             d = [htmlstr2text(d1) for d1 in l.split("\t")]
@@ -445,7 +434,7 @@ class SchedDataFile:
                 d += [""] * (7 - len(d))
 
             d = d[:7]
-            # self._mylog.debug('d=%s', d)
+            # self.__log.debug(f"d={d}")
 
             date1 = d[1].split("/")
             date2 = datetime.date(int(date1[0]), int(date1[1]), int(date1[2]))
@@ -456,10 +445,10 @@ class SchedDataFile:
                 time1 = ["", ""]
 
             time_start1 = time1[0].split(":")
-            # self._mylog.debug('time_start1=%s', time_start1)
+            # self.__log.debug(f"time_start1={time_start1}")
 
             time_end1 = time1[1].split(":")
-            # self._mylog.debug('time_end1=%s', time_end1)
+            # self.__log.debug(f"time_end1={time_end1}")
 
             if time_start1[0]:
                 time_start2 = datetime.time(
@@ -484,12 +473,11 @@ class SchedDataFile:
                 d[4],
                 d[5],
                 d[6],
-                debug=self._dbg,
             )
             if not self.is_holiday:
                 self.is_holiday = sde.is_holiday()
                 if self.is_holiday:
-                    self._mylog.debug("is_holiday=%s", self.is_holiday)
+                    self.__log.debug(f"is_holiday={self.is_holiday}")
 
             out.append(sde)
 
@@ -509,7 +497,7 @@ class SchedDataFile:
         空のファイルをバックアップしないのは、``.bak`` にしか残って
         いないデータを空で上書きしないため。
         """
-        self._mylog.debug("")
+        self.__log.debug("")
 
         if (
             os.path.exists(self.pathname)
@@ -533,7 +521,7 @@ class SchedDataFile:
         sde: SchedDataEnt
 
         """
-        self._mylog.debug("sde=%s", sde)
+        self.__log.debug(f"sde={sde}")
         self.sde.append(sde)
         self.sde = sorted(self.sde, key=lambda x: x.get_sortkey())
 
@@ -544,15 +532,15 @@ class SchedDataFile:
         sde_id: str | None
 
         """
-        self._mylog.debug("sde_id=%s", sde_id)
+        self.__log.debug(f"sde_id={sde_id}")
         for sde in self.sde:
             if sde.sde_id == sde_id:
-                self._mylog.debug("DEL:%s", sde)
+                self.__log.debug(f"DEL:{sde}")
                 self.sde.remove(sde)
                 break
 
         for sde in self.sde:
-            self._mylog.debug("%s", sde)
+            self.__log.debug(f"{sde}")
 
     def get_sde(self, sde_id: str | None = None) -> SchedDataEnt | None:
         """
@@ -566,7 +554,7 @@ class SchedDataFile:
             見つからない場合は None
 
         """
-        self._mylog.debug("sde_id=%s", sde_id)
+        self.__log.debug(f"sde_id={sde_id}")
 
         for sde in self.sde:
             if sde_id == sde.sde_id:
@@ -591,16 +579,15 @@ class SchedData:
 
     """
 
+    __log = getLogger(__qualname__)
+
     DEF_CACHE_SIZE = 20000
     CACHE_DISCARD_RATE = 0.1
-
-    _mylog = get_logger(__name__, False)
 
     def __init__(
         self,
         topdir: str = SchedDataFile.DEF_TOP_DIR,
         cache_size: int = DEF_CACHE_SIZE,
-        debug: bool = False,
     ):
         """Constructor
         Parameters
@@ -608,9 +595,7 @@ class SchedData:
         cache_size: int
 
         """
-        self._dbg = debug
-        self._mylog = get_logger(self.__class__.__name__, self._dbg)
-        self._mylog.debug("cache_size=%s, topdir=%s", cache_size, topdir)
+        self.__log.debug(f"cache_size={cache_size}, topdir={topdir}")
 
         self._cache_size = cache_size
         self._topdir = topdir
@@ -660,29 +645,31 @@ class SchedData:
         sdf: SchedDataFile
 
         """
-        # self._mylog.debug('date=%s', date)
+        # self.__log.debug(f"date={date}")
 
         try:
-            # self._mylog.debug('_sdf.keys=%s', self.get_keys())
+            # self.__log.debug(f"_sdf.keys={self.get_keys()}")
             sdf = self._sdf_cache.pop(date)
             self._sdf_cache[date] = sdf
-            # self._mylog.debug('_sdf.keys=%s', self.get_keys())
+            # self.__log.debug(f"_sdf.keys={self.get_keys()}")
         except KeyError:
-            self._mylog.debug("cache miss: date=%s", date)
+            self.__log.debug(f"cache miss: date={date}")
 
             if self.get_cache_size() >= self._cache_size:
                 discard_size = int(self._cache_size * self.CACHE_DISCARD_RATE)
                 for i in range(discard_size):
                     _discarded = self._sdf_cache.popitem(last=False)
-                    # self._mylog.debug('discard[%s/%s]: date=%s',
-                    #                   i + 1, discard_size, _discarded[0])
+                    # self.__log.debug(
+                    #     f"discard[{i + 1}/{discard_size}]:"
+                    #     f" date={_discarded[0]}"
+                    # )
 
-            sdf = SchedDataFile(date, self._topdir, debug=self._dbg)
+            sdf = SchedDataFile(date, self._topdir)
             self._sdf_cache[date] = sdf
-            # self._mylog.debug('_sdf.keys=%s', self.get_keys())
+            # self.__log.debug(f"_sdf.keys={self.get_keys()}")
 
         # if not sdf.sde:
-        # self._mylog.warning('%s sdf.sde=%s', date, sdf.sde)
+        # self.__log.warning(f"{date} sdf.sde={sdf.sde}")
 
         return sdf
 
@@ -705,11 +692,11 @@ class SchedData:
             見つからない場合は None
 
         """
-        self._mylog.debug("date=%s, sde_id=%s", date, sde_id)
+        self.__log.debug(f"date={date}, sde_id={sde_id}")
 
         sdf = self.get_sdf(date)
         sde = sdf.get_sde(sde_id)
-        self._mylog.debug("sde=%s", sde)
+        self.__log.debug(f"sde={sde}")
         return sde
 
     def add_sde(self, date: datetime.date | None, sde: SchedDataEnt) -> None:
@@ -721,7 +708,7 @@ class SchedData:
         sde: SchedDataEnt
 
         """
-        self._mylog.debug("date=%s, sde=%s", date, sde)
+        self.__log.debug(f"date={date}, sde={sde}")
 
         sdf = self.get_sdf(date)
         sdf.add_sde(sde)
@@ -741,7 +728,7 @@ class SchedData:
         sde_id: str
 
         """
-        self._mylog.debug("date=%s, sde_id=%s", date, sde_id)
+        self.__log.debug(f"date={date}, sde_id={sde_id}")
 
         sdf = self.get_sdf(date)
         sdf.del_sde(sde_id)

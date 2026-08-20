@@ -12,6 +12,7 @@ __date__ = "2021/01"
 import datetime
 
 from .handler import HandlerBase
+from .mylog import getLogger
 from .ytsched import SchedDataEnt
 
 
@@ -19,6 +20,8 @@ class EditHandler(HandlerBase):
     """
     Web request handler
     """
+
+    __log = getLogger(__qualname__)
 
     def get(self, date=None, sde_id=None, todo_flag=False):
         """
@@ -41,11 +44,11 @@ class EditHandler(HandlerBase):
         todo_flag: bool
 
         """
-        self._mylog.debug(
-            "date=%s, sde_id=%s, todo_flag=%s", date, sde_id, todo_flag
+        self.__log.debug(
+            f"date={date}, sde_id={sde_id}, todo_flag={todo_flag}"
         )
-        self._mylog.debug("request=%s", self.request)
-        self._mylog.debug("request.path=%s", self.request.path)
+        self.__log.debug(f"request={self.request}")
+        self.__log.debug(f"request.path={self.request.path}")
 
         #
         # date
@@ -63,7 +66,7 @@ class EditHandler(HandlerBase):
         # search_str
         #
         search_str = self.get_argument("search_str", None)
-        self._mylog.debug("search_str=%s", search_str)
+        self.__log.debug(f"search_str={search_str}")
 
         #
         # sde_id
@@ -77,8 +80,8 @@ class EditHandler(HandlerBase):
         todo_flag_str = self.get_argument("todo_flag", "")
         todo_flag = todo_flag_str == "true"
 
-        self._mylog.debug(
-            "date=%s, sde_id=%s, todo_flag=%s", date, sde_id, todo_flag
+        self.__log.debug(
+            f"date={date}, sde_id={sde_id}, todo_flag={todo_flag}"
         )
 
         #
@@ -95,8 +98,8 @@ class EditHandler(HandlerBase):
             sde = sdf.get_sde(sde_id)
 
         else:
-            sde = SchedDataEnt("", date, debug=self._dbg)
-            self._mylog.debug("sde_id=%s", sde.sde_id)
+            sde = SchedDataEnt("", date)
+            self.__log.debug(f"sde_id={sde.sde_id}")
             new_flag = True
 
         self.render(
@@ -115,7 +118,7 @@ class EditHandler(HandlerBase):
 
     def post(self):
         """ """
-        self._mylog.debug(
-            "request.body_arguments=%s", self.request.body_arguments
+        self.__log.debug(
+            f"request.body_arguments={self.request.body_arguments}"
         )
         self.get()

@@ -21,7 +21,7 @@ from . import __prog_name__ as PROG_NAME
 from . import __version__ as VERSION
 from .edit_handler import EditHandler
 from .main_handler import MainHandler
-from .my_logger import get_logger
+from .mylog import getLogger
 from .ytsched import SchedData
 
 
@@ -29,6 +29,8 @@ class WebServer:
     """
     Web application server
     """
+
+    __log = getLogger(__qualname__)
 
     URL_PREFIX = "/ytsched"
 
@@ -70,20 +72,15 @@ class WebServer:
         version: bool
         """
         self._dbg = debug
-        self._log = get_logger(self.__class__.__name__, self._dbg)
-        self._log.debug(
-            "port=%s, webroot=%s, datadir=%s, days=%s",
-            port,
-            webroot,
-            datadir,
-            days,
+        self.__log.debug(
+            f"port={port}, webroot={webroot}, datadir={datadir}, days={days}"
         )
-        self._log.debug("size_limit=%s", size_limit)
+        self.__log.debug(f"size_limit={size_limit}")
 
         self._port = port
         self._webroot = os.path.expanduser(webroot)
         self._datadir = os.path.expanduser(datadir)
-        self._sd = SchedData(self._datadir, debug=self._dbg)
+        self._sd = SchedData(self._datadir)
         self._days = days
         self._size_limit = size_limit
 
@@ -114,20 +111,20 @@ class WebServer:
             sd=self._sd,
             debug=self._dbg,
         )
-        self._log.debug("app=%s", self._app.__dict__)
+        self.__log.debug(f"app={self._app.__dict__}")
 
         self._svr = tornado.httpserver.HTTPServer(
             self._app, max_buffer_size=self._size_limit
         )
-        self._log.debug("svr=%s", self._svr.__dict__)
+        self.__log.debug(f"svr={self._svr.__dict__}")
 
     def main(self):
         """main"""
-        self._log.debug("")
+        self.__log.debug("")
 
         self._svr.listen(self._port)
-        self._log.info("start server: run forever ..")
+        self.__log.info("start server: run forever ..")
 
         tornado.ioloop.IOLoop.current().start()
 
-        self._log.debug("done")
+        self.__log.debug("done")

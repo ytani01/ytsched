@@ -13,11 +13,13 @@ import os
 
 import tornado.web
 
-from .my_logger import get_logger
+from .mylog import getLogger
 
 
 class HandlerBase(tornado.web.RequestHandler):
     """HandlerBase"""
+
+    __log = getLogger(__qualname__)
 
     CONF_FNAME = "Conf.cgi"
     CONF_ENCODE = "utf-8"
@@ -33,44 +35,41 @@ class HandlerBase(tornado.web.RequestHandler):
         """Constructor"""
         super().__init__(app, req)
 
-        self._dbg = app.settings.get("debug")
-        self._mylog = get_logger(self.__class__.__name__, self._dbg)
-        self._mylog.debug("debug=%s", self._dbg)
-        self._mylog.debug("app=%s", app)
-        self._mylog.debug("req=%s", req)
+        self.__log.debug(f"app={app}")
+        self.__log.debug(f"req={req}")
 
         self._app = app
         self._req = req
 
         self._title = app.settings.get("title")
-        self._mylog.debug("title=%s", self._title)
+        self.__log.debug(f"title={self._title}")
 
         self._author = app.settings.get("author")
-        self._mylog.debug("author=%s", self._author)
+        self.__log.debug(f"author={self._author}")
 
         self._version = app.settings.get("version")
-        self._mylog.debug("version=%s", self._version)
+        self.__log.debug(f"version={self._version}")
 
         self._url_prefix = app.settings.get("url_prefix")
-        self._mylog.debug("url_prefix=%s", self._url_prefix)
+        self.__log.debug(f"url_prefix={self._url_prefix}")
 
         self._datadir = app.settings.get("datadir")
-        self._mylog.debug("datadir=%s", self._datadir)
+        self.__log.debug(f"datadir={self._datadir}")
 
         self._days = app.settings.get("days")
-        self._mylog.debug("days=%s", self._days)
+        self.__log.debug(f"days={self._days}")
 
         self._sd = app.settings.get("sd")
-        self._mylog.debug("sd=%s", self._sd)
+        self.__log.debug(f"sd={self._sd}")
 
         self._conf_file = os.path.join(self._datadir, self.CONF_FNAME)
-        self._mylog.debug("conf_file=%s", self._conf_file)
+        self.__log.debug(f"conf_file={self._conf_file}")
 
         self._conf = self.load_conf()
 
     def load_conf(self):
         """ """
-        self._mylog.debug("")
+        self.__log.debug("")
 
         conf: dict[str, str] = {}
 
@@ -85,28 +84,28 @@ class HandlerBase(tornado.web.RequestHandler):
             if not line:
                 continue
 
-            self._mylog.debug("line=%s", line)
+            self.__log.debug(f"line={line}")
 
             if "\t" not in line:
-                self._mylog.warning("%a: no tab .. ignored", line)
+                self.__log.warning(f"{line!a}: no tab .. ignored")
                 continue
 
             (param, value) = line.split("\t", maxsplit=1)
-            self._mylog.debug("%a,%a.", param, value)
+            self.__log.debug(f"{param!a},{value!a}.")
             conf[param] = value
 
         return conf
 
     def save_conf(self):
         """ """
-        self._mylog.debug("")
+        self.__log.debug("")
 
         with open(self._conf_file, mode="w", encoding=self.CONF_ENCODE) as f:
             f.writelines("%s\t%s\n" % (p, self._conf[p]) for p in self._conf)
 
     def get_conf(self, name):
         """ """
-        self._mylog.debug("name=%s", name)
+        self.__log.debug(f"name={name}")
 
         try:
             return self._conf[name]
@@ -115,6 +114,6 @@ class HandlerBase(tornado.web.RequestHandler):
 
     def set_conf(self, name, value):
         """ """
-        self._mylog.debug("name=%s, value='%s'", name, value)
+        self.__log.debug(f"name={name}, value='{value}'")
         self._conf[name] = value
         self.save_conf()

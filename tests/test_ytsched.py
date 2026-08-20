@@ -727,9 +727,9 @@ def test_sched_data_del_sde(tmp_path):
 
 def test_get_sdf_cache_miss_is_not_warning(tmp_path):
     """正常系のキャッシュミスで warning を出さない。"""
-    sd = SchedData(str(tmp_path))
-    sd._mylog = mock.Mock()
+    # ``self.__log`` は ``_SchedData__log`` にマングリングされる
+    with mock.patch.object(SchedData, "_SchedData__log") as log:
+        sd = SchedData(str(tmp_path))
+        sd.get_sdf(DATE1)
 
-    sd.get_sdf(DATE1)
-
-    sd._mylog.warning.assert_not_called()
+    log.warning.assert_not_called()
