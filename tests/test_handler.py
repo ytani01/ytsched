@@ -3,11 +3,12 @@
 #
 """HandlerBase（Conf.cgi の読み書き）と days2y_offset のテスト"""
 
+import os
 import subprocess
 import sys
 
 import pytest
-from helpers import make_app, make_handler, run_in_c_locale
+from helpers import URL_PREFIX, make_app, make_handler, run_in_c_locale
 
 from ytsched.handler import HandlerBase
 from ytsched.main_handler import days2y_offset
@@ -20,6 +21,25 @@ def datadir(tmp_path):
     path = tmp_path / "data"
     path.mkdir()
     return path
+
+
+def test_settings_are_read(datadir):
+    """``app.settings`` から読む値（TODO-021 のゴールデンマスターテスト）。
+
+    ``HandlerBase.__init__`` を整理しても、この 8 つは変わらない。
+    """
+    app = make_app(datadir, days=45)
+
+    handler = make_handler(app, HandlerBase)
+
+    assert handler._title == "Ytsched"
+    assert handler._author == "Yoichi Tanibayashi"
+    assert handler._version == "0.0.0"
+    assert handler._url_prefix == URL_PREFIX + "/"
+    assert handler._datadir == str(datadir)
+    assert handler._days == 45
+    assert handler._sd is app.settings["sd"]
+    assert handler._conf_file == os.path.join(str(datadir), CONF_FNAME)
 
 
 def test_load_conf_no_file(datadir):
