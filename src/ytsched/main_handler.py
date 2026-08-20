@@ -95,6 +95,8 @@ class MainHandler(HandlerBase):
 
     COOKIE_TODO_DAYS = "todo_days"
 
+    DELTA_DAY1 = datetime.timedelta(1)
+
     def post(self):
         """POST"""
         self.__log.debug(f"request={self.request.__dict__}")
@@ -112,77 +114,295 @@ class MainHandler(HandlerBase):
         #
         # search_str
         #
-        search_str0 = self.get_conf(self.CONF_KEY_SEARCH_STR)
-        search_str = self.get_argument("search_str", None)
-        self.__log.debug(f"search_str='{search_str}'")
-        if search_str is not None:
-            if search_str != search_str0:
-                self.set_conf(self.CONF_KEY_SEARCH_STR, search_str)
-            else:
-                pass
-
-        elif search_str0:
-            search_str = search_str0
-        else:
-            search_str = ""
-
+        search_str = self.get_conf_arg(
+            "search_str",
+            self.CONF_KEY_SEARCH_STR,
+            "",
+            empty_is_given=True,
+        )
         search_str = search_str.lower()
         self.__log.debug(f"search_str='{search_str}'")
 
         #
         # command (add/fix/del)
         #
-        cmd = self.get_argument("cmd", None)
-
-        modified_date = None
-        modified_sde_id = None
-        if cmd in ["add", "fix", "update", "del"]:
-            modified_date, modified_sde_id = self.exec_update(cmd)
-            self.__log.debug(
-                f"modified_date={modified_date},"
-                f" modified_sde_id={modified_sde_id}"
-            )
-
-            if cmd not in ["del"]:
-                sdf = self._sd.get_sdf(modified_date)
-                sde = sdf.get_sde(modified_sde_id)
-                self.__log.debug(f"sde={sde}")
-
-                if sde is None:
-                    # 更新したはずのデータが見つからない (TODO-016)
-                    raise tornado.web.HTTPError(
-                        404,
-                        "sde not found: date=%s, sde_id=%s (cmd=%s)",
-                        modified_date,
-                        modified_sde_id,
-                        cmd,
-                    )
-
-                todo_flag = sde.is_todo()
-                if todo_flag:
-                    modified_date = sde.date
-
-            self.__log.debug(f"modified_date={modified_date}")
-
-            if cmd in ["update"]:
-                self.render(
-                    self.HTML_EDIT,
-                    title=self._title,
-                    author=self._author,
-                    version=self._version,
-                    url_prefix=self._url_prefix,
-                    post_url=self._url_prefix,
-                    date=modified_date,
-                    sde=sde,
-                    new_flag=False,
-                    todo_flag=todo_flag,
-                    search_str=search_str,
-                )
-                return
+        modified_date, modified_sde_id, rendered = self.exec_cmd(search_str)
+        if rendered:
+            return
 
         #
         # set Date
         #
+        date = self.get_date(modified_date)
+
+        #
+        # todo_days_value
+        #
+        todo_days_str = self.get_conf_arg(
+            "todo_days",
+            self.CONF_KEY_TODO_DAYS,
+            str(self.DEF_TODO_DAYS),
+            empty_is_given=False,
+        )
+        todo_days_value = int(todo_days_str)
+        self.__log.debug(f"todo_days_value={todo_days_value!a}")
+
+        #
+        # sde_align
+        #
+        sde_align = self.get_sde_align()
+
+        #
+        # filter_str
+        #
+        filter_str = self.get_conf_arg(
+            "filter_str",
+            self.CONF_KEY_FILTER_STR,
+            "",
+            empty_is_given=False,
+        )
+        filter_str = filter_str.lower()
+        self.__log.debug(f"filter_str={filter_str!a}")
+
+        #
+        # 正規表現のコンパイル (TODO-012)
+        #
+        # 不正な正規表現は、その条件を無視して全件を出す。
+        # 入力欄には元の文字列を残すので、マッチに使う変数だけ分ける。
+        #
+        filter_re, filter_neg, filter_error = self.compile_filter(filter_str)
+        search_re, search_error = self.compile_search(search_str)
+
+        # 検索モードかどうか (不正な正規表現のときは検索しない)
+        search_mode = search_re is not None
+        self.__log.debug(
+            f"search_mode={search_mode},"
+            f" filter_error={filter_error}, search_error={search_error}"
+        )
+
+        #
+        # search_n
+        #
+        search_n_str = self.get_conf_arg(
+            "search_n",
+            self.CONF_KEY_SEARCH_N,
+            str(self.DEF_SEARCH_N),
+            empty_is_given=True,
+        )
+        search_n = int(search_n_str)
+        self.__log.debug(f"search_n={search_n}")
+
+        #
+        # load ToDo
+        #
+        todo_sde, todo_today_sde = self.load_todo(
+            filter_re, filter_neg, search_re, todo_days_value
+        )
+
+        #
+        # load schedule data
+        #
+        sched, date_from, date_to = self.load_sched(
+            date,
+            filter_re,
+            filter_neg,
+            search_re,
+            search_mode,
+            search_n,
+            todo_days_value,
+            todo_sde,
+            todo_today_sde,
+        )
+
+        #
+        # render
+        #
+        self.render(
+            self.HTML_MAIN,
+            title=self._title,
+            author=self._author,
+            version=self._version,
+            url_prefix=self._url_prefix,
+            today=datetime.date.today(),
+            delta_day1=self.DELTA_DAY1,
+            date=date,
+            date_from=date_from,
+            date_to=date_to,
+            sched=sched,
+            modified_sde_id=modified_sde_id,
+            todo_days_list=self.TODO_DAYS,
+            todo_days_value=todo_days_value,
+            filter_str=filter_str,
+            search_str=search_str,
+            search_mode=search_mode,
+            filter_error=filter_error,
+            search_error=search_error,
+            search_n=search_n,
+            sde_align=sde_align,
+            sd=self._sd,
+            gage=GAGE,
+        )
+
+    def get_conf_arg(
+        self,
+        arg_name: str,
+        conf_key: str,
+        default: str,
+        *,
+        empty_is_given: bool,
+    ) -> str:
+        """引数か ``Conf.cgi`` から設定値を取り出す。
+
+        引数が渡されていれば、その値を使い、``Conf.cgi`` の値と違えば
+        保存する。渡されていなければ ``Conf.cgi`` の値、それも無ければ
+        ``default`` を使う。
+
+        ``empty_is_given`` は、**空文字を「渡された」とみなすか**。
+        ``search_str``/``search_n`` は ``True``、
+        ``todo_days``/``filter_str`` は ``False`` で、
+        4 つの取り出し方は揃っていない (TODO-021)。
+
+        Parameters
+        ----------
+        arg_name: str
+            リクエスト引数の名前
+        conf_key: str
+            ``Conf.cgi`` のキー
+        default: str
+            引数も ``Conf.cgi`` も無いときの値
+        empty_is_given: bool
+
+        Returns
+        -------
+        str
+
+        """
+        conf_value = self.get_conf(conf_key)
+        value = self.get_argument(arg_name, None)
+        self.__log.debug(f"{arg_name}={value!a}, {conf_key}={conf_value!a}")
+
+        if value is not None and (empty_is_given or value):
+            if value != conf_value:
+                self.set_conf(conf_key, value)
+            return value
+
+        if conf_value:
+            return conf_value
+
+        return default
+
+    def exec_cmd(
+        self, search_str: str
+    ) -> tuple[datetime.date | None, str | None, bool]:
+        """``cmd`` (add/fix/update/del) を実行する。
+
+        Parameters
+        ----------
+        search_str: str
+            ``update`` のときの描画に渡す
+
+        Returns
+        -------
+        modified_date: datetime.date | None
+        modified_sde_id: str | None
+        rendered: bool
+            描画まで済ませたかどうか。``True`` なら呼び出し側は
+            そのまま ``return`` する
+
+        """
+        cmd = self.get_argument("cmd", None)
+
+        if cmd not in ["add", "fix", "update", "del"]:
+            return None, None, False
+
+        modified_date, modified_sde_id = self.exec_update(cmd)
+        self.__log.debug(
+            f"modified_date={modified_date},"
+            f" modified_sde_id={modified_sde_id}"
+        )
+
+        if cmd in ["del"]:
+            self.__log.debug(f"modified_date={modified_date}")
+            return modified_date, modified_sde_id, False
+
+        sde = self.get_modified_sde(cmd, modified_date, modified_sde_id)
+
+        todo_flag = sde.is_todo()
+        if todo_flag:
+            modified_date = sde.date
+
+        self.__log.debug(f"modified_date={modified_date}")
+
+        if cmd in ["update"]:
+            self.render(
+                self.HTML_EDIT,
+                title=self._title,
+                author=self._author,
+                version=self._version,
+                url_prefix=self._url_prefix,
+                post_url=self._url_prefix,
+                date=modified_date,
+                sde=sde,
+                new_flag=False,
+                todo_flag=todo_flag,
+                search_str=search_str,
+            )
+            return modified_date, modified_sde_id, True
+
+        return modified_date, modified_sde_id, False
+
+    def get_modified_sde(
+        self,
+        cmd: str,
+        modified_date: datetime.date | None,
+        modified_sde_id: str | None,
+    ) -> SchedDataEnt:
+        """更新したデータを読み直す。
+
+        見つからなければ 404 (TODO-016)。
+
+        Parameters
+        ----------
+        cmd: str
+        modified_date: datetime.date | None
+        modified_sde_id: str | None
+
+        Returns
+        -------
+        SchedDataEnt
+
+        """
+        sdf = self._sd.get_sdf(modified_date)
+        sde = sdf.get_sde(modified_sde_id)
+        self.__log.debug(f"sde={sde}")
+
+        if sde is None:
+            # 更新したはずのデータが見つからない (TODO-016)
+            raise tornado.web.HTTPError(
+                404,
+                "sde not found: date=%s, sde_id=%s (cmd=%s)",
+                modified_date,
+                modified_sde_id,
+                cmd,
+            )
+
+        return sde
+
+    def get_date(self, modified_date: datetime.date | None) -> datetime.date:
+        """表示する日付を決める。
+
+        強い順に ``year``+``month``+``day``、``modified_date``、
+        ``date``、``cur_day``、今日。
+
+        Parameters
+        ----------
+        modified_date: datetime.date | None
+
+        Returns
+        -------
+        datetime.date
+
+        """
         cur_day = datetime.date.today()  # default
 
         cur_day_str = self.get_argument("cur_day", None)
@@ -211,117 +431,98 @@ class MainHandler(HandlerBase):
             date = cur_day
 
         self.__log.debug(f"date={date}")
+        return date
 
-        #
-        # todo_days_value
-        #
-        todo_days_value0 = self.get_conf(self.CONF_KEY_TODO_DAYS)
-        self.__log.debug(f"todo_days_value0={todo_days_value0}")
-
-        todo_days_str = self.get_argument("todo_days", None)
-        if todo_days_str:
-            if todo_days_str != todo_days_value0:
-                self.set_conf(self.CONF_KEY_TODO_DAYS, todo_days_str)
-            else:
-                pass
-
-        elif todo_days_value0:
-            todo_days_str = todo_days_value0
-
-        else:
-            todo_days_str = str(self.DEF_TODO_DAYS)
-
-        todo_days_value = int(todo_days_str)
-        self.__log.debug(f"todo_days_value={todo_days_value!a}")
-
-        #
-        # sde_align
-        #
+    def get_sde_align(self) -> str:
+        """スケジュールの表示位置 (``top``/``bottom``)。"""
         sde_align = self.get_argument("sde_align", None)
         self.__log.debug(f"sde_align={sde_align}")
         if not sde_align:
             sde_align = "top"
             self.__log.debug(f"[fix]sde_align={sde_align}")
 
-        #
-        # filter_str
-        #
-        filter_str0 = self.get_conf(self.CONF_KEY_FILTER_STR)
-        self.__log.debug(f"filter_str0={filter_str0!a}")
-        filter_str = self.get_argument("filter_str", "")
-        self.__log.debug(f"filter_str={filter_str!a}")
-        if filter_str:
-            if filter_str != filter_str0:
-                self.set_conf(self.CONF_KEY_FILTER_STR, filter_str)
-            else:
-                pass
+        return sde_align
 
-        elif filter_str0:
-            filter_str = filter_str0
+    def compile_filter(
+        self, filter_str: str
+    ) -> tuple[re.Pattern[str] | None, bool, bool]:
+        """絞り込み用の正規表現をコンパイルする。
 
-        else:
-            filter_str = ""
+        Parameters
+        ----------
+        filter_str: str
 
-        filter_str = filter_str.lower()
-        self.__log.debug(f"filter_str={filter_str!a}")
+        Returns
+        -------
+        filter_re: re.Pattern[str] | None
+            不正な正規表現のときは ``None``
+        filter_neg: bool
+            ``!`` 始まり(否定)かどうか
+        filter_error: bool
 
-        #
-        # 正規表現のコンパイル (TODO-012)
-        #
-        # 不正な正規表現は、その条件を無視して全件を出す。
-        # 入力欄には元の文字列を残すので、マッチに使う変数だけ分ける。
-        #
+        """
         filter_neg = filter_str.startswith("!")
         filter_pattern = filter_str[1:] if filter_neg else filter_str
         filter_re = self.compile_re(filter_pattern)
-        filter_error = filter_re is None
 
+        return filter_re, filter_neg, filter_re is None
+
+    def compile_search(
+        self, search_str: str
+    ) -> tuple[re.Pattern[str] | None, bool]:
+        """検索用の正規表現をコンパイルする。
+
+        Parameters
+        ----------
+        search_str: str
+
+        Returns
+        -------
+        search_re: re.Pattern[str] | None
+            検索しない、または不正な正規表現のときは ``None``
+        search_error: bool
+
+        """
         search_re = None
         if search_str:
             search_re = self.compile_re(search_str)
-        search_error = bool(search_str) and search_re is None
 
-        # 検索モードかどうか (不正な正規表現のときは検索しない)
-        search_mode = search_re is not None
-        self.__log.debug(
-            f"search_mode={search_mode},"
-            f" filter_error={filter_error}, search_error={search_error}"
-        )
+        return search_re, bool(search_str) and search_re is None
 
-        #
-        # search_n
-        #
-        search_n_str0 = self.get_conf(self.CONF_KEY_SEARCH_N)
-        search_n_str = self.get_argument("search_n", None)
-        if search_n_str is not None:
-            if search_n_str != search_n_str0:
-                self.set_conf(self.CONF_KEY_SEARCH_N, search_n_str)
-            else:
-                pass
+    def load_todo(
+        self,
+        filter_re: re.Pattern[str] | None,
+        filter_neg: bool,
+        search_re: re.Pattern[str] | None,
+        todo_days_value: int,
+    ) -> tuple[list[SchedDataEnt], list[SchedDataEnt]]:
+        """ToDo を読み込む。
 
-        elif search_n_str0:
-            search_n_str = search_n_str0
-        else:
-            search_n_str = str(self.DEF_SEARCH_N)
+        Parameters
+        ----------
+        filter_re: re.Pattern[str] | None
+        filter_neg: bool
+        search_re: re.Pattern[str] | None
+        todo_days_value: int
 
-        search_n = int(search_n_str)
-        self.__log.debug(f"search_n={search_n}")
+        Returns
+        -------
+        todo_sde: list[SchedDataEnt]
+            後に、日々のスケジュール``out_sde``に統合
+        todo_today_sde: list[SchedDataEnt]
+            期限は先だが、今日に表示すべきToDo
 
-        #
-        # load ToDo
-        #
+        """
         today = datetime.date.today()
 
         todo_sdf = self._sd.get_sdf(None)
-        todo_sde = []  # 後に、日々のスケジュール`out_sde`に統合
-        todo_today_sde = []  # 期限は先だが、今日に表示すべきToDo
+        todo_sde = []
+        todo_today_sde = []
         for sde in todo_sdf.sde:
             if not self.filter_match(filter_re, filter_neg, sde):
                 continue
 
-            if search_re is not None and not search_re.search(
-                sde.search_str()
-            ):
+            if not self.search_match(search_re, sde):
                 continue
 
             todo_sde.append(sde)
@@ -336,9 +537,42 @@ class MainHandler(HandlerBase):
             todo_today_sde.append(sde)
             self.__log.debug(f"sde={sde}")
 
-        #
-        # load schedule data
-        #
+        return todo_sde, todo_today_sde
+
+    def load_sched(
+        self,
+        date: datetime.date,
+        filter_re: re.Pattern[str] | None,
+        filter_neg: bool,
+        search_re: re.Pattern[str] | None,
+        search_mode: bool,
+        search_n: int,
+        todo_days_value: int,
+        todo_sde: list[SchedDataEnt],
+        todo_today_sde: list[SchedDataEnt],
+    ) -> tuple[list[dict], datetime.date, datetime.date]:
+        """表示する日々のスケジュールを集める。
+
+        Parameters
+        ----------
+        date: datetime.date
+        filter_re: re.Pattern[str] | None
+        filter_neg: bool
+        search_re: re.Pattern[str] | None
+        search_mode: bool
+        search_n: int
+        todo_days_value: int
+        todo_sde: list[SchedDataEnt]
+        todo_today_sde: list[SchedDataEnt]
+
+        Returns
+        -------
+        sched: list[dict]
+        date_from: datetime.date
+            検索モードでは、打ち切った日まで縮む
+        date_to: datetime.date
+
+        """
         sched = []
         date_from = date - datetime.timedelta(self._days)
         date_to = date + datetime.timedelta(self._days - 1)
@@ -349,8 +583,7 @@ class MainHandler(HandlerBase):
             date_to = date
 
         search_count = 0
-        delta_day1 = datetime.timedelta(1)
-        date1 = date_to + delta_day1
+        date1 = date_to + self.DELTA_DAY1
         while date1 > date_from:
             if search_mode and search_count > 0:
                 if search_count >= search_n:
@@ -361,7 +594,7 @@ class MainHandler(HandlerBase):
                     date_from = date1
                     break
 
-            date1 -= delta_day1
+            date1 -= self.DELTA_DAY1
 
             sdf = self._sd.get_sdf(date1)
 
@@ -371,9 +604,7 @@ class MainHandler(HandlerBase):
                 if not self.filter_match(filter_re, filter_neg, sde):
                     continue
 
-                if search_re is not None and not search_re.search(
-                    sde.search_str()
-                ):
+                if not self.search_match(search_re, sde):
                     continue
 
                 out_sde.append(sde)
@@ -382,9 +613,7 @@ class MainHandler(HandlerBase):
             if todo_days_value >= 0:
                 # todo_sde
                 for sde in todo_sde:
-                    if search_re is not None and not search_re.search(
-                        sde.search_str()
-                    ):
+                    if not self.search_match(search_re, sde):
                         continue
 
                     if sde.date == date1:
@@ -404,36 +633,7 @@ class MainHandler(HandlerBase):
                 {"date": date1, "is_holiday": sdf.is_holiday, "sde": out_sde}
             )
 
-        sched = sched[::-1]
-
-        #
-        # render
-        #
-        self.render(
-            self.HTML_MAIN,
-            title=self._title,
-            author=self._author,
-            version=self._version,
-            url_prefix=self._url_prefix,
-            today=datetime.date.today(),
-            delta_day1=delta_day1,
-            date=date,
-            date_from=date_from,
-            date_to=date_to,
-            sched=sched,
-            modified_sde_id=modified_sde_id,
-            todo_days_list=self.TODO_DAYS,
-            todo_days_value=todo_days_value,
-            filter_str=filter_str,
-            search_str=search_str,
-            search_mode=search_mode,
-            filter_error=filter_error,
-            search_error=search_error,
-            search_n=search_n,
-            sde_align=sde_align,
-            sd=self._sd,
-            gage=GAGE,
-        )
+        return sched[::-1], date_from, date_to
 
     def compile_re(self, pattern: str) -> re.Pattern[str] | None:
         """正規表現をコンパイルする。
@@ -483,6 +683,31 @@ class MainHandler(HandlerBase):
         found = filter_re.search(sde.search_str()) is not None
         return found != filter_neg
 
+    def search_match(
+        self,
+        search_re: re.Pattern[str] | None,
+        sde: SchedDataEnt,
+    ) -> bool:
+        """``sde`` が検索文字列に合うか。
+
+        ``search_re`` が ``None``(検索しない、または不正な正規表現)の
+        ときは、絞り込まずに常に ``True`` を返す。
+
+        Parameters
+        ----------
+        search_re: re.Pattern[str] | None
+        sde: SchedDataEnt
+
+        Returns
+        -------
+        bool
+
+        """
+        if search_re is None:
+            return True
+
+        return search_re.search(sde.search_str()) is not None
+
     def exec_update(
         self, cmd: str
     ) -> tuple[datetime.date | None, str | None]:
@@ -501,34 +726,16 @@ class MainHandler(HandlerBase):
         self.__log.debug("")
 
         # get orig_date
-        orig_date = None
-        orig_date_str = self.get_argument("orig_date", None)
-        if orig_date_str:
-            orig_date = datetime.date.fromisoformat(orig_date_str)
-
+        orig_date = self.get_date_arg("orig_date")
         self.__log.debug(f"orig_date={orig_date}")
 
         # get (new) date
-        date = None
-        date_str = self.get_argument("date", None)
-        if date_str:
-            date = datetime.date.fromisoformat(date_str)
-
+        date = self.get_date_arg("date")
         self.__log.debug(f"date={date}")
 
         # get times
-        time_start_str = self.get_argument("time_start", None)
-        if time_start_str:
-            time_start = datetime.time.fromisoformat(time_start_str)
-        else:
-            time_start = None
-
-        time_end_str = self.get_argument("time_end", None)
-        if time_end_str:
-            time_end = datetime.time.fromisoformat(time_end_str)
-        else:
-            time_end = None
-
+        time_start = self.get_time_arg("time_start")
+        time_end = self.get_time_arg("time_end")
         self.__log.debug(f"time_start, time_end: {time_start}-{time_end}")
 
         # get sde_type, title, place
@@ -542,39 +749,22 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"detail:'{detail}'")
 
         # set deadline_*
-        deadline_date_str = self.get_argument("deadline_date", "")
-        deadline_time_start_str = self.get_argument("deadline_time_start", "")
-        deadline_time_end_str = self.get_argument("deadline_time_end", "")
-        if deadline_time_end_str:
-            deadline_time_end_str = "-" + deadline_time_end_str
-        self.__log.debug(
-            f"deadline: {deadline_date_str} {deadline_time_start_str}"
-            f"{deadline_time_end_str}"
-        )
+        (
+            deadline_date_str,
+            deadline_time_start_str,
+            deadline_time_end_str,
+        ) = self.get_deadline_str()
 
         if deadline_date_str and not SchedDataEnt.type_is_todo(sde_type):
             #
             # ToDoが完了した場合
-            # ``date``, ``time_start``を現在日時にする
             #
-            date = datetime.date.today()
-            self.__log.debug(f"[fix] date={date}")
-
-            time_start = datetime.datetime.now().time()
-            # msec を切り捨てる
-            time_start = datetime.time.fromisoformat(
-                time_start.strftime("%H:%M")
+            date, time_start, time_end, detail = self.fix_todo_done(
+                deadline_date_str,
+                deadline_time_start_str,
+                deadline_time_end_str,
+                detail,
             )
-            self.__log.debug(f"[fix] time_start={time_start}")
-            time_end = None
-
-            deadline_date = deadline_date_str.replace("-", "/")
-            detail = (
-                f"〆{deadline_date} "
-                f"{deadline_time_start_str}{deadline_time_end_str}\n"
-                f"{detail}"
-            )
-            self.__log.debug(f"[fix] detail={detail}")
 
         # sde_id
         sde_id: str | None = self.get_argument("sde_id")
@@ -612,6 +802,118 @@ class MainHandler(HandlerBase):
 
         self.__log.debug(f"date={date}, modified_sde_id={modified_sde_id}")
         return date, modified_sde_id
+
+    def get_date_arg(self, arg_name: str) -> datetime.date | None:
+        """フォームの引数を日付として取り出す（空なら ``None``）。
+
+        Parameters
+        ----------
+        arg_name: str
+
+        Returns
+        -------
+        datetime.date | None
+
+        """
+        value = self.get_argument(arg_name, None)
+        if value:
+            return datetime.date.fromisoformat(value)
+
+        return None
+
+    def get_time_arg(self, arg_name: str) -> datetime.time | None:
+        """フォームの引数を時刻として取り出す（空なら ``None``）。
+
+        Parameters
+        ----------
+        arg_name: str
+
+        Returns
+        -------
+        datetime.time | None
+
+        """
+        value = self.get_argument(arg_name, None)
+        if value:
+            return datetime.time.fromisoformat(value)
+
+        return None
+
+    def get_deadline_str(self) -> tuple[str, str, str]:
+        """締切(``deadline_*``)のフォーム引数を取り出す。
+
+        Returns
+        -------
+        deadline_date_str: str
+        deadline_time_start_str: str
+        deadline_time_end_str: str
+            空でなければ先頭に ``-`` が付く
+
+        """
+        deadline_date_str = self.get_argument("deadline_date", "")
+        deadline_time_start_str = self.get_argument("deadline_time_start", "")
+        deadline_time_end_str = self.get_argument("deadline_time_end", "")
+        if deadline_time_end_str:
+            deadline_time_end_str = "-" + deadline_time_end_str
+
+        self.__log.debug(
+            f"deadline: {deadline_date_str} {deadline_time_start_str}"
+            f"{deadline_time_end_str}"
+        )
+
+        return (
+            deadline_date_str,
+            deadline_time_start_str,
+            deadline_time_end_str,
+        )
+
+    def fix_todo_done(
+        self,
+        deadline_date_str: str,
+        deadline_time_start_str: str,
+        deadline_time_end_str: str,
+        detail: str,
+    ) -> tuple[datetime.date, datetime.time, datetime.time | None, str]:
+        """ToDoが完了した場合の補正。
+
+        ``date``, ``time_start``を現在日時にして、``detail``の先頭に
+        元の締切を書き足す。
+
+        Parameters
+        ----------
+        deadline_date_str: str
+        deadline_time_start_str: str
+        deadline_time_end_str: str
+        detail: str
+
+        Returns
+        -------
+        date: datetime.date
+        time_start: datetime.time
+        time_end: datetime.time | None
+        detail: str
+
+        """
+        date = datetime.date.today()
+        self.__log.debug(f"[fix] date={date}")
+
+        time_start = datetime.datetime.now().time()
+        # msec を切り捨てる
+        time_start = datetime.time.fromisoformat(
+            time_start.strftime(SchedDataEnt.TIME_FORMAT)
+        )
+        self.__log.debug(f"[fix] time_start={time_start}")
+        time_end = None
+
+        deadline_date = deadline_date_str.replace("-", "/")
+        detail = (
+            f"〆{deadline_date} "
+            f"{deadline_time_start_str}{deadline_time_end_str}\n"
+            f"{detail}"
+        )
+        self.__log.debug(f"[fix] detail={detail}")
+
+        return date, time_start, time_end, detail
 
     def cmd_add(
         self,

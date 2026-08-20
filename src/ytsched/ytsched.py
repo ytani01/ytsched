@@ -246,8 +246,12 @@ class SchedDataEnt:
         ----------
         sde_type: str | None
 
+        Notes
+        -----
+        debug ログは出さない。``is_todo()`` がここへ委譲するようになり
+        （TODO-021）、一覧の描画で 1 件につき何度も呼ばれるため。
+
         """
-        cls.__log.debug(f"sde_type={sde_type}")
         if sde_type:
             return sde_type.startswith(cls.TYPE_PREFIX_TODO)
 
@@ -255,11 +259,7 @@ class SchedDataEnt:
 
     def is_todo(self):
         """ToDo かどうか（``type`` の先頭で判定する）。"""
-        # self.__log.debug("")
-        if self.type:
-            return self.type.startswith(self.TYPE_PREFIX_TODO)
-
-        return False
+        return self.type_is_todo(self.type)
 
     def is_holiday(self):
         """休日かどうか（``type`` で判定する）。"""
@@ -268,28 +268,30 @@ class SchedDataEnt:
             return False
         return self.type in self.TYPE_HOLYDAY
 
+    def title_starts_with(self, prefix_list: list[str]) -> bool:
+        """``title`` が ``prefix_list`` のどれかで始まるか。
+
+        照合は ``normalize()`` した文字列で行う
+        （保存する文字列そのものは変えない）。
+
+        Parameters
+        ----------
+        prefix_list: list[str]
+
+        Returns
+        -------
+        bool
+
+        """
+        return normalize(self.title).startswith(tuple(prefix_list))
+
     def is_important(self):
         """「重要」かどうか（``title`` の先頭で判定する）。"""
-        if self.title == "":
-            return False
-        title = normalize(self.title)
-        for start_str in self.TITLE_PREFIX_IMPORTANT:
-            if title.startswith(start_str):
-                return True
-
-        return False
+        return self.title_starts_with(self.TITLE_PREFIX_IMPORTANT)
 
     def is_canceled(self):
         """「取り消し」かどうか（``title`` の先頭で判定する）。"""
-        if self.title == "":
-            return False
-
-        title = normalize(self.title)
-        for start_str in self.TITLE_PREFIX_CANCELED:
-            if title.startswith(start_str):
-                return True
-
-        return False
+        return self.title_starts_with(self.TITLE_PREFIX_CANCELED)
 
     def get_sortkey(self):
         """並べ替え用のキー文字列を返す。"""
@@ -338,17 +340,10 @@ class SchedDataEnt:
         ':-:', ':-HH:MM', 'HH:MM-'
 
         """
-        time_start_str = ":"
-        if self.time_start:
-            time_start_str = self.time_start.strftime("%H:%M")
+        time_start_str = self.time2str(self.time_start) or ":"
+        time_end_str = self.time2str(self.time_end) or ":"
 
-        time_end_str = ":"
-        if self.time_end:
-            time_end_str = self.time_end.strftime("%H:%M")
-
-        time_str = f"{time_start_str}-{time_end_str}"
-
-        return time_str
+        return f"{time_start_str}-{time_end_str}"
 
 
 class SchedDataFile:
@@ -474,8 +469,7 @@ class SchedDataFile:
 
             out.append(sde)
 
-        out2 = sorted(out, key=lambda x: x.get_sortkey())
-        return out2
+        return sorted(out, key=lambda x: x.get_sortkey())
 
     @staticmethod
     def split_lines(data: bytes) -> list[bytes]:

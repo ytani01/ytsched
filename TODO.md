@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-021・TODO-022。**
-これまでに 20 件を決着させた。
-新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-023` から。**
+**残っている項目: TODO-022・TODO-023。**
+これまでに 21 件を決着させた。
+新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-024` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -15,59 +15,6 @@
 
 ---
 
-## TODO-021. リファクタリング（挙動は変えない）
-
-見込み: main = Opus 5 / effort high、担当 = implementer + verifier + reviewer
-
-- [ ] `MainHandler.get()` を分割する
-- [ ] `exec_update()` を分割する
-- [ ] `ytsched.py` の重複を整理する
-- [ ] `HandlerBase` の細かいところを直す
-- [ ] 意味の無い記述を消す
-- [ ] 現状の挙動を押さえるテストを、着手前に足す
-
-（背景）
-
-TODO-020 まででデータ形式の移行が済んだ。`main_handler.py` の
-`get()` が約 250 行あり、設定値の取り出し・日付の決定・ToDo の
-読み込み・一覧の収集・render が 1 つのメソッドに同居している。
-**挙動は一切変えない**のが前提。
-
-（やること）
-
-- **A. `MainHandler.get()` の分割** — 設定値の取り出し（`search_str` /
-  `todo_days` / `filter_str` / `search_n`）が 4 回ほぼ同じ形で並んで
-  いるのを 1 つにまとめる。`search_re` によるマッチが 3 か所に散って
-  いるのを `filter_match()` と同じ形のメソッドにする。ブロックごとに
-  メソッドへ切り出す
-- **B. `exec_update()` の分割** — フォーム引数の取り出しと、ToDo 完了
-  時の `date`/`time_start` の補正を分ける
-- **C. `ytsched.py`** — `is_important()` と `is_canceled()` の共通化、
-  `is_todo()` を `type_is_todo()` へ委譲、`load()` の中間変数、
-  `get_timestr()` の冗長さ
-- **D. `handler.py`** — `get_conf()` の try/except を `dict.get()` へ、
-  `__init__` の `app.settings.get()` の繰り返し
-- **E.** `else: pass` が 4 か所、空の `DataFileApp.end()`
-
-（気をつけること）
-
-- **設定値の取り出し 4 か所は、条件が揃っていない。** `search_str` と
-  `search_n` は `is not None`、`todo_days` と `filter_str` は truthy で
-  分岐する。これは空文字を渡したときの**挙動の違い**なので、まとめる
-  ときも差を引数で残す。揃えたくなったら別の項目にする
-- 分割の前に、現状の挙動（特に上の 4 か所と、検索モードの打ち切り
-  条件）を押さえるテストを足しておく
-- テストは 290 件すべて通っている状態から始め、**テストを書き換えない**。
-  書き換えが要るなら、それは挙動が変わった印
-
-（担当を分ける理由）
-
-複数のファイルにまたがり、実装とテストがまとまって要るので
-implementer を立てる。動くかの確認は verifier。**分岐や条件式を
-動かす**ので、TODO-017 の基準に従い reviewer も入れる。
-
----
-
 ## TODO-022. 軽量な担当 runner を作る
 
 見込み: main = Sonnet 5 / effort medium、担当 = main のみ
@@ -75,7 +22,7 @@ implementer を立てる。動くかの確認は verifier。**分岐や条件式
 - [x] サブエージェントが `CLAUDE.md` を読めているかを確かめる
 - [x] 共通の前提の置き場所を決める
 - [x] `.claude/agents/runner.md` を作る（haiku）
-- [ ] TODO-021 で使ってみて、結果を TODO-021 の `実施:` に残す
+- [x] TODO-021 で使ってみて、結果を TODO-021 の `実施:` に残す
 
 （背景）
 
@@ -126,11 +73,20 @@ implementer を立てる。動くかの確認は verifier。**分岐や条件式
 
 ---
 
+## TODO-023 mise.tomlの見直し
+
+mise.tomlを使いやすいようにしたい。
+現在の内容は、全部書き直してもいいし、不要なら削除してもいい。
+
+
+---
+
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-021.** リファクタリング（挙動は変えない）](archives/todo/TODO-021.%20リファクタリング（挙動は変えない）.md)
 - [**TODO-020.** JSON Lines への移行ツールと、読み書きの実装](archives/todo/TODO-020.%20JSON%20Lines%20への移行ツールと、読み書きの実装.md)
 - [**TODO-019.** 移行元のテストデータを作る](archives/todo/TODO-019.%20移行元のテストデータを作る.md)
 - [**TODO-018.** データ形式の見直し（何を変えるかを決める）](archives/todo/TODO-018.%20データ形式の見直し（何を変えるかを決める）.md)

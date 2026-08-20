@@ -38,9 +38,6 @@ class DataFileApp:
         else:
             print("===== No data =====")
 
-    def end(self):
-        self.__log.debug("")
-
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
@@ -88,7 +85,6 @@ def x_data1(year, month, day, datadir, debug):
         app.main()
     finally:
         _log.debug("finally")
-        app.end()
         _log.info("end")
 
 

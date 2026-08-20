@@ -40,29 +40,23 @@ class HandlerBase(tornado.web.RequestHandler):
         self._app = app
         self._req = req
 
+        # 属性への代入は明示のまま(型チェッカが属性を追えなくなるため)
         self._title = app.settings.get("title")
-        self.__log.debug(f"title={self._title}")
-
         self._author = app.settings.get("author")
-        self.__log.debug(f"author={self._author}")
-
         self._version = app.settings.get("version")
-        self.__log.debug(f"version={self._version}")
-
         self._url_prefix = app.settings.get("url_prefix")
-        self.__log.debug(f"url_prefix={self._url_prefix}")
-
         self._datadir = app.settings.get("datadir")
-        self.__log.debug(f"datadir={self._datadir}")
-
         self._days = app.settings.get("days")
-        self.__log.debug(f"days={self._days}")
-
         self._sd = app.settings.get("sd")
-        self.__log.debug(f"sd={self._sd}")
 
         self._conf_file = os.path.join(self._datadir, self.CONF_FNAME)
-        self.__log.debug(f"conf_file={self._conf_file}")
+
+        self.__log.debug(
+            f"title={self._title}, author={self._author},"
+            f" version={self._version}, url_prefix={self._url_prefix},"
+            f" datadir={self._datadir}, days={self._days},"
+            f" sd={self._sd}, conf_file={self._conf_file}"
+        )
 
         self._conf = self.load_conf()
 
@@ -109,10 +103,7 @@ class HandlerBase(tornado.web.RequestHandler):
         """設定値を返す。無ければ ``None`` を返す。"""
         self.__log.debug(f"name={name}")
 
-        try:
-            return self._conf[name]
-        except KeyError:
-            return None
+        return self._conf.get(name)
 
     def set_conf(self, name, value):
         """設定値を変更して、``Conf.cgi`` へ保存する。"""
