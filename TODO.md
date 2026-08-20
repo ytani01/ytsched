@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-006〜TODO-010、TODO-012、TODO-015。**
+**残っている項目: TODO-006〜TODO-010、TODO-012、TODO-015、TODO-016。**
 これまでに 8 件を決着させた。
-新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-016` から。**
+新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-017` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
@@ -22,6 +22,35 @@
 - [ ] mypy / basedpyright が通るまで直す
 
 空文字列を `datetime.time` として扱っている箇所が広い。
+
+### 途中経過（2026-08-20 時点）
+
+**implementer による実装は済み。未検証・未コミット。**
+変更は `src/ytsched/{ytsched,main_handler,edit_handler}.py` と
+`tests/test_ytsched.py` の 4 ファイル（作業ツリーに未コミットで残っている）。
+実装の詳細は `archives/agents/TODO-006/implementer-report.md`。
+
+implementer 自身の確認では、mypy 35 → 2 件（残りは `__class__` の 2 件で、
+TODO-007 で `my_logger.py` ごと消える範囲）、basedpyright 28 → 0 件、
+pytest は 161 passed のまま、データ形式も従来どおり。
+
+**残りの手順（新しいセッションでは、次を指示すれば再開できる）:**
+
+```
+TODO-006 の続き。実装は済んで未コミット。
+archives/agents/TODO-006/implementer-report.md を読んで、verifier に検証を依頼して
+```
+
+1. `verifier` に検証させる。特に次の 2 点は implementer が独断で決めたので、
+   呼び出し箇所を網羅して確かめさせること
+   - `exec_update()` の戻り値を `tuple[datetime.date | None, str | None]`
+     にした（実際に `None` を返すため。当初の指示が実態と違っていた）
+   - `SchedData.add_sde()` の `date` / `sde` から既定値 `= None` を外した
+     （呼び出しは 5 か所とも 2 引数の位置引数、とのこと）
+2. `reviewer` にレビューさせる。`SchedDataEnt.__init__` の代入を 1 文に
+   まとめた件と、`edit_handler.py` の `todo_flag` の書き換えが挙動を
+   変えていないかを見させる
+3. 上の 2 つが通ってから `feat(...): …（TODO-006）` でコミット
 
 ---
 
@@ -106,6 +135,31 @@ TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実
 （implicit-optional）はいずれも TODO-006（型ヒントの整備）の範囲なので
 ここでは扱わない。`EXE001` は起動スクリプトの扱いが決まる TODO-008 の
 あとに回す。
+
+---
+
+## TODO-016. `date` が空の POST と、存在しない `sde_id` の扱い
+
+見込み: main = Opus 5 / effort medium、担当 = implementer + verifier
+
+- [ ] `date` が空のまま非 ToDo の予定を追加したときの扱いを決めて直す
+- [ ] 存在しない `sde_id` を渡されたときの扱いを決めて直す
+
+`date` を空にして、ToDo ではない予定を `cmd=add` で POST すると、
+`exec_update()` が `date = None` のまま `add_sde(None, sde)` を呼ぶため、
+**予定が `ToDo.cgi` に書かれる**。`edit.html` の日付欄は必ず埋まるが、
+`type="date"` の入力は手で空にできるので到達する。
+
+`edit_handler.py:95` の `sde = sdf.get_sde(sde_id)` も、存在しない
+`sde_id` を渡されると `None` を返し、`edit.html:5` の `sde.date` で落ちる。
+
+どちらも TODO-006 より前からある挙動。TODO-006（型ヒントの整備）で
+`get_sde()` の戻り値が `SchedDataEnt | None` になった際、
+`main_handler.py` の guard で **失敗が黙って 200 で返る**ようになったため、
+暫定で `warning` を 1 行足してある。根本の対処はここで決める。
+
+（TODO-006 の reviewer の指摘 1-1 と 2-2 から。
+`archives/agents/TODO-006/reviewer-report.md` に詳しい）
 
 ---
 
