@@ -33,7 +33,8 @@ class DataFileApp:
         if self.sdf.sde:
             for sde in sorted(self.sdf.sde, key=lambda x: x.get_timestr()):
                 print(sde)
-                print("%s" % (sde.mk_dataline().replace("\t", "<tab>")))
+                dataline = sde.mk_dataline().replace("\t", "<tab>")
+                print(f"{dataline}")
         else:
             print("===== No data =====")
 
@@ -41,7 +42,7 @@ class DataFileApp:
         self.__log.debug("")
 
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 
 @click.group(
@@ -73,7 +74,7 @@ test """
     "datadir",
     type=click.Path(exists=True),
     default=SchedDataFile.DEF_TOP_DIR,
-    help="data directory, default='%s'" % (SchedDataFile.DEF_TOP_DIR),
+    help=f"data directory, default='{SchedDataFile.DEF_TOP_DIR}'",
 )
 @click.option(
     "--debug", "-d", "debug", is_flag=True, default=False, help="debug flag"
@@ -101,7 +102,7 @@ Web server"""
     "port",
     type=int,
     default=WebServer.DEF_PORT,
-    help="port number, default=%s" % (WebServer.DEF_PORT),
+    help=f"port number, default={WebServer.DEF_PORT}",
 )
 @click.option(
     "--webroot",
@@ -109,7 +110,7 @@ Web server"""
     "webroot",
     type=click.Path(exists=True),
     default=WebServer.DEF_WEBROOT,
-    help="Web root directory, default='%s'" % (WebServer.DEF_WEBROOT),
+    help=f"Web root directory, default='{WebServer.DEF_WEBROOT}'",
 )
 @click.option(
     "--datadir",
@@ -117,14 +118,14 @@ Web server"""
     "datadir",
     type=click.Path(),
     default=WebServer.DEF_DATADIR,
-    help="data directory, default='%s'" % (WebServer.DEF_DATADIR),
+    help=f"data directory, default='{WebServer.DEF_DATADIR}'",
 )
 @click.option(
     "--days",
     "days",
     type=int,
     default=MainHandler.DEF_DAYS,
-    help="+/- days, default=%s" % (MainHandler.DEF_DAYS),
+    help=f"+/- days, default={MainHandler.DEF_DAYS}",
 )
 @click.option(
     "--size_limit",
@@ -132,7 +133,7 @@ Web server"""
     "size_limit",
     type=int,
     default=100 * 1024 * 1024,
-    help="upload size limit, default=%s" % (WebServer.DEF_SIZE_LIMIT),
+    help=f"upload size limit, default={WebServer.DEF_SIZE_LIMIT}",
 )
 @click.option(
     "--version",

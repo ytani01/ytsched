@@ -136,7 +136,7 @@ def test_sde_str_no_time():
 
 def test_mk_dataline():
     sde = mk_sde(detail="a\nb")
-    assert sde.mk_dataline() == "\t".join(
+    assert sde.mk_dataline() == "\t".join(  # noqa: FLY002
         [
             "id-1",
             "2021/03/01",
@@ -317,14 +317,14 @@ def test_sde_init_date_none_is_today():
 #
 def test_date2path(tmp_path):
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
-    assert sdf.pathname == "%s/2021/03/01.cgi" % (tmp_path)
-    assert sdf.dirname == "%s/2021/03" % (tmp_path)
+    assert sdf.pathname == f"{tmp_path}/2021/03/01.cgi"
+    assert sdf.dirname == f"{tmp_path}/2021/03"
     assert sdf.filename == "01.cgi"
 
 
 def test_date2path_todo(tmp_path):
     sdf = SchedDataFile(None, topdir=str(tmp_path))
-    assert sdf.pathname == "%s/ToDo.cgi" % (tmp_path)
+    assert sdf.pathname == f"{tmp_path}/ToDo.cgi"
 
 
 def test_topdir_is_expanded():
@@ -347,7 +347,9 @@ def write_data(tmp_path, date, lines, encoding="utf-8"):
     return path
 
 
-DATALINE1 = "\t".join(
+# タブ区切りの項目の並びが見えるよう、f-string にせず
+# join のまま残す（TODO-015）
+DATALINE1 = "\t".join(  # noqa: FLY002
     [
         "id-1",
         "2021/03/01",
@@ -358,7 +360,7 @@ DATALINE1 = "\t".join(
         "a<br />b",
     ]
 )
-DATALINE2 = "\t".join(
+DATALINE2 = "\t".join(  # noqa: FLY002
     [
         "id-2",
         "2021/03/01",
@@ -437,7 +439,9 @@ def test_load_hour_and_minute_are_normalized(tmp_path):
 
 def test_load_short_line(tmp_path):
     """項目が足りない行も読める（足りない分は空文字）。"""
-    line = "\t".join(["id-1", "2021/03/01", "09:05-10:30", "予定"])
+    line = "\t".join(  # noqa: FLY002
+        ["id-1", "2021/03/01", "09:05-10:30", "予定"]
+    )
     write_data(tmp_path, DATE1, [line])
 
     sde = SchedDataFile(DATE1, topdir=str(tmp_path)).sde[0]
@@ -452,7 +456,9 @@ def test_load_short_line(tmp_path):
 
 def test_load_short_line_is_not_lost(tmp_path):
     """項目が足りない行も、保存し直したときに消えない。"""
-    line = "\t".join(["id-1", "2021/03/01", "09:05-10:30", "予定"])
+    line = "\t".join(  # noqa: FLY002
+        ["id-1", "2021/03/01", "09:05-10:30", "予定"]
+    )
     write_data(tmp_path, DATE1, [line])
 
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))

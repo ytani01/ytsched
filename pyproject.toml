@@ -36,6 +36,12 @@ dev = [
     "ruff>=0.16.3",
 ]
 
+[tool.ruff.lint]
+# 手帳代わりのソフトで、日付はすべて手元のローカル時刻。
+# tz を付けて回ってもノイズにしかならないので、規則ごと除外する
+# (TODO-015)。
+ignore = ["DTZ005", "DTZ011"]
+
 [tool.mypy]
 python_version = "3.14"
 check_untyped_defs = true

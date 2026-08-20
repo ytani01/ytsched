@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # (c) 2020 Yoichi Tanibayashi
 #
@@ -85,7 +84,7 @@ class WebServer:
         self._size_limit = size_limit
 
         if version:
-            print("%s %s by %s" % (PROG_NAME, VERSION, AUTHOR))
+            print(f"{PROG_NAME} {VERSION} by {AUTHOR}")
             sys.exit(0)
 
         os.makedirs(self._datadir, exist_ok=True)
@@ -93,10 +92,10 @@ class WebServer:
         self._app = tornado.web.Application(
             [
                 (r"/", MainHandler),
-                (r"%s" % self.URL_PREFIX, MainHandler),
-                (r"%s/" % self.URL_PREFIX, MainHandler),
-                (r"%s/edit" % self.URL_PREFIX, EditHandler),
-                (r"%s/edit/" % self.URL_PREFIX, EditHandler),
+                (self.URL_PREFIX, MainHandler),
+                (rf"{self.URL_PREFIX}/", MainHandler),
+                (rf"{self.URL_PREFIX}/edit", EditHandler),
+                (rf"{self.URL_PREFIX}/edit/", EditHandler),
             ],
             static_path=os.path.join(self._webroot, "static"),
             static_url_prefix=self.URL_PREFIX + "/static/",

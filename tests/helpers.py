@@ -35,10 +35,10 @@ def make_app(datadir, days=MainHandler.DEF_DAYS):
     return tornado.web.Application(
         [
             (r"/", MainHandler),
-            (r"%s" % URL_PREFIX, MainHandler),
-            (r"%s/" % URL_PREFIX, MainHandler),
-            (r"%s/edit" % URL_PREFIX, EditHandler),
-            (r"%s/edit/" % URL_PREFIX, EditHandler),
+            (URL_PREFIX, MainHandler),
+            (rf"{URL_PREFIX}/", MainHandler),
+            (rf"{URL_PREFIX}/edit", EditHandler),
+            (rf"{URL_PREFIX}/edit/", EditHandler),
         ],
         static_path=os.path.join(webroot, "static"),
         static_url_prefix=URL_PREFIX + "/static/",

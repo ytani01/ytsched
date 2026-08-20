@@ -16,7 +16,9 @@ from ytsched.main_handler import MainHandler
 DATE1 = datetime.date(2021, 3, 1)
 DATE1_STR = "2021-03-01"
 
-DATALINE1 = "\t".join(
+# タブ区切りの項目の並びが見えるよう、f-string にせず
+# join のまま残す（TODO-015）
+DATALINE1 = "\t".join(  # noqa: FLY002
     [
         "id-1",
         "2021/03/01",
@@ -27,7 +29,7 @@ DATALINE1 = "\t".join(
         "detail1",
     ]
 )
-DATALINE2 = "\t".join(
+DATALINE2 = "\t".join(  # noqa: FLY002
     [
         "id-2",
         "2021/03/01",
@@ -82,7 +84,7 @@ class WebTestBase(tornado.testing.AsyncHTTPTestCase):
     def get_body(self, path, **args):
         """GET して、200 を確かめて、本文を返す。"""
         if args:
-            path = "%s?%s" % (path, urlencode(args))
+            path = f"{path}?{urlencode(args)}"
 
         res = self.fetch(path)
         assert res.code == 200
@@ -285,7 +287,7 @@ class TestMainHandler(WebTestBase):
 
     def test_todo_is_displayed(self):
         """ToDo は、期限の日付の欄に出る。"""
-        todo_line = "\t".join(
+        todo_line = "\t".join(  # noqa: FLY002
             [
                 "id-t",
                 "2021/03/01",
@@ -306,7 +308,7 @@ class TestMainHandler(WebTestBase):
 
     def test_todo_with_filter_str(self):
         """``filter_str`` は ToDo にも効く。"""
-        todo_line = "\t".join(
+        todo_line = "\t".join(  # noqa: FLY002
             [
                 "id-t",
                 "2021/03/01",
@@ -333,7 +335,7 @@ class TestMainHandler(WebTestBase):
 
     def test_todo_with_search_str(self):
         """``search_str`` は ToDo にも効く。"""
-        todo_line = "\t".join(
+        todo_line = "\t".join(  # noqa: FLY002
             [
                 "id-t",
                 "2021/03/01",
@@ -360,7 +362,7 @@ class TestMainHandler(WebTestBase):
             date = datetime.date(2021, 3, day)
             line = "\t".join(
                 [
-                    "id-%d" % day,
+                    f"id-{day}",
                     date.strftime("%Y/%m/%d"),
                     "09:00-10:00",
                     "会議",
@@ -453,7 +455,7 @@ class TestUpdate(WebTestBase):
         sde_id = self.add_sde()
 
         line = self.data_path(DATE1).read_text(encoding="utf-8").rstrip("\n")
-        assert line == "\t".join(
+        assert line == "\t".join(  # noqa: FLY002
             [
                 sde_id,
                 "2021/03/01",
@@ -678,7 +680,7 @@ class TestEditHandler(WebTestBase):
         assert "会議室" in body
 
     def test_get_existing_todo(self):
-        todo_line = "\t".join(
+        todo_line = "\t".join(  # noqa: FLY002
             [
                 "id-t",
                 "2021/03/01",

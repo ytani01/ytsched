@@ -14,6 +14,7 @@ import os
 import re
 import shutil
 import uuid
+from typing import ClassVar
 
 from .mylog import getLogger
 
@@ -46,9 +47,9 @@ def htmlstr2text(intext: str) -> str:
     outtext = outtext.replace("（", "(")
     outtext = outtext.replace("）", ")")
 
-    for k in resub_tbl:
-        # outtext = outtext.replace(k, replace_tbl[k])
-        outtext = re.sub(k, resub_tbl[k], outtext, flags=re.IGNORECASE)
+    for k, v in resub_tbl.items():
+        # outtext = outtext.replace(k, v)
+        outtext = re.sub(k, v, outtext, flags=re.IGNORECASE)
 
     return outtext
 
@@ -89,10 +90,16 @@ class SchedDataEnt:
     TITLE_NULL = ""
 
     TYPE_PREFIX_TODO = "□"
-    TYPE_HOLYDAY = ["休日", "祝日"]
+    TYPE_HOLYDAY: ClassVar[list[str]] = ["休日", "祝日"]
 
-    TITLE_PREFIX_IMPORTANT = ["(重要)", "!", "！", "★", "☆"]
-    TITLE_PREFIX_CANCELED = [
+    TITLE_PREFIX_IMPORTANT: ClassVar[list[str]] = [
+        "(重要)",
+        "!",
+        "！",
+        "★",
+        "☆",
+    ]
+    TITLE_PREFIX_CANCELED: ClassVar[list[str]] = [
         "(キャンセル",
         "(欠",
         "(中止",
@@ -136,7 +143,7 @@ class SchedDataEnt:
 
     def __str__(self):
         """str(self)"""
-        out_str = "(%s) " % (self.sde_id)
+        out_str = f"({self.sde_id}) "
         out_str += self.date.strftime("%Y/%m/%d ")
 
         if self.time_start:
@@ -149,9 +156,9 @@ class SchedDataEnt:
         else:
             out_str += ": "
 
-        out_str += "[%s]" % (htmlstr2text(self.type))
-        out_str += "%s" % (htmlstr2text(self.title))
-        out_str += "@%s: " % (htmlstr2text(self.place))
+        out_str += f"[{htmlstr2text(self.type)}]"
+        out_str += f"{htmlstr2text(self.title)}"
+        out_str += f"@{htmlstr2text(self.place)}: "
         out_str += htmlstr2text(self.detail)
 
         return out_str
@@ -173,7 +180,9 @@ class SchedDataEnt:
         time_str = time_start_str + "-" + time_end_str
         text_htmlstr = text2htmlstr(self.detail)
 
-        return "\t".join(
+        # タブ区切りの項目の並びが見えるよう、f-string にせず
+        # join のまま残す（TODO-015）
+        return "\t".join(  # noqa: FLY002
             [
                 self.sde_id,
                 date_str,
@@ -192,11 +201,9 @@ class SchedDataEnt:
         search_str: str
 
         """
-        search_str = "#%s +%s @%s detail:%s" % (
-            self.type,
-            self.title,
-            self.place,
-            self.detail.replace("\n", " "),
+        detail = self.detail.replace("\n", " ")
+        search_str = (
+            f"#{self.type} +{self.title} @{self.place} detail:{detail}"
         )
 
         return search_str.lower()
@@ -222,7 +229,7 @@ class SchedDataEnt:
         return False
 
     def is_todo(self):
-        """ """
+        """ToDo かどうか（``type`` の先頭で判定する）。"""
         # self.__log.debug("")
         if self.type:
             return self.type.startswith(self.TYPE_PREFIX_TODO)
@@ -230,14 +237,14 @@ class SchedDataEnt:
         return False
 
     def is_holiday(self):
-        """ """
+        """休日かどうか（``type`` で判定する）。"""
         # self.__log.debug("")
         if self.type == "":
             return False
         return self.type in self.TYPE_HOLYDAY
 
     def is_important(self):
-        """ """
+        """「重要」かどうか（``title`` の先頭で判定する）。"""
         if self.title == "":
             return False
         for start_str in self.TITLE_PREFIX_IMPORTANT:
@@ -247,7 +254,7 @@ class SchedDataEnt:
         return False
 
     def is_canceled(self):
-        """ """
+        """「取り消し」かどうか（``title`` の先頭で判定する）。"""
         if self.title == "":
             return False
 
@@ -258,12 +265,10 @@ class SchedDataEnt:
         return False
 
     def get_sortkey(self):
-        """ """
-        sort_key = "%02d%02d%02d %s" % (
-            self.date.year,
-            self.date.month,
-            self.date.day,
-            self.get_timestr(),
+        """並べ替え用のキー文字列を返す。"""
+        sort_key = (
+            f"{self.date.year:02d}{self.date.month:02d}"
+            f"{self.date.day:02d} {self.get_timestr()}"
         )
         if sort_key.endswith(":-:"):
             if self.is_holiday():
@@ -314,7 +319,7 @@ class SchedDataEnt:
         if self.time_end:
             time_end_str = self.time_end.strftime("%H:%M")
 
-        time_str = "%s-%s" % (time_start_str, time_end_str)
+        time_str = f"{time_start_str}-{time_end_str}"
 
         return time_str
 
@@ -331,7 +336,7 @@ class SchedDataFile:
     TODO_PATH_FORMAT = "%s/ToDo.cgi"
 
     BACKUP_EXT = ".bak"
-    ENCODE = ["utf-8", "euc_jp"]
+    ENCODE: ClassVar[list[str]] = ["utf-8", "euc_jp"]
 
     def __init__(
         self,
@@ -360,10 +365,9 @@ class SchedDataFile:
 
     def __str__(self):
         """__str__"""
-        out_str = "file:%s, sde:%s, holiday:%s" % (
-            self.pathname,
-            len(self.sde),
-            self.is_holiday,
+        out_str = (
+            f"file:{self.pathname}, sde:{len(self.sde)}, "
+            f"holiday:{self.is_holiday}"
         )
         return out_str
 
@@ -607,10 +611,7 @@ class SchedData:
 
     def __str__(self):
         """__str__"""
-        out_str = "topdir:%s, cache_size:%s" % (
-            self._topdir,
-            len(self._sdf_cache),
-        )
+        out_str = f"topdir:{self._topdir}, cache_size:{len(self._sdf_cache)}"
         return out_str
 
     def get_keys(self):
@@ -621,8 +622,8 @@ class SchedData:
 
         """
         date_list = []
-        for k in self._sdf_cache.keys():
-            date_list.append("%s" % k)
+        for k in self._sdf_cache:
+            date_list.append(f"{k}")
 
         return date_list
 

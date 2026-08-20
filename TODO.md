@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-015、TODO-016。**
-これまでに 14 件を決着させた。
+**残っている項目: TODO-016。**
+これまでに 15 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-017` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
@@ -9,41 +9,6 @@
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
 着手する項目は利用者が指定する。
-
----
-
-## TODO-015. ruff の整形・書き換え系の指摘を解消
-
-見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
-
-- [ ] `UP031`（printf 書式 → f-string、35 件）
-- [ ] `DTZ011` / `DTZ005`（`date.today()` などに tz が無い、14 件）
-      — 規則ごと除外する
-- [ ] `FLY002`（テスト内の `'\t'.join([...])`、13 件）
-- [ ] `D419`（空の docstring、10 件）
-- [ ] `RUF012`（mutable-class-default、5 件）
-- [ ] `EXE001`（shebang-not-executable、4 件）— シェバンを消す
-- [ ] `SIM102` / `C408` / `PERF402` / `PLC0206` / `SIM118`（残り 6 件）
-- [ ] `uv run ruff check --fix --extend-select I src tests` が通ることを
-      確認する
-
-TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実行した際、
-`ruff check` が 97 件のエラーで止まった。うち `RUF013`
-（implicit-optional）は TODO-006（型ヒントの整備）で、`UP031` の 1 件は
-TODO-007（loguru への移行）で消えている。
-
-2026-08-20 に決めたこと。
-
-- **`DTZ011` / `DTZ005` は規則ごと除外する。** 手帳代わりのソフトで、
-  日付はすべて手元のローカル時刻。14 箇所に tz を付けて回るのは
-  ノイズにしかならない。**除外は `pyproject.toml` の
-  `[tool.ruff.lint]` に書く**（コマンドラインに書くと、素の
-  `uv run ruff check` やエディタの LSP では出たままになるため）。
-  TODO-004 で決めた「`pyproject.toml` に `[tool.ruff]` を持たない」
-  流儀からは、ここだけ外れる
-- **`EXE001` はシェバンを消す。** `handler.py` などは単体で実行しない
-  モジュールで、相対 import を使っているので直接実行しても動かない。
-  入口は `uv tool install` で入る `ytsched`（TODO-008）
 
 ---
 
@@ -87,6 +52,7 @@ TODO-007（loguru への移行）で消えている。
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-015.** ruff の整形・書き換え系の指摘を解消](archives/todo/TODO-015.%20ruff%20の整形・書き換え系の指摘を解消.md)
 - [**TODO-012.** 不正な正規表現を入れられたときの扱い](archives/todo/TODO-012.%20不正な正規表現を入れられたときの扱い.md)
 - [**TODO-010.** CLAUDE.md の作成](archives/todo/TODO-010.%20CLAUDE.md%20の作成.md)
 - [**TODO-009.** README の更新](archives/todo/TODO-009.%20README%20の更新.md)

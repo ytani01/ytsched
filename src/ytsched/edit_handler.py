@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # (c) 2021 Yoichi Tanibayashi
 #
@@ -117,7 +116,7 @@ class EditHandler(HandlerBase):
         )
 
     def post(self):
-        """ """
+        """POST も GET と同じ処理をする。"""
         self.__log.debug(
             f"request.body_arguments={self.request.body_arguments}"
         )

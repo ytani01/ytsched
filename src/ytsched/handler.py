@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # (c) 2020 Yoichi Tanibayashi
 #
@@ -68,7 +67,10 @@ class HandlerBase(tornado.web.RequestHandler):
         self._conf = self.load_conf()
 
     def load_conf(self):
-        """ """
+        """``Conf.cgi`` を読み込んで dict で返す。
+
+        ファイルが無ければ空の dict を返す。
+        """
         self.__log.debug("")
 
         conf: dict[str, str] = {}
@@ -97,14 +99,14 @@ class HandlerBase(tornado.web.RequestHandler):
         return conf
 
     def save_conf(self):
-        """ """
+        """設定を ``Conf.cgi`` へ書き出す。"""
         self.__log.debug("")
 
         with open(self._conf_file, mode="w", encoding=self.CONF_ENCODE) as f:
-            f.writelines("%s\t%s\n" % (p, self._conf[p]) for p in self._conf)
+            f.writelines(f"{p}\t{self._conf[p]}\n" for p in self._conf)
 
     def get_conf(self, name):
-        """ """
+        """設定値を返す。無ければ ``None`` を返す。"""
         self.__log.debug(f"name={name}")
 
         try:
@@ -113,7 +115,7 @@ class HandlerBase(tornado.web.RequestHandler):
             return None
 
     def set_conf(self, name, value):
-        """ """
+        """設定値を変更して、``Conf.cgi`` へ保存する。"""
         self.__log.debug(f"name={name}, value='{value}'")
         self._conf[name] = value
         self.save_conf()

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # (c) 2021 Yoichi Tanibayashi
 #
@@ -12,6 +11,7 @@ __date__ = "2021/01"
 import datetime
 import math
 import re
+from typing import ClassVar
 
 from .handler import HandlerBase
 from .mylog import getLogger
@@ -78,7 +78,7 @@ class MainHandler(HandlerBase):
     SEARCH_MODE_DAYS = 365
     DEF_SEARCH_N = 5
 
-    TODO_DAYS = {
+    TODO_DAYS: ClassVar[dict[str, int]] = {
         "off": -1,
         "today": 0,
         "1d": 1,
@@ -387,10 +387,8 @@ class MainHandler(HandlerBase):
                         self.__log.debug(f"out_sde.append:{sde}")
 
                 # todo_today_sde
-                if not search_mode:
-                    if date1 == datetime.date.today():
-                        for sde in todo_today_sde:
-                            out_sde.append(sde)
+                if not search_mode and date1 == datetime.date.today():
+                    out_sde.extend(todo_today_sde)
 
             if search_mode and not out_sde:
                 continue
@@ -565,11 +563,11 @@ class MainHandler(HandlerBase):
             self.__log.debug(f"[fix] time_start={time_start}")
             time_end = None
 
-            detail = "〆%s %s%s\n%s" % (
-                deadline_date_str.replace("-", "/"),
-                deadline_time_start_str,
-                deadline_time_end_str,
-                detail,
+            deadline_date = deadline_date_str.replace("-", "/")
+            detail = (
+                f"〆{deadline_date} "
+                f"{deadline_time_start_str}{deadline_time_end_str}\n"
+                f"{detail}"
             )
             self.__log.debug(f"[fix] detail={detail}")
 
