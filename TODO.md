@@ -72,9 +72,9 @@ implementer を立てる。動くかの確認は verifier。**分岐や条件式
 
 見込み: main = Sonnet 5 / effort medium、担当 = main のみ
 
-- [ ] サブエージェントが `CLAUDE.md` を読めているかを確かめる
-- [ ] 共通の前提の置き場所を決める
-- [ ] `.claude/agents/runner.md` を作る（haiku）
+- [x] サブエージェントが `CLAUDE.md` を読めているかを確かめる
+- [x] 共通の前提の置き場所を決める
+- [x] `.claude/agents/runner.md` を作る（haiku）
 - [ ] TODO-021 で使ってみて、結果を TODO-021 の `実施:` に残す
 
 （背景）
@@ -99,6 +99,26 @@ implementer を立てる。動くかの確認は verifier。**分岐や条件式
   来てから決める
 - **定義ファイルを置いたら Claude Code の再起動が要る**（利用者が行う）
 - 効果の判定は TODO-021 で行う。足りなければ verifier に戻す
+
+（確かめたこと）
+
+**サブエージェントには `~/.claude/CLAUDE.md` と `ytsched/CLAUDE.md` の
+両方が届いていた。** 起動した担当にツールを使わせずに、渡された文脈だけを
+答えさせて確かめた。定義ファイルの本文も届いている（システムプロンプト
+ではなく、最初のメッセージ本文として、CLAUDE.md より前に置かれている）。
+プロジェクトの前提は、CLAUDE.md 側と定義の「このプロジェクト」節の
+**2 か所で重複**していると、担当自身が指摘した。
+
+これを受けて、**書き写しをやめた**。既存 4 定義から「このプロジェクト」節と
+「シェルの注意」節を削り、CLAUDE.md に無かった 1 件（起動確認では
+`--datadir` に一時ディレクトリ）を `CLAUDE.md` の「担当への共通の前提」へ
+移した。
+
+**runner が走らせるのは `mise run lint` / `mise run test` ではなく、
+個別のコマンドにした。** `mise run test` は `lint` → `upgradeproject` に
+依存していて、呼ぶたびに `rm -f uv.lock` → `uv sync` →
+`uv pip install -U` まで走る。テストが壊れたときに、変更のせいか依存が
+上がったせいかが分からなくなる。
 
 （担当を分けない理由）
 

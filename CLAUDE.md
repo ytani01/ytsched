@@ -167,3 +167,21 @@ uv run ytsched migrate --datadir ~/ytsched/data
   TODO-009 の「README の手順を実際に再現する」（`uv tool uninstall` →
   再インストール → curl）は明らかに効いた。**書式の確認だけなら main、
   試せる手順があるなら分ける**と決めたのは、この差から
+
+### 担当への共通の前提
+
+**プロジェクトの前提を `.claude/agents/*.md` へ書き写さない。**
+サブエージェントには、この `CLAUDE.md` と `~/.claude/CLAUDE.md` の両方が
+そのまま届いている（TODO-022 で実測）。定義ファイルに書くのは、
+**その担当の役割と、その担当だけに要る注意**にとどめる。
+
+CLAUDE.md に書きようが無くて、どの担当にも要るものだけをここに置く。
+
+- **アプリの起動を確かめるときは、`--datadir` に必ず一時ディレクトリを
+  指定する。** `~/ytsched/data` の実データを汚さないため
+- **`mise run lint` / `mise run test` は、担当には走らせない。**
+  `upgradeproject`（`rm -f uv.lock` → `uv sync` → `uv pip install -U`）に
+  依存していて、呼ぶたびに依存を上げ直す。テストが壊れたときに、変更の
+  せいか依存が上がったせいかが分からなくなる。担当には
+  `uv run ruff format` / `ruff check` / `basedpyright` / `mypy` /
+  `pytest` を個別に叩かせる（TODO-022）
