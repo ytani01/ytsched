@@ -88,3 +88,7 @@ flycheck_*
 ## ytsched
 # Claude Code のローカル設定（.claude/agents/ などは残す）
 .claude/settings.local.json
+
+# tests/data/old_format/ の合成テストデータ（TODO-019）。移行の対象外
+# ファイルとして {日}.cgi.bak を含むので、上の *.bak から外す
+!tests/data/old_format/**/*.cgi.bak
