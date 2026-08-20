@@ -200,16 +200,75 @@ class TestMainHandler(WebTestBase):
         assert "歯医者" in body
         assert "定例ミーティング" not in body
 
-    def test_invalid_regex(self):
-        """不正な正規表現でもエラーにはしない（TODO-012 で扱う）。"""
-        self.write_data(DATE1, [DATALINE1])
+    def test_invalid_filter_str_shows_all(self):
+        """不正な ``filter_str`` は、絞り込みを無視して全件出す。"""
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
 
-        res = self.fetch(
-            "%s/?%s"
-            % (URL_PREFIX, urlencode({"date": DATE1_STR, "filter_str": "["}))
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="[")
+
+        assert "定例ミーティング" in body
+        assert "歯医者" in body
+        assert "フィルタの正規表現" in body
+        assert 'value="["' in body
+
+    def test_invalid_filter_str_negative_shows_all(self):
+        """``!`` 始まりでも、中身が不正なら絞り込みを無視する。"""
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, filter_str="!["
         )
 
-        assert res.code == 200
+        assert "定例ミーティング" in body
+        assert "歯医者" in body
+        assert "フィルタの正規表現" in body
+
+    def test_invalid_search_str_shows_all(self):
+        """不正な ``search_str`` では、検索モードに入らない。"""
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_str="(")
+
+        assert "定例ミーティング" in body
+        assert "歯医者" in body
+        assert "検索の正規表現" in body
+        assert 'value="("' in body
+        # 検索期間・件数のバーは出ない
+        assert "目標件数" not in body
+
+    def test_invalid_filter_str_and_search_str(self):
+        """両方とも不正なら、知らせも両方出る。"""
+        self.write_data(DATE1, [DATALINE1])
+
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            filter_str="[",
+            search_str="(",
+        )
+
+        assert "定例ミーティング" in body
+        assert "フィルタの正規表現" in body
+        assert "検索の正規表現" in body
+
+    def test_valid_search_str_shows_search_bar(self):
+        """正しい ``search_str`` なら、検索モードに入る。"""
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="病院"
+        )
+
+        assert "目標件数" in body
+        assert "フィルタの正規表現" not in body
+        assert "検索の正規表現" not in body
+
+    def test_invalid_filter_str_is_saved(self):
+        """不正な ``filter_str`` も、今までどおり保存される。"""
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="[")
+
+        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
+        assert "FilterStr\t[\n" in conf
 
     def test_year_month_day_arguments(self):
         body = self.get_body(

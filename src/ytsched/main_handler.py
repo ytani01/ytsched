@@ -261,6 +261,29 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"filter_str={filter_str!a}")
 
         #
+        # 正規表現のコンパイル (TODO-012)
+        #
+        # 不正な正規表現は、その条件を無視して全件を出す。
+        # 入力欄には元の文字列を残すので、マッチに使う変数だけ分ける。
+        #
+        filter_neg = filter_str.startswith("!")
+        filter_pattern = filter_str[1:] if filter_neg else filter_str
+        filter_re = self.compile_re(filter_pattern)
+        filter_error = filter_re is None
+
+        search_re = None
+        if search_str:
+            search_re = self.compile_re(search_str)
+        search_error = bool(search_str) and search_re is None
+
+        # 検索モードかどうか (不正な正規表現のときは検索しない)
+        search_mode = search_re is not None
+        self.__log.debug(
+            f"search_mode={search_mode},"
+            f" filter_error={filter_error}, search_error={search_error}"
+        )
+
+        #
         # search_n
         #
         search_n_str0 = self.get_conf(self.CONF_KEY_SEARCH_N)
@@ -288,33 +311,13 @@ class MainHandler(HandlerBase):
         todo_sde = []  # 後に、日々のスケジュール`out_sde`に統合
         todo_today_sde = []  # 期限は先だが、今日に表示すべきToDo
         for sde in todo_sdf.sde:
-            try:
-                if filter_str.startswith("!"):
-                    if re.search(filter_str[1:], sde.search_str()):
-                        continue
-
-                else:
-                    if not re.search(filter_str, sde.search_str()):
-                        continue
-
-            except re.error as ex:
-                self.__log.warning(
-                    f"{type(ex).__name__}:{ex}:{filter_str}"
-                    f":{sde.search_str()}"
-                )
+            if not self.filter_match(filter_re, filter_neg, sde):
                 continue
 
-            if search_str:
-                try:
-                    if not re.search(search_str, sde.search_str()):
-                        continue
-
-                except re.error as ex:
-                    self.__log.warning(
-                        f"{type(ex).__name__}:{ex}:{search_str}"
-                        f":{sde.search_str()}"
-                    )
-                    continue
+            if search_re is not None and not search_re.search(
+                sde.search_str()
+            ):
+                continue
 
             todo_sde.append(sde)
             self.__log.debug(f"sde={sde}")
@@ -335,7 +338,7 @@ class MainHandler(HandlerBase):
         date_from = date - datetime.timedelta(self._days)
         date_to = date + datetime.timedelta(self._days - 1)
 
-        if search_str:
+        if search_mode:
             date_from = date - datetime.timedelta(self.SEARCH_MODE_MAX_DAYS)
             date_from1 = date - datetime.timedelta(self.SEARCH_MODE_DAYS)
             date_to = date
@@ -344,7 +347,7 @@ class MainHandler(HandlerBase):
         delta_day1 = datetime.timedelta(1)
         date1 = date_to + delta_day1
         while date1 > date_from:
-            if search_str and search_count > 0:
+            if search_mode and search_count > 0:
                 if search_count >= search_n:
                     date_from = date1
                     break
@@ -360,37 +363,13 @@ class MainHandler(HandlerBase):
             out_sde = []
             for sde in sdf.sde:
                 # self.__log.debug(f"sde={sde}")
-                if filter_str.startswith("!"):
-                    try:
-                        if re.search(filter_str[1:], sde.search_str()):
-                            continue
-                    except re.error as ex:
-                        self.__log.warning(
-                            f"{type(ex).__name__}:{ex}:{filter_str}"
-                            f":{sde.search_str()}"
-                        )
-                        continue
-                else:
-                    try:
-                        if not re.search(filter_str, sde.search_str()):
-                            continue
-                    except re.error as ex:
-                        self.__log.warning(
-                            f"{type(ex).__name__}:{ex}:{filter_str}"
-                            f":{sde.search_str()}"
-                        )
-                        continue
+                if not self.filter_match(filter_re, filter_neg, sde):
+                    continue
 
-                if search_str:
-                    try:
-                        if not re.search(search_str, sde.search_str()):
-                            continue
-                    except re.error as ex:
-                        self.__log.warning(
-                            f"{type(ex).__name__}:{ex}:{search_str}"
-                            f":{sde.search_str()}"
-                        )
-                        continue
+                if search_re is not None and not search_re.search(
+                    sde.search_str()
+                ):
+                    continue
 
                 out_sde.append(sde)
                 search_count += 1
@@ -398,21 +377,22 @@ class MainHandler(HandlerBase):
             if todo_days_value >= 0:
                 # todo_sde
                 for sde in todo_sde:
-                    if search_str:
-                        if not re.search(search_str, sde.search_str()):
-                            continue
+                    if search_re is not None and not search_re.search(
+                        sde.search_str()
+                    ):
+                        continue
 
                     if sde.date == date1:
                         out_sde.append(sde)
                         self.__log.debug(f"out_sde.append:{sde}")
 
                 # todo_today_sde
-                if not search_str:
+                if not search_mode:
                     if date1 == datetime.date.today():
                         for sde in todo_today_sde:
                             out_sde.append(sde)
 
-            if search_str and not out_sde:
+            if search_mode and not out_sde:
                 continue
 
             out_sde = sorted(out_sde, key=lambda x: x.get_sortkey())
@@ -443,11 +423,62 @@ class MainHandler(HandlerBase):
             todo_days_value=todo_days_value,
             filter_str=filter_str,
             search_str=search_str,
+            search_mode=search_mode,
+            filter_error=filter_error,
+            search_error=search_error,
             search_n=search_n,
             sde_align=sde_align,
             sd=self._sd,
             gage=GAGE,
         )
+
+    def compile_re(self, pattern: str) -> re.Pattern[str] | None:
+        """正規表現をコンパイルする。
+
+        Parameters
+        ----------
+        pattern: str
+
+        Returns
+        -------
+        re.Pattern[str] | None
+            不正な正規表現の場合は ``None``
+
+        """
+        try:
+            return re.compile(pattern)
+        except re.error as ex:
+            self.__log.warning(f"{type(ex).__name__}:{ex}:{pattern!a}")
+            return None
+
+    def filter_match(
+        self,
+        filter_re: re.Pattern[str] | None,
+        filter_neg: bool,
+        sde: SchedDataEnt,
+    ) -> bool:
+        """``sde`` がフィルタに合うか。
+
+        ``filter_re`` が ``None``(不正な正規表現)のときは、
+        絞り込みを無視して常に ``True`` を返す。
+
+        Parameters
+        ----------
+        filter_re: re.Pattern[str] | None
+        filter_neg: bool
+            ``!`` 始まり(否定)かどうか
+        sde: SchedDataEnt
+
+        Returns
+        -------
+        bool
+
+        """
+        if filter_re is None:
+            return True
+
+        found = filter_re.search(sde.search_str()) is not None
+        return found != filter_neg
 
     def exec_update(
         self, cmd: str
