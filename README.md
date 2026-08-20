@@ -88,14 +88,14 @@
 * 検索機能は、改良の必要あり。
 
   - 検索結果の表示方法はどうするのがいいのか？
-  - 数十年分の検索をいかに効率よく検索するか？
+  - 数十年分のデータを、いかに効率よく検索するか？
 
 * 期間スケジュール、繰り返しスケジュール
 
-  - 手書きき同様、繰り返し書き込む必要がある
+  - 手書きの手帳と同様、繰り返し書き込む必要がある。
 
   - 現状では、繰り返し登録がなるべくしやすいように
-    UIを工夫して対応するしかない
+    UIを工夫して対応するしかない。
 
 
 ## 使用環境
@@ -108,7 +108,7 @@ Google Chrome ブラウザ
 ### サーバ
 
 OS: Linux, FreeBSD
-言語: Python3
+言語: Python 3.14 以上（[uv](https://docs.astral.sh/uv/) でインストール）
 
 
 ### セキュリティのためのリバースプロキシ: Nginx, Apacheなど
@@ -120,7 +120,85 @@ OS: Linux, FreeBSD
 
 ## Install
 
-TBD
+### インストール
+
+Python 3.14 以上と [uv](https://docs.astral.sh/uv/) が必要。
+
+```sh
+git clone https://github.com/ytani01/ytsched.git
+cd ytsched
+uv tool install .
+```
+
+`~/.local/bin/ytsched` にコマンドが入る。
+
+```sh
+ytsched webapp --datadir ~/ytsched/data --port 10085
+```
+
+更新するときは、リポジトリを `git pull` したうえで、
+以下のどちらかを実行する。
+
+```sh
+uv tool install --reinstall .   # リポジトリのカレントディレクトリから
+uv tool upgrade ytsched         # どこからでも実行できる
+```
+
+
+### systemd --user への登録
+
+ログイン中だけでなく常駐させたい場合は、systemd --user のユニットを
+作る。ポートや `--datadir` は環境ごとに違うため、リポジトリには
+含めていない。`~/.config/systemd/user/ytsched.service` として、
+次の内容で作成する。
+
+```ini
+[Unit]
+Description=YT Scheduler (ytsched) web server
+Documentation=https://github.com/ytani01/ytsched
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/ytsched webapp --datadir %h/ytsched/data --port 10085
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=default.target
+```
+
+作成したら、有効化して起動する。
+
+```sh
+systemctl --user daemon-reload
+systemctl --user enable --now ytsched.service
+```
+
+状態とログの確認。
+
+```sh
+systemctl --user status ytsched.service
+journalctl --user -u ytsched.service -f
+```
+
+停止・再起動・自動起動の解除。
+
+```sh
+systemctl --user restart ytsched.service
+systemctl --user stop ytsched.service
+systemctl --user disable --now ytsched.service
+```
+
+ログインしていない間も動かし続けたい場合（サーバ用途では通常こちら）は、
+lingering を有効にする。
+
+```sh
+sudo loginctl enable-linger $USER
+```
 
 
 ## memo

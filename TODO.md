@@ -1,32 +1,15 @@
 # TODO
 
-**残っている項目: TODO-009、TODO-010、TODO-012、TODO-015、TODO-016。**
-これまでに 11 件を決着させた。
+**残っている項目: TODO-010、TODO-012、TODO-015、TODO-016。**
+これまでに 12 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-017` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
-進める順序は依存関係で決めてある（TODO-008 が済んだので、TODO-009 に
+進める順序は依存関係で決めてある（TODO-009 が済んだので、TODO-010 に
 進める）。着手する項目は利用者が指定する。
-
----
-
-## TODO-009. README の更新
-
-見込み: main = Sonnet 5 / effort low、担当 = writer + verifier
-
-- [ ] 「Install: TBD」を書く（`uv tool install` の手順と、
-      systemd --user のユニット例。中身は TODO-008 で決まる）
-- [ ] 「使用環境」を Python 3.14 / uv に直す
-- [ ] 「課題・問題点」の文面を整える
-
-`verifier` には、README に書いたコマンドが実際に動くかを確かめさせる。
-
-**「課題・問題点」の 2 点（検索機能の改良、期間・繰り返し予定）は、
-どちらも今も未解決なので内容は変えないと決めた**（2026-08-20）。
-文面を整えるだけにする。
 
 ---
 
@@ -140,6 +123,7 @@ TODO-007（loguru への移行）で消えている。
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-009.** README の更新](archives/todo/TODO-009.%20README%20の更新.md)
 - [**TODO-008.** uv tool install 方式へ](archives/todo/TODO-008.%20uv%20tool%20install%20方式へ.md)
 - [**TODO-007.** loguru への移行](archives/todo/TODO-007.%20loguru%20への移行.md)
 - [**TODO-006.** 型ヒントの整備](archives/todo/TODO-006.%20型ヒントの整備.md)
