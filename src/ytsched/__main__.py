@@ -10,6 +10,7 @@ import datetime
 import click
 
 from . import MainHandler, SchedDataFile, WebServer, __prog_name__
+from .migrate import Migrator
 from .mylog import getLogger, loggerInit
 
 __author__ = "Yoichi Tanibayashi"
@@ -33,8 +34,7 @@ class DataFileApp:
         if self.sdf.sde:
             for sde in sorted(self.sdf.sde, key=lambda x: x.get_timestr()):
                 print(sde)
-                dataline = sde.mk_dataline().replace("\t", "<tab>")
-                print(f"{dataline}")
+                print(f"{sde.mk_dataline()}")
         else:
             print("===== No data =====")
 
@@ -89,6 +89,51 @@ def x_data1(year, month, day, datadir, debug):
     finally:
         _log.debug("finally")
         app.end()
+        _log.info("end")
+
+
+@cli.command(
+    help="""
+旧形式(タブ区切り .cgi)のデータを JSON Lines (.jsonl) へ変換する
+
+元の .cgi は消さない。既に .jsonl があるファイルは飛ばす。
+"""
+)
+@click.option(
+    "--datadir",
+    "--data",
+    "datadir",
+    type=click.Path(),
+    default=SchedDataFile.DEF_TOP_DIR,
+    help=f"data directory, default='{SchedDataFile.DEF_TOP_DIR}'",
+)
+@click.option(
+    "--dry-run",
+    "dry_run",
+    is_flag=True,
+    default=False,
+    help="書き出さずに、件数だけ出す",
+)
+@click.option(
+    "--error-file",
+    "error_file",
+    type=click.Path(),
+    default=Migrator.DEF_ERROR_FILE,
+    help=(
+        f"変換できなかった行の書き出し先, default='{Migrator.DEF_ERROR_FILE}'"
+    ),
+)
+@click.option(
+    "--debug", "-d", "debug", is_flag=True, default=False, help="debug flag"
+)
+def migrate(datadir, dry_run, error_file, debug):
+    """migrate"""
+    loggerInit(debug=debug)
+
+    app = Migrator(datadir, dry_run=dry_run, error_file=error_file)
+    try:
+        app.main()
+    finally:
         _log.info("end")
 
 

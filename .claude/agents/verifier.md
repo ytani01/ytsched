@@ -50,9 +50,11 @@ Python 3.14 / uv / pytest の環境へ移行している途中。
 
 - パッケージは `src/ytsched/`。テンプレートと静的ファイルは
   `src/ytsched/webroot/` にパッケージ同梱してある
-- **データ形式（タブ区切りテキスト）とデータディレクトリ `~/ytsched/data` は
-  変えない。** 既存データとの互換のため
-- 設定ファイル `Conf.cgi`（datadir 内、タブ区切り）も形式を変えない（TODO-011 で決着）
+- **データディレクトリ `~/ytsched/data` の場所は変えない。**
+- **データ形式は、タブ区切りテキストから JSON Lines へ移した**（TODO-020）。
+  仕様は `docs/data-format.md` にある。あの文書が現行の決まりで、
+  形式を変えたらあの文書も書き直す
+- 設定ファイル `Conf.cgi`（datadir 内、タブ区切り）は形式を変えない（TODO-011 で決着）
 - 構成は `~/work/tmr` に揃える。迷ったら `~/work/tmr` の実物を見る
 - 行長は 78
 - Web アプリの既定ポートは 10085、URL prefix は `/ytsched`

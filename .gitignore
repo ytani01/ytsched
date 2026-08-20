@@ -92,3 +92,7 @@ flycheck_*
 # tests/data/old_format/ の合成テストデータ（TODO-019）。移行の対象外
 # ファイルとして {日}.cgi.bak を含むので、上の *.bak から外す
 !tests/data/old_format/**/*.cgi.bak
+
+# ytsched migrate --error-file の既定（TODO-020）。変換できない行があった
+# ときだけ、実行したディレクトリに作られる
+migrate-errors.txt

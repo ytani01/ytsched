@@ -4,6 +4,7 @@
 """MainHandler / EditHandler のテスト（tornado.testing）"""
 
 import datetime
+import json
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -17,29 +18,32 @@ from ytsched.ytsched import SchedDataFile
 DATE1 = datetime.date(2021, 3, 1)
 DATE1_STR = "2021-03-01"
 
-# タブ区切りの項目の並びが見えるよう、f-string にせず
-# join のまま残す（TODO-015）
-DATALINE1 = "\t".join(  # noqa: FLY002
-    [
-        "id-1",
-        "2021/03/01",
-        "09:05-10:30",
-        "会議",
-        "定例ミーティング",
-        "会議室",
-        "detail1",
-    ]
-)
-DATALINE2 = "\t".join(  # noqa: FLY002
-    [
-        "id-2",
-        "2021/03/01",
-        "13:00-14:00",
-        "私用",
-        "歯医者",
-        "病院",
-        "detail2",
-    ]
+
+def mk_dataline(**kwargs):
+    """テスト用の 1 行（JSON Lines）を作る。"""
+    data = {
+        "sde_id": "id-1",
+        "date": DATE1_STR,
+        "time_start": "09:05",
+        "time_end": "10:30",
+        "type": "会議",
+        "title": "定例ミーティング",
+        "place": "会議室",
+        "detail": "detail1",
+    }
+    data.update(kwargs)
+    return json.dumps(data, ensure_ascii=False)
+
+
+DATALINE1 = mk_dataline()
+DATALINE2 = mk_dataline(
+    sde_id="id-2",
+    time_start="13:00",
+    time_end="14:00",
+    type="私用",
+    title="歯医者",
+    place="病院",
+    detail="detail2",
 )
 
 FORM_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -66,7 +70,7 @@ class WebTestBase(tornado.testing.AsyncHTTPTestCase):
         """データファイルを書く。"""
         path = self.datadir / date.strftime("%Y") / date.strftime("%m")
         path.mkdir(parents=True, exist_ok=True)
-        path = path / (date.strftime("%d") + ".cgi")
+        path = path / (date.strftime("%d") + ".jsonl")
         path.write_text("".join(l + "\n" for l in lines), encoding="utf-8")
         return path
 
@@ -75,7 +79,7 @@ class WebTestBase(tornado.testing.AsyncHTTPTestCase):
             self.datadir
             / date.strftime("%Y")
             / date.strftime("%m")
-            / (date.strftime("%d") + ".cgi")
+            / (date.strftime("%d") + ".jsonl")
         )
 
     def backup_path(self, date):
@@ -288,18 +292,16 @@ class TestMainHandler(WebTestBase):
 
     def test_todo_is_displayed(self):
         """ToDo は、期限の日付の欄に出る。"""
-        todo_line = "\t".join(  # noqa: FLY002
-            [
-                "id-t",
-                "2021/03/01",
-                ":-:",
-                "□買い物",
-                "ノートを買う",
-                "",
-                "",
-            ]
+        todo_line = mk_dataline(
+            sde_id="id-t",
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title="ノートを買う",
+            place="",
+            detail="",
         )
-        (self.datadir / "ToDo.cgi").write_text(
+        (self.datadir / "ToDo.jsonl").write_text(
             todo_line + "\n", encoding="utf-8"
         )
 
@@ -309,18 +311,16 @@ class TestMainHandler(WebTestBase):
 
     def test_todo_with_filter_str(self):
         """``filter_str`` は ToDo にも効く。"""
-        todo_line = "\t".join(  # noqa: FLY002
-            [
-                "id-t",
-                "2021/03/01",
-                ":-:",
-                "□買い物",
-                "ノートを買う",
-                "",
-                "",
-            ]
+        todo_line = mk_dataline(
+            sde_id="id-t",
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title="ノートを買う",
+            place="",
+            detail="",
         )
-        (self.datadir / "ToDo.cgi").write_text(
+        (self.datadir / "ToDo.jsonl").write_text(
             todo_line + "\n", encoding="utf-8"
         )
 
@@ -336,18 +336,16 @@ class TestMainHandler(WebTestBase):
 
     def test_todo_with_search_str(self):
         """``search_str`` は ToDo にも効く。"""
-        todo_line = "\t".join(  # noqa: FLY002
-            [
-                "id-t",
-                "2021/03/01",
-                ":-:",
-                "□買い物",
-                "ノートを買う",
-                "",
-                "",
-            ]
+        todo_line = mk_dataline(
+            sde_id="id-t",
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title="ノートを買う",
+            place="",
+            detail="",
         )
-        (self.datadir / "ToDo.cgi").write_text(
+        (self.datadir / "ToDo.jsonl").write_text(
             todo_line + "\n", encoding="utf-8"
         )
 
@@ -361,16 +359,12 @@ class TestMainHandler(WebTestBase):
         """検索は ``search_n`` 件見つかった日までさかのぼる。"""
         for day in range(1, 7):
             date = datetime.date(2021, 3, day)
-            line = "\t".join(
-                [
-                    f"id-{day}",
-                    date.strftime("%Y/%m/%d"),
-                    "09:00-10:00",
-                    "会議",
-                    "定例ミーティング",
-                    "会議室",
-                    "",
-                ]
+            line = mk_dataline(
+                sde_id=f"id-{day}",
+                date=date.isoformat(),
+                time_start="09:00",
+                time_end="10:00",
+                detail="",
             )
             self.write_data(date, [line])
 
@@ -388,18 +382,17 @@ class TestMainHandler(WebTestBase):
     def test_todo_is_displayed_on_today(self):
         """期限が先の ToDo も、``todo_days`` の範囲なら今日の欄に出る。"""
         deadline = datetime.date.today() + datetime.timedelta(3)
-        todo_line = "\t".join(
-            [
-                "id-t",
-                deadline.strftime("%Y/%m/%d"),
-                ":-:",
-                "□買い物",
-                "ノートを買う",
-                "",
-                "",
-            ]
+        todo_line = mk_dataline(
+            sde_id="id-t",
+            date=deadline.isoformat(),
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title="ノートを買う",
+            place="",
+            detail="",
         )
-        (self.datadir / "ToDo.cgi").write_text(
+        (self.datadir / "ToDo.jsonl").write_text(
             todo_line + "\n", encoding="utf-8"
         )
 
@@ -410,18 +403,17 @@ class TestMainHandler(WebTestBase):
     def test_todo_is_not_displayed_on_today(self):
         """``todo_days`` の範囲外なら、今日の欄には出ない。"""
         deadline = datetime.date.today() + datetime.timedelta(30)
-        todo_line = "\t".join(
-            [
-                "id-t",
-                deadline.strftime("%Y/%m/%d"),
-                ":-:",
-                "□買い物",
-                "ノートを買う",
-                "",
-                "",
-            ]
+        todo_line = mk_dataline(
+            sde_id="id-t",
+            date=deadline.isoformat(),
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title="ノートを買う",
+            place="",
+            detail="",
         )
-        (self.datadir / "ToDo.cgi").write_text(
+        (self.datadir / "ToDo.jsonl").write_text(
             todo_line + "\n", encoding="utf-8"
         )
 
@@ -450,23 +442,22 @@ class TestUpdate(WebTestBase):
 
         lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
         assert len(lines) == 1
-        return lines[0].split("\t")[0]
+        return json.loads(lines[0])["sde_id"]
 
     def test_add(self):
         sde_id = self.add_sde()
 
         line = self.data_path(DATE1).read_text(encoding="utf-8").rstrip("\n")
-        assert line == "\t".join(  # noqa: FLY002
-            [
-                sde_id,
-                "2021/03/01",
-                "09:05-10:30",
-                "会議",
-                "新しい予定",
-                "会議室",
-                "詳細",
-            ]
-        )
+        assert json.loads(line) == {
+            "sde_id": sde_id,
+            "date": "2021-03-01",
+            "time_start": "09:05",
+            "time_end": "10:30",
+            "type": "会議",
+            "title": "新しい予定",
+            "place": "会議室",
+            "detail": "詳細",
+        }
 
     def test_add_is_displayed(self):
         self.add_sde()
@@ -492,8 +483,8 @@ class TestUpdate(WebTestBase):
         )
 
         line = self.data_path(DATE1).read_text(encoding="utf-8").rstrip("\n")
-        assert line.split("\t")[0] == sde_id
-        assert line.split("\t")[4] == "変更後"
+        assert json.loads(line)["sde_id"] == sde_id
+        assert json.loads(line)["title"] == "変更後"
 
     def test_del(self):
         sde_id = self.add_sde()
@@ -624,15 +615,12 @@ class TestUpdate(WebTestBase):
         today = datetime.date.today()
         assert not self.data_path(DATE1).exists()
 
-        field = (
-            self.data_path(today)
-            .read_text(encoding="utf-8")
-            .rstrip("\n")
-            .split("\t")
+        data = json.loads(
+            self.data_path(today).read_text(encoding="utf-8").rstrip("\n")
         )
-        assert field[1] == today.strftime("%Y/%m/%d")
-        assert field[2].endswith("-:")
-        assert field[6] == "〆2021/03/05 10:00-11:00<br />詳細"
+        assert data["date"] == today.isoformat()
+        assert data["time_end"] is None
+        assert data["detail"] == "〆2021/03/05 10:00-11:00\n詳細"
 
     def test_add_without_date(self):
         """``date`` が空の非 ToDo は、今日の予定になる (TODO-016)。"""
@@ -648,16 +636,13 @@ class TestUpdate(WebTestBase):
         )
 
         today = datetime.date.today()
-        assert not (self.datadir / "ToDo.cgi").exists()
+        assert not (self.datadir / "ToDo.jsonl").exists()
 
-        field = (
-            self.data_path(today)
-            .read_text(encoding="utf-8")
-            .rstrip("\n")
-            .split("\t")
+        data = json.loads(
+            self.data_path(today).read_text(encoding="utf-8").rstrip("\n")
         )
-        assert field[1] == today.strftime("%Y/%m/%d")
-        assert field[4] == "日付なしの予定"
+        assert data["date"] == today.isoformat()
+        assert data["title"] == "日付なしの予定"
 
     def test_update_sde_not_found(self):
         """更新したはずのデータが見つからないときは 404 (TODO-016)。"""
@@ -683,7 +668,7 @@ class TestUpdate(WebTestBase):
         assert res.code == 404
 
     def test_add_todo(self):
-        """ToDo は ``ToDo.cgi`` へ入る。"""
+        """ToDo は ``ToDo.jsonl`` へ入る。"""
         self.post_body(
             URL_PREFIX + "/",
             cmd="add",
@@ -697,11 +682,11 @@ class TestUpdate(WebTestBase):
 
         assert not self.data_path(DATE1).exists()
         line = (
-            (self.datadir / "ToDo.cgi")
+            (self.datadir / "ToDo.jsonl")
             .read_text(encoding="utf-8")
             .rstrip("\n")
         )
-        assert line.split("\t")[4] == "ノートを買う"
+        assert json.loads(line)["title"] == "ノートを買う"
 
 
 class TestEditHandler(WebTestBase):
@@ -753,18 +738,16 @@ class TestEditHandler(WebTestBase):
         assert res.code == 404
 
     def test_get_existing_todo(self):
-        todo_line = "\t".join(  # noqa: FLY002
-            [
-                "id-t",
-                "2021/03/01",
-                ":-:",
-                "□買い物",
-                "ノートを買う",
-                "",
-                "",
-            ]
+        todo_line = mk_dataline(
+            sde_id="id-t",
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title="ノートを買う",
+            place="",
+            detail="",
         )
-        (self.datadir / "ToDo.cgi").write_text(
+        (self.datadir / "ToDo.jsonl").write_text(
             todo_line + "\n", encoding="utf-8"
         )
 
