@@ -1,26 +1,14 @@
 # TODO
 
-**残っている項目: TODO-010、TODO-012、TODO-015、TODO-016。**
-これまでに 12 件を決着させた。
+**残っている項目: TODO-012、TODO-015、TODO-016。**
+これまでに 13 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-017` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
-進める順序は依存関係で決めてある（TODO-009 が済んだので、TODO-010 に
-進める）。着手する項目は利用者が指定する。
-
----
-
-## TODO-010. CLAUDE.md の作成
-
-見込み: main = Opus 5 / effort medium、担当 = verifier
-
-- [ ] 移行後の構成・コマンド・設計の勘所をまとめる
-
-移行が一通り済んでから書く。全体を把握している main が書き、
-`verifier` に「書いた内容が実物と合っているか」を確かめさせる。
+着手する項目は利用者が指定する。
 
 ---
 
@@ -123,6 +111,7 @@ TODO-007（loguru への移行）で消えている。
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-010.** CLAUDE.md の作成](archives/todo/TODO-010.%20CLAUDE.md%20の作成.md)
 - [**TODO-009.** README の更新](archives/todo/TODO-009.%20README%20の更新.md)
 - [**TODO-008.** uv tool install 方式へ](archives/todo/TODO-008.%20uv%20tool%20install%20方式へ.md)
 - [**TODO-007.** loguru への移行](archives/todo/TODO-007.%20loguru%20への移行.md)

@@ -1,0 +1,124 @@
+# CLAUDE.md（ytsched）
+
+`~/.claude/CLAUDE.md`（ユーザー全体の指示）が前提。ここには書かない。
+
+## これは何か
+
+個人用のスケジュール帳（Web アプリ）。2021 年に Perl CGI 相当で作った
+ものを、Python 3.14 / uv / pytest の環境へ移行したもの。単一ユーザ専用で、
+認証はリバースプロキシに任せる前提（`README.md` 参照）。
+
+データ形式（タブ区切りテキスト）とデータディレクトリ
+（既定 `~/ytsched/data`）は、既存データとの互換のため変えない。
+
+## 構成
+
+```
+src/ytsched/
+  ytsched.py       # データモデル: SchedDataEnt / SchedDataFile / SchedData
+  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、Conf.cgi の読み書き）
+  main_handler.py  # MainHandler（一覧表示・追加/修正/削除の実行）
+  edit_handler.py  # EditHandler（編集画面）
+  webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
+  mylog.py         # loguru ラッパ（TODO-007）
+  __main__.py      # click による CLI（`ytsched` コマンド）
+  webroot/
+    templates/      # tornado のテンプレート（base/main/edit/sde.html）
+    static/         # CSS・JS・favicon
+tests/
+  helpers.py        # webapp.WebServer と同じ Application をテスト用に組み立てる
+  test_ytsched.py   # データモデルのテスト
+  test_handler.py, test_web.py, test_webapp.py, test_mylog.py
+archives/
+  todo/    # 決着した TODO 項目（1 項目 1 ファイル）
+  agents/  # サブエージェントに分担させたときの依頼・報告
+```
+
+CLI には `webapp`（Web サーバ、本来の入口）のほかに `x_data1` という
+デバッグ用のサブコマンドが残っている（指定した 1 日分のデータを
+標準出力へダンプするだけで、`webapp` の動作には関係ない）。
+
+## データモデルの勘所
+
+- **`SchedDataEnt`** が 1 件の予定・ToDo。`sde_id`（UUID）、`date`、
+  `time_start`/`time_end`、`type`、`title`、`place`、`detail` を持つ。
+  - `type` の先頭が `"□"` なら ToDo（`is_todo()`）。ToDo は `date` を
+    「締切」として扱う
+  - `title` の先頭文字列で「重要」（`is_important()`）「取り消し」
+    （`is_canceled()`）を判定する。先頭に決まった文字列を置くだけで、
+    フィールドは増やさない設計
+  - `detail` は保持時は素のテキスト（改行入り）。読み込み時に
+    `htmlstr2text()` で `<br />` などを改行へ戻し、保存時は
+    `text2htmlstr()` で戻す。**画面の改行表示は CSS の
+    `white-space: pre-wrap` が担っている**（テンプレート側でタグを
+    差し込んでいるわけではない）
+
+- **`SchedDataFile`** が 1 ファイル（1 日分、または ToDo 全体）の
+  読み書きを担う。
+  - パスは `date2path()` で決まる。日付ありなら
+    `{topdir}/{年}/{月}/{日}.cgi`、`date=None` なら ToDo として
+    `{topdir}/ToDo.cgi`
+  - 読み込みは `utf-8` → 失敗したら `euc_jp` の順で試す（10 年以上前の
+    データがそのまま残っているため）
+  - 保存は毎回全件を書き直す。既存ファイルが空でなければ `.bak` へ
+    退避してから上書きする（空ファイルは退避しない＝`.bak` にしか
+    残っていないデータを空で潰さないため）
+
+- **`SchedData`** が `SchedDataFile` を日付ごとにキャッシュする
+  （`collections.OrderedDict`、LRU 的に古いものから捨てる）。
+  `MainHandler` / `EditHandler` はここを経由してデータへアクセスする
+  （`SchedDataFile` を直接は触らない）
+
+- 設定（`Conf.cgi`）はデータディレクトリの直下にあり、`HandlerBase` が
+  リクエストのたびに読み書きする。人が手で編集するファイルではない
+  （TODO-011 で TOML 化を検討し、見送っている。理由は
+  `archives/todo/TODO-011. 設定ファイル Conf.cgi の形式（対応しない）.md`）
+
+## Web の構成
+
+- `WebServer`（`webapp.py`）が `tornado.web.Application` を組み立てる。
+  URL は `/ytsched`（`WebServer.URL_PREFIX`）配下
+- `MainHandler` が一覧表示と、追加・修正・削除の実行（`cmd=add/fix/update/del`）
+  を兼ねる。`GET`/`POST` とも同じ `get()` を呼ぶ（`post()` は `self.get()`
+  に委譲するだけ）
+- フィルタ文字列・検索文字列は `re.search()` にそのまま渡している
+  （利用者本人しか使わない前提）。壊れた正規表現の扱いは TODO-012 で
+  対応中
+- `base.html` は `{% autoescape None %}` のまま（エスケープを切っている）。
+  単一ユーザ・自分の入力しか自分に見えないため実害が無いと判断し、
+  現状維持と決めている（詳細は TODO-012 の記述、および
+  `archives/todo/` 内の関連項目）
+
+## コマンド
+
+`mise.toml` にタスクがある（`upgradeproject` → `lint` → `test` → `build`
+の順に依存する）。
+
+```sh
+mise run lint    # ruff format / ruff check --fix / basedpyright / mypy
+mise run test    # pytest（lint に依存）
+mise run build   # uv build（test に依存）
+```
+
+個別に実行する場合:
+
+```sh
+uv run pytest tests
+uv run ruff format --line-length 78 src tests
+uv run ruff check --fix --extend-select I src tests
+uv run basedpyright src tests
+uv run mypy src tests
+```
+
+アプリの起動:
+
+```sh
+uv run ytsched webapp --datadir ~/ytsched/data --port 10085
+```
+
+## ログ
+
+`mylog.py` のラッパを使う。クラス本体に
+`__log = getLogger(__qualname__)` を 1 つ置く（`mylog.py` の
+モジュール docstring にサンプルがある）。標準の `logging` は使わない
+（TODO-007 で loguru へ移行済み）。
