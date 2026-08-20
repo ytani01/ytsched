@@ -18,10 +18,18 @@
 見込み: main = Sonnet 5 / effort medium、担当 = implementer + verifier
 
 - [ ] `install.sh` と `Ytsched.src` を廃止
-- [ ] 起動スクリプトの扱いを決める
 - [ ] `uv tool install` での手順を確認
+- [ ] 常駐させるための systemd --user のユニット例をまとめる
+      （README への記載は TODO-009）
 
 データディレクトリは `~/ytsched/data` のまま。
+
+**起動スクリプト（`~/bin/Ytsched`）は廃止すると決めた**（2026-08-20）。
+`uv tool install` で入る `ytsched webapp --datadir ~/ytsched/data` を直接
+使い、常駐は systemd --user のユニット例を README に載せる
+（ユニットファイル自体はリポジトリに同梱しない。ポートや datadir は
+環境ごとに違うため）。`install.sh` が help に書いている
+`boot-Ytsched.sh` は、実際には生成されていない。
 
 ---
 
@@ -29,11 +37,16 @@
 
 見込み: main = Sonnet 5 / effort low、担当 = writer + verifier
 
-- [ ] 「Install: TBD」を書く
+- [ ] 「Install: TBD」を書く（`uv tool install` の手順と、
+      systemd --user のユニット例。中身は TODO-008 で決まる）
 - [ ] 「使用環境」を Python 3.14 / uv に直す
-- [ ] 「課題・問題点」を見直す
+- [ ] 「課題・問題点」の文面を整える
 
 `verifier` には、README に書いたコマンドが実際に動くかを確かめさせる。
+
+**「課題・問題点」の 2 点（検索機能の改良、期間・繰り返し予定）は、
+どちらも今も未解決なので内容は変えないと決めた**（2026-08-20）。
+文面を整えるだけにする。
 
 ---
 
@@ -48,17 +61,27 @@
 
 ---
 
-## TODO-012. `autoescape None` と正規表現入力の扱い（判断）
+## TODO-012. 不正な正規表現を入れられたときの扱い
 
-見込み: main = Opus 5 / effort medium、担当 = main のみ
+見込み: main = Opus 5 / effort medium、担当 = implementer + verifier
 
-- [ ] どこまで対処するか決める
+- [ ] 不正な正規表現のときは、フィルタ・検索を無視して全件表示にする
+- [ ] 壊れていることを画面に短く知らせる
 
-`base.html` が `{% autoescape None %}` で全体のエスケープを切っている
-（`detail` の `<br />` を通すため）。`filter_str` / `search_str` は
-利用者の入力をそのまま `re.search` に渡している（不正な正規表現は
-warning で握り潰している）。単一ユーザかつリバースプロキシで認証する
-前提なので、どこまでやるかを先に決める。**決めるだけの項目。**
+`filter_str` / `search_str` は利用者の入力をそのまま `re.search` に
+渡している。`re.error` を捕まえたあと `continue` しているため、
+**打ち掛けの正規表現（`(` だけ、など）を入れた瞬間に全件が消える**
+（警告はログにしか出ない）。安全側に倒して「フィルタを無視して全件出す」
+挙動に変え、画面にも一言出すと決めた（2026-08-20）。
+
+**`base.html` の `{% autoescape None %}` は現状維持（切ったまま）と
+決めた**（2026-08-20）。単一ユーザで、リバースプロキシで認証する前提。
+自分が書いたものが自分に見えるだけなので実害が無い。
+なお、エスケープを切っている理由とされていた「`detail` の `<br />` を
+通すため」は、今はもう成り立っていない（`detail` は読み込み時に
+`htmlstr2text()` で改行へ戻され、表示は CSS の `white-space: pre-wrap` が
+担っている）。それでも、全テンプレートの `{{ }}` を洗い直す手間に
+見合わないので戻さない。
 
 ---
 
@@ -68,20 +91,32 @@ warning で握り潰している）。単一ユーザかつリバースプロキ
 
 - [ ] `UP031`（printf 書式 → f-string、35 件）
 - [ ] `DTZ011` / `DTZ005`（`date.today()` などに tz が無い、14 件）
+      — 規則ごと除外する
 - [ ] `FLY002`（テスト内の `'\t'.join([...])`、13 件）
 - [ ] `D419`（空の docstring、10 件）
 - [ ] `RUF012`（mutable-class-default、5 件）
-- [ ] `EXE001`（shebang-not-executable、4 件）— TODO-008
-      （`uv tool install` 方式）で起動方法を決めたあとに扱う
+- [ ] `EXE001`（shebang-not-executable、4 件）— シェバンを消す
 - [ ] `SIM102` / `C408` / `PERF402` / `PLC0206` / `SIM118`（残り 6 件）
 - [ ] `uv run ruff check --fix --extend-select I src tests` が通ることを
       確認する
 
 TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実行した際、
 `ruff check` が 97 件のエラーで止まった。うち `RUF013`
-（implicit-optional）はいずれも TODO-006（型ヒントの整備）の範囲なので
-ここでは扱わない。`EXE001` は起動スクリプトの扱いが決まる TODO-008 の
-あとに回す。
+（implicit-optional）は TODO-006（型ヒントの整備）で、`UP031` の 1 件は
+TODO-007（loguru への移行）で消えている。
+
+2026-08-20 に決めたこと。
+
+- **`DTZ011` / `DTZ005` は規則ごと除外する。** 手帳代わりのソフトで、
+  日付はすべて手元のローカル時刻。14 箇所に tz を付けて回るのは
+  ノイズにしかならない。**除外は `pyproject.toml` の
+  `[tool.ruff.lint]` に書く**（コマンドラインに書くと、素の
+  `uv run ruff check` やエディタの LSP では出たままになるため）。
+  TODO-004 で決めた「`pyproject.toml` に `[tool.ruff]` を持たない」
+  流儀からは、ここだけ外れる
+- **`EXE001` はシェバンを消す。** `handler.py` などは単体で実行しない
+  モジュールで、相対 import を使っているので直接実行しても動かない。
+  入口は `uv tool install` で入る `ytsched`（TODO-008）
 
 ---
 
@@ -89,8 +124,9 @@ TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実
 
 見込み: main = Opus 5 / effort medium、担当 = implementer + verifier
 
-- [ ] `date` が空のまま非 ToDo の予定を追加したときの扱いを決めて直す
-- [ ] 存在しない `sde_id` を渡されたときの扱いを決めて直す
+- [ ] `date` が空の非 ToDo は、今日の予定として保存する
+- [ ] 存在しない `sde_id` には 404 を返す（編集画面・更新経路とも）
+- [ ] TODO-006 で暫定に足した warning を見直す
 
 `date` を空にして、ToDo ではない予定を `cmd=add` で POST すると、
 `exec_update()` が `date = None` のまま `add_sde(None, sde)` を呼ぶため、
@@ -103,10 +139,19 @@ TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実
 どちらも TODO-006 より前からある挙動。TODO-006（型ヒントの整備）で
 `get_sde()` の戻り値が `SchedDataEnt | None` になった際、
 `main_handler.py` の guard で **失敗が黙って 200 で返る**ようになったため、
-暫定で `warning` を 1 行足してある。根本の対処はここで決める。
+暫定で `warning` を 1 行足してある。
 
 （TODO-006 の reviewer の指摘 1-1 と 2-2 から。
 `archives/agents/TODO-006/reviewer-report.md` に詳しい）
+
+2026-08-20 に決めたこと。
+
+- **`date` が空の非 ToDo は、今日の予定として保存する。**
+  `SchedDataEnt` は既に「`date` が `None` なら今日」としているのに、
+  `cmd_add()` だけが `add_sde(None, ...)` を呼んでいて食い違っている。
+  書き込み先を `new_sde.date` に合わせる
+- **存在しない `sde_id` には 404 を返す。** 今は編集画面が 500、
+  更新経路は黙って 200 という、ばらつきがある
 
 ---
 
