@@ -6,6 +6,7 @@
 import datetime
 import inspect
 import uuid
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -24,7 +25,7 @@ DATE1 = datetime.date(2021, 3, 1)
 
 def mk_sde(**kwargs):
     """テスト用の SchedDataEnt を作る。"""
-    param = {
+    param: dict[str, Any] = {
         "sde_id": "id-1",
         "date": DATE1,
         "time_start": datetime.time(9, 5),
@@ -692,7 +693,9 @@ def test_sched_data_get_sde(tmp_path):
     write_data(tmp_path, DATE1, [DATALINE1])
     sd = SchedData(str(tmp_path))
 
-    assert sd.get_sde(DATE1, "id-1").title == "タイトル"
+    sde = sd.get_sde(DATE1, "id-1")
+    assert sde is not None
+    assert sde.title == "タイトル"
     assert sd.get_sde(DATE1, "id-x") is None
 
 

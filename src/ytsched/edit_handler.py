@@ -74,11 +74,8 @@ class EditHandler(HandlerBase):
         #
         # todo_flag
         #
-        todo_flag = self.get_argument("todo_flag", False)
-        if todo_flag == "true":
-            todo_flag = True
-        else:
-            todo_flag = False
+        todo_flag_str = self.get_argument("todo_flag", "")
+        todo_flag = todo_flag_str == "true"
 
         self._mylog.debug(
             "date=%s, sde_id=%s, todo_flag=%s", date, sde_id, todo_flag

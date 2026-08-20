@@ -104,15 +104,15 @@ class SchedDataEnt:
 
     def __init__(
         self,
-        sde_id=None,
-        date: datetime.date = None,
-        time_start: datetime.time = "",
-        time_end: datetime.time = "",
-        sde_type="",
-        title=TITLE_NULL,
-        place="",
-        detail="",
-        debug=False,
+        sde_id: str | None = None,
+        date: datetime.date | None = None,
+        time_start: datetime.time | None = None,
+        time_end: datetime.time | None = None,
+        sde_type: str = "",
+        title: str = TITLE_NULL,
+        place: str = "",
+        detail: str = "",
+        debug: bool = False,
     ):
         """Constructor"""
         self._dbg = debug
@@ -129,10 +129,10 @@ class SchedDataEnt:
             detail,
         )
 
-        self.sde_id = sde_id
-        self.date = date
-        if self.date is None:
-            self.date = datetime.date.today()
+        # ``sde_id`` が空なら、新しい ID を発行する
+        self.sde_id = sde_id if sde_id else SchedDataEnt.new_id()
+
+        self.date = date if date is not None else datetime.date.today()
 
         self.time_start = time_start
         self.time_end = time_end
@@ -143,9 +143,6 @@ class SchedDataEnt:
 
         if not self.title:
             self.title = self.TITLE_NULL
-
-        if not self.sde_id:
-            self.sde_id = SchedDataEnt.new_id()
 
     def __str__(self):
         """str(self)"""
@@ -221,11 +218,11 @@ class SchedDataEnt:
         return sde_id
 
     @classmethod
-    def type_is_todo(cls, sde_type: str) -> bool:
+    def type_is_todo(cls, sde_type: str | None) -> bool:
         """
         Parameters
         ----------
-        sde_type: str
+        sde_type: str | None
 
         """
         cls._mylog.debug("sde_type=%s", sde_type)
@@ -296,11 +293,11 @@ class SchedDataEnt:
         """
         return (self.date.year, self.date.month, self.date.day)
 
-    def set_date(self, d: datetime.date = None) -> None:
+    def set_date(self, d: datetime.date | None = None) -> None:
         """
         Parameters
         ----------
-        d: datetime.date
+        d: datetime.date | None
 
         """
         self._mylog.debug("d=%s", d)
@@ -345,10 +342,13 @@ class SchedDataFile:
     ENCODE = ["utf-8", "euc_jp"]
 
     def __init__(
-        self, date: datetime.date = None, topdir=DEF_TOP_DIR, debug=False
+        self,
+        date: datetime.date | None = None,
+        topdir: str = DEF_TOP_DIR,
+        debug: bool = False,
     ):
         """
-        date: datetime.date
+        date: datetime.date | None
             None: ToDo
         topdir: str
 
@@ -379,12 +379,12 @@ class SchedDataFile:
         return out_str
 
     def date2path(
-        self, date: datetime.date = None, topdir: str = DEF_TOP_DIR
+        self, date: datetime.date | None = None, topdir: str = DEF_TOP_DIR
     ) -> str:
         """
         Parameters
         ----------
-        date: datetime.date
+        date: datetime.date | None
             None: ToDo
         Returns
         -------
@@ -466,14 +466,14 @@ class SchedDataFile:
                     int(time_start1[0]) % 24, int(time_start1[1]) % 60
                 )
             else:
-                time_start2 = ""
+                time_start2 = None
 
             if time_end1[0]:
                 time_end2 = datetime.time(
                     int(time_end1[0]) % 24, int(time_end1[1]) % 60
                 )
             else:
-                time_end2 = ""
+                time_end2 = None
 
             sde = SchedDataEnt(
                 d[0],
@@ -537,11 +537,11 @@ class SchedDataFile:
         self.sde.append(sde)
         self.sde = sorted(self.sde, key=lambda x: x.get_sortkey())
 
-    def del_sde(self, sde_id: str = None) -> None:
+    def del_sde(self, sde_id: str | None = None) -> None:
         """
         Parameters
         ----------
-        sde_id: str
+        sde_id: str | None
 
         """
         self._mylog.debug("sde_id=%s", sde_id)
@@ -554,15 +554,16 @@ class SchedDataFile:
         for sde in self.sde:
             self._mylog.debug("%s", sde)
 
-    def get_sde(self, sde_id: str = None) -> SchedDataEnt:
+    def get_sde(self, sde_id: str | None = None) -> SchedDataEnt | None:
         """
         Parameters
         ----------
-        sde_id: str
+        sde_id: str | None
 
         Returns
         -------
-        sde: SchedDataEnt
+        sde: SchedDataEnt | None
+            見つからない場合は None
 
         """
         self._mylog.debug("sde_id=%s", sde_id)
@@ -585,7 +586,7 @@ class SchedData:
         :
     }
 
-    date1, date2, .. : datetime.date
+    date1, date2, .. : datetime.date | None  (None は ToDo)
     sdf1, sf2, ..    : SchedDataFile
 
     """
@@ -599,7 +600,7 @@ class SchedData:
         self,
         topdir: str = SchedDataFile.DEF_TOP_DIR,
         cache_size: int = DEF_CACHE_SIZE,
-        debug=False,
+        debug: bool = False,
     ):
         """Constructor
         Parameters
@@ -614,8 +615,9 @@ class SchedData:
         self._cache_size = cache_size
         self._topdir = topdir
 
+        # ToDo は ``date`` が None のキーで扱う
         self._sdf_cache: collections.OrderedDict[
-            datetime.date, SchedDataFile
+            datetime.date | None, SchedDataFile
         ] = collections.OrderedDict()
 
     def __str__(self):
@@ -642,14 +644,14 @@ class SchedData:
     def get_cache_size(self):
         return len(self._sdf_cache)
 
-    def get_sdf(self, date: datetime.date = None) -> SchedDataFile:
+    def get_sdf(self, date: datetime.date | None = None) -> SchedDataFile:
         """
         キャッシュがヒットすれば、そのデータを返す。
         ヒットしなければ、読み込む。
 
         Parameters
         ----------
-        date: datetime.date
+        date: datetime.date | None
 
         topdir: str
 
@@ -685,12 +687,12 @@ class SchedData:
         return sdf
 
     def get_sde(
-        self, date: datetime.date = None, sde_id: str = ""
-    ) -> SchedDataEnt:
+        self, date: datetime.date | None = None, sde_id: str = ""
+    ) -> SchedDataEnt | None:
         """
         Parameters
         ----------
-        date: datetime.date
+        date: datetime.date | None
 
         topdir: str
 
@@ -699,7 +701,8 @@ class SchedData:
 
         Returns
         -------
-        sde: SchedDataEnt
+        sde: SchedDataEnt | None
+            見つからない場合は None
 
         """
         self._mylog.debug("date=%s, sde_id=%s", date, sde_id)
@@ -709,12 +712,12 @@ class SchedData:
         self._mylog.debug("sde=%s", sde)
         return sde
 
-    def add_sde(
-        self, date: datetime.date = None, sde: SchedDataEnt = None
-    ) -> None:
+    def add_sde(self, date: datetime.date | None, sde: SchedDataEnt) -> None:
         """
         Parameters
         ----------
+        date: datetime.date | None
+
         sde: SchedDataEnt
 
         """
@@ -724,12 +727,14 @@ class SchedData:
         sdf.add_sde(sde)
         sdf.save()
 
-    def del_sde(self, date: datetime.date = None, sde_id: str = "") -> None:
+    def del_sde(
+        self, date: datetime.date | None = None, sde_id: str = ""
+    ) -> None:
         """del_sde
 
         Parameters
         ----------
-        date: datetime.date
+        date: datetime.date | None
 
         topdir: str
 

@@ -144,9 +144,19 @@ class MainHandler(HandlerBase):
                 sde = sdf.get_sde(modified_sde_id)
                 self._mylog.debug("sde=%s", sde)
 
-                todo_flag = sde.is_todo()
-                if todo_flag:
-                    modified_date = sde.date
+                todo_flag = False
+                if sde is not None:
+                    todo_flag = sde.is_todo()
+                    if todo_flag:
+                        modified_date = sde.date
+                else:
+                    self._mylog.warning(
+                        "sde not found: modified_date=%s,"
+                        " modified_sde_id=%s (cmd=%s)",
+                        modified_date,
+                        modified_sde_id,
+                        cmd,
+                    )
 
             self._mylog.debug("modified_date=%s", modified_date)
 
@@ -204,20 +214,20 @@ class MainHandler(HandlerBase):
         todo_days_value0 = self.get_conf(self.CONF_KEY_TODO_DAYS)
         self._mylog.debug("todo_days_value0=%s", todo_days_value0)
 
-        todo_days_value = self.get_argument("todo_days", None)
-        if todo_days_value:
-            if todo_days_value != todo_days_value0:
-                self.set_conf(self.CONF_KEY_TODO_DAYS, todo_days_value)
+        todo_days_str = self.get_argument("todo_days", None)
+        if todo_days_str:
+            if todo_days_str != todo_days_value0:
+                self.set_conf(self.CONF_KEY_TODO_DAYS, todo_days_str)
             else:
                 pass
 
         elif todo_days_value0:
-            todo_days_value = todo_days_value0
+            todo_days_str = todo_days_value0
 
         else:
-            todo_days_value = self.DEF_TODO_DAYS
+            todo_days_str = str(self.DEF_TODO_DAYS)
 
-        todo_days_value = int(todo_days_value)
+        todo_days_value = int(todo_days_str)
         self._mylog.debug("todo_days_value=%a", todo_days_value)
 
         #
@@ -455,7 +465,9 @@ class MainHandler(HandlerBase):
             gage=GAGE,
         )
 
-    def exec_update(self, cmd: str) -> (datetime.date, str):
+    def exec_update(
+        self, cmd: str
+    ) -> tuple[datetime.date | None, str | None]:
         """
         Parameters
         ----------
@@ -463,10 +475,10 @@ class MainHandler(HandlerBase):
 
         Returns
         -------
-        date: datetime.date
-            更新された日付
-        modified_sde_id: str
-            更新されたスケジュールID
+        date: datetime.date | None
+            更新された日付。ToDo の場合は None
+        modified_sde_id: str | None
+            更新されたスケジュールID。``del`` の場合は None
         """
         self._mylog.debug("")
 
@@ -549,7 +561,7 @@ class MainHandler(HandlerBase):
             self._mylog.debug("[fix] detail=%s", detail)
 
         # sde_id
-        sde_id = self.get_argument("sde_id")
+        sde_id: str | None = self.get_argument("sde_id")
         self._mylog.debug("sde_id=%s", sde_id)
 
         # exec cmd

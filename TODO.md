@@ -1,56 +1,15 @@
 # TODO
 
-**残っている項目: TODO-006〜TODO-010、TODO-012、TODO-015、TODO-016。**
-これまでに 8 件を決着させた。
+**残っている項目: TODO-007〜TODO-010、TODO-012、TODO-015、TODO-016。**
+これまでに 9 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-017` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データ形式（タブ区切りテキスト）とデータディレクトリ
 `~/ytsched/data` は、既存データとの互換のため変えない。
 
-進める順序は依存関係で決めてある（TODO-004 が済んだので、TODO-006 に
+進める順序は依存関係で決めてある（TODO-006 が済んだので、TODO-007 に
 進める）。着手する項目は利用者が指定する。
-
----
-
-## TODO-006. 型ヒントの整備
-
-見込み: main = Opus 5 / effort medium、担当 = implementer + verifier + reviewer
-
-- [ ] `time_start: datetime.time = ''` → `datetime.time | None`
-- [ ] `-> (datetime.date, str)` → `tuple[datetime.date, str]`
-- [ ] mypy / basedpyright が通るまで直す
-
-空文字列を `datetime.time` として扱っている箇所が広い。
-
-### 途中経過（2026-08-20 時点）
-
-**implementer による実装は済み。未検証・未コミット。**
-変更は `src/ytsched/{ytsched,main_handler,edit_handler}.py` と
-`tests/test_ytsched.py` の 4 ファイル（作業ツリーに未コミットで残っている）。
-実装の詳細は `archives/agents/TODO-006/implementer-report.md`。
-
-implementer 自身の確認では、mypy 35 → 2 件（残りは `__class__` の 2 件で、
-TODO-007 で `my_logger.py` ごと消える範囲）、basedpyright 28 → 0 件、
-pytest は 161 passed のまま、データ形式も従来どおり。
-
-**残りの手順（新しいセッションでは、次を指示すれば再開できる）:**
-
-```
-TODO-006 の続き。実装は済んで未コミット。
-archives/agents/TODO-006/implementer-report.md を読んで、verifier に検証を依頼して
-```
-
-1. `verifier` に検証させる。特に次の 2 点は implementer が独断で決めたので、
-   呼び出し箇所を網羅して確かめさせること
-   - `exec_update()` の戻り値を `tuple[datetime.date | None, str | None]`
-     にした（実際に `None` を返すため。当初の指示が実態と違っていた）
-   - `SchedData.add_sde()` の `date` / `sde` から既定値 `= None` を外した
-     （呼び出しは 5 か所とも 2 引数の位置引数、とのこと）
-2. `reviewer` にレビューさせる。`SchedDataEnt.__init__` の代入を 1 文に
-   まとめた件と、`edit_handler.py` の `todo_flag` の書き換えが挙動を
-   変えていないかを見させる
-3. 上の 2 つが通ってから `feat(...): …（TODO-006）` でコミット
 
 ---
 
@@ -168,6 +127,7 @@ TODO-004（lint・型チェックと mise タスク）で `mise run lint` を実
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-006.** 型ヒントの整備](archives/todo/TODO-006.%20型ヒントの整備.md)
 - [**TODO-004.** lint・型チェックと mise タスク](archives/todo/TODO-004.%20lint・型チェックと%20mise%20タスク.md)
 - [**TODO-014.** サブエージェントの報告ファイル名](archives/todo/TODO-014.%20サブエージェントの報告ファイル名.md)
 - [**TODO-005.** 明らかなバグの修正](archives/todo/TODO-005.%20明らかなバグの修正.md)
