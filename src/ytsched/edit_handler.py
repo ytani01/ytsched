@@ -10,6 +10,8 @@ __date__ = "2021/01"
 
 import datetime
 
+import tornado.web
+
 from .handler import HandlerBase
 from .mylog import getLogger
 from .ytsched import SchedDataEnt
@@ -95,6 +97,11 @@ class EditHandler(HandlerBase):
                 sdf = self._sd.get_sdf(date)
 
             sde = sdf.get_sde(sde_id)
+            if sde is None:
+                # 存在しない ``sde_id`` は 404 (TODO-016)
+                raise tornado.web.HTTPError(
+                    404, "sde not found: sde_id=%s", sde_id
+                )
 
         else:
             sde = SchedDataEnt("", date)

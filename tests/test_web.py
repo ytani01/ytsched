@@ -12,6 +12,7 @@ import tornado.testing
 from helpers import URL_PREFIX, make_app
 
 from ytsched.main_handler import MainHandler
+from ytsched.ytsched import SchedDataFile
 
 DATE1 = datetime.date(2021, 3, 1)
 DATE1_STR = "2021-03-01"
@@ -633,6 +634,54 @@ class TestUpdate(WebTestBase):
         assert field[2].endswith("-:")
         assert field[6] == "〆2021/03/05 10:00-11:00<br />詳細"
 
+    def test_add_without_date(self):
+        """``date`` が空の非 ToDo は、今日の予定になる (TODO-016)。"""
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date="",
+            sde_type="会議",
+            title="日付なしの予定",
+            place="",
+            detail="",
+        )
+
+        today = datetime.date.today()
+        assert not (self.datadir / "ToDo.cgi").exists()
+
+        field = (
+            self.data_path(today)
+            .read_text(encoding="utf-8")
+            .rstrip("\n")
+            .split("\t")
+        )
+        assert field[1] == today.strftime("%Y/%m/%d")
+        assert field[4] == "日付なしの予定"
+
+    def test_update_sde_not_found(self):
+        """更新したはずのデータが見つからないときは 404 (TODO-016)。"""
+        sde_id = self.add_sde()
+
+        with mock.patch.object(SchedDataFile, "get_sde", return_value=None):
+            res = self.fetch(
+                URL_PREFIX + "/",
+                method="POST",
+                headers=FORM_HEADERS,
+                body=urlencode(
+                    {
+                        "cmd": "update",
+                        "sde_id": sde_id,
+                        "orig_date": DATE1_STR,
+                        "date": DATE1_STR,
+                        "sde_type": "会議",
+                        "title": "新しい予定",
+                    }
+                ),
+            )
+
+        assert res.code == 404
+
     def test_add_todo(self):
         """ToDo は ``ToDo.cgi`` へ入る。"""
         self.post_body(
@@ -678,6 +727,30 @@ class TestEditHandler(WebTestBase):
 
         assert "定例ミーティング" in body
         assert "会議室" in body
+
+    def test_get_unknown_sde_id(self):
+        """存在しない ``sde_id`` は 404 (TODO-016)。"""
+        self.write_data(DATE1, [DATALINE1])
+
+        res = self.fetch(
+            f"{URL_PREFIX}/edit?"
+            + urlencode({"date": DATE1_STR, "sde_id": "no-such-id"})
+        )
+        assert res.code == 404
+
+    def test_get_unknown_sde_id_todo(self):
+        """ToDo でも、存在しない ``sde_id`` は 404 (TODO-016)。"""
+        res = self.fetch(
+            f"{URL_PREFIX}/edit?"
+            + urlencode(
+                {
+                    "date": DATE1_STR,
+                    "sde_id": "no-such-id",
+                    "todo_flag": "true",
+                }
+            )
+        )
+        assert res.code == 404
 
     def test_get_existing_todo(self):
         todo_line = "\t".join(  # noqa: FLY002

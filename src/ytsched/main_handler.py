@@ -13,6 +13,8 @@ import math
 import re
 from typing import ClassVar
 
+import tornado.web
+
 from .handler import HandlerBase
 from .mylog import getLogger
 from .ytsched import SchedDataEnt
@@ -146,16 +148,19 @@ class MainHandler(HandlerBase):
                 sde = sdf.get_sde(modified_sde_id)
                 self.__log.debug(f"sde={sde}")
 
-                todo_flag = False
-                if sde is not None:
-                    todo_flag = sde.is_todo()
-                    if todo_flag:
-                        modified_date = sde.date
-                else:
-                    self.__log.warning(
-                        f"sde not found: modified_date={modified_date},"
-                        f" modified_sde_id={modified_sde_id} (cmd={cmd})"
+                if sde is None:
+                    # 更新したはずのデータが見つからない (TODO-016)
+                    raise tornado.web.HTTPError(
+                        404,
+                        "sde not found: date=%s, sde_id=%s (cmd=%s)",
+                        modified_date,
+                        modified_sde_id,
+                        cmd,
                     )
+
+                todo_flag = sde.is_todo()
+                if todo_flag:
+                    modified_date = sde.date
 
             self.__log.debug(f"modified_date={modified_date}")
 
@@ -650,7 +655,9 @@ class MainHandler(HandlerBase):
         if new_sde.is_todo():
             self._sd.add_sde(None, new_sde)
         else:
-            self._sd.add_sde(date, new_sde)
+            # ``date`` が空でも ``SchedDataEnt`` 側で今日に補正される。
+            # 書き込み先も ``new_sde.date`` に合わせる (TODO-016)
+            self._sd.add_sde(new_sde.date, new_sde)
 
         return new_sde
 
