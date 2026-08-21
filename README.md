@@ -201,23 +201,8 @@ sudo loginctl enable-linger $USER
 ```
 
 
-## memo
+## 開発者向け
 
-### Javascript ``Date``の罠
-
-new Date()の日付の区切り文字が
-   '/' だとJST(+09:00),
-   '-' だとUTC
-とみなされる！
-
-(ex.)
-```
-> (new Date("2021/01/01")).toISOString();
-"2020-12-31T15:00:00.000Z"
-> (new Date("2021-01-01")).toISOString();
-"2021-01-01T00:00:00.000Z"
-```
-
-### Javascript scroll, size関連
-
-![](docs/javascript-scroll.svg)
+コードの構成や開発ツールの使い方は [docs/Developer.md](docs/Developer.md)
+を、データの保存形式は [docs/data-format.md](docs/data-format.md) を
+見てください。

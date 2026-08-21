@@ -11,6 +11,11 @@ ytsched がスケジュールを保存する形式の仕様。**形式を変え�
 書き直す。** 「なぜそう決めたか」の記録は `archives/todo/` にあり、そちらは
 現行仕様ではない。
 
+関連文書: ソースコードの構成は [../src/README.md](../src/README.md)、
+開発環境やコマンドは [Developer.md](Developer.md)、テストの構成は
+[../tests/README.md](../tests/README.md)、利用者向けの説明は
+[../README.md](../README.md) にある。
+
 ## ファイルの置き場所
 
 データディレクトリ（既定は `~/ytsched/data`）の下に、1 日 1 ファイルで置く。

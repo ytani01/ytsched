@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-027, TODO-028, TODO-029, TODO-030, TODO-031**
-これまでに 26 件を決着させた。
+**残っている項目: TODO-027, TODO-028, TODO-029, TODO-031**
+これまでに 27 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-032` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
@@ -129,20 +129,6 @@ TODO-021 までの変更（`src/` 全体）を `/code-review` にかけて出た
 
 ---
 
-## TODO-030. ドキュメント ``docs/Developer.md`` などの整備
-
-ドキュメントの役割を明確に分け、重複を避ける。
-
-- README.md: ytsched利用者用
-- docs/Developer.md: ytsched開発者用。技術スタック、開発ツールなどの説明。コードについては、src/README.md
-- docs/data-format.md: データフォーマット詳細
-- src/README.md: ソースコードの構成、クラス構造など、全体的な説明。個別のコード内のdocstringsでわかるような詳細は説明しない。
-- CLAUDE.md: claude 用。通常、人間は読まない(たまに、確認することはある)。
-
-関係するもの同士リンクをつけて、相互参照出来るようにする。
-
----
-
 ## TODO-031. 文書に Mermaid の図を入れる
 
 見込み: main = Opus 5 / effort medium、担当 = writer + verifier + wording
@@ -195,6 +181,7 @@ git の差分を読んでも意味が分からない。`docs/javascript-scroll.s
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-030.** ドキュメントの役割を分ける](archives/todo/TODO-030.%20ドキュメントの役割を分ける.md)
 - [**TODO-023.** mise.toml の見直し](archives/todo/TODO-023.%20mise.toml%20の見直し.md)
 - [**TODO-024.** リファクタリングで見つかった 8 件の扱い](archives/todo/TODO-024.%20リファクタリングで見つかった%208%20件の扱い.md)
 - [**TODO-026.** 文書の確認の担当と hook を作る](archives/todo/TODO-026.%20文書の確認の担当と%20hook%20を作る.md)

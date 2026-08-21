@@ -1,0 +1,47 @@
+# テストの構成
+
+`tests/` の各ファイルが何を見ているかをまとめる。走らせ方（`mise run test`
+や `pytest` の叩き方）は [../docs/Developer.md](../docs/Developer.md) に
+あるので、ここには書かない。ソースコードの構成は
+[../src/README.md](../src/README.md) を見ること。
+
+## 各ファイルの役割
+
+- `helpers.py` — `webapp.WebServer` が組み立てているのと同じ
+  `tornado.web.Application` を、`datadir` だけ差し替えて作る
+  （`make_app()`）。リクエストを実際に送らずに handler を作る
+  `make_handler()` や、ロケール依存の読み書きを確かめる
+  `run_in_c_locale()` もここにある
+- `test_ytsched.py` — データモデル（`SchedDataEnt` /
+  `SchedDataFile` / `SchedData`）のテスト
+- `test_handler.py` — `HandlerBase`（`Conf.cgi` の読み書き）と
+  `days2y_offset` のテスト
+- `test_main_handler.py` — `MainHandler` の個々のメソッドのテスト
+- `test_web.py` — `tornado.testing` を使い、`MainHandler` /
+  `EditHandler` へ実際にリクエストを送るテスト
+- `test_webapp.py` — `WebServer` の組み立てそのもののテスト
+- `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
+  移行のテスト
+- `test_mylog.py` — `mylog.py` のテスト
+- `make_test_data.py` — 移行元（旧形式）の合成テストデータを
+  `tests/data/old_format/` に生成するスクリプト。個人の予定そのものは
+  リポジトリに入れられないため、構造だけを写して中身を架空にした
+  データを使う
+
+## ゴールデンマスターテスト
+
+`test_handler.py` の `test_settings_are_read` のように、「今の挙動」を
+そのまま固定して確かめるテストが何本かある（TODO-021 で足した）。
+リファクタリングの前後で挙動が変わっていないことを確かめるためのもので、
+**挙動を変える変更なら、そのテストも合わせて書き直してよい**。落ちたのが
+リファクタリングのミスなのか、意図した挙動の変更なのかは、変更内容を
+見て判断する。
+
+## テストデータの置き場所
+
+- `tests/data/old_format/` — `make_test_data.py` が生成する、移行元
+  （旧形式）の合成テストデータ。どのファイルが何を再現しているかは、
+  そのディレクトリの `README.md` にある
+- そのほかのテストは、`tmp_path`（pytest の fixture）の下に
+  データディレクトリを作って使う。実データ（`~/ytsched/data`）には
+  触れない
