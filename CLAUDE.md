@@ -110,14 +110,29 @@ CLI には `webapp`（Web サーバ、本来の入口）のほかに `x_data1` �
 
 ## コマンド
 
-`mise.toml` にタスクがある（`upgradeproject` → `lint` → `test` → `build`
-の順に依存する）。
+`mise.toml` にタスクがある（`lint` → `test` → `build` の順に依存する。
+`lint` は `fmt` と `typecheck` を呼ぶだけ）。
 
 ```sh
-mise run lint    # ruff format / ruff check --fix / basedpyright / mypy
-mise run test    # pytest（lint に依存）
-mise run build   # uv build（test に依存）
+mise run fmt        # ruff format / ruff check --fix
+mise run typecheck  # basedpyright / mypy
+mise run lint       # fmt と typecheck の両方
+mise run test       # pytest（lint に依存）
+mise run build      # uv build（test に依存）
 ```
+
+アプリを動かすタスクもある。引数は `--` のあとに書く（mise が行の末尾へ
+足す）。
+
+```sh
+mise run webapp                            # ~/ytsched/data・port 10085
+mise run webapp -- --datadir /tmp/x --port 10099
+mise run migrate -- --dry-run
+```
+
+`upgradeproject`（`uppj`）は依存を上げ直すタスクで、**どこからも依存されて
+いない**。`rm -f uv.lock` → `uv sync` → `uv pip install -U` が走るので、
+上げ直したいときに明示的に叩く（TODO-023）。
 
 個別に実行する場合:
 
@@ -200,9 +215,11 @@ CLAUDE.md に書きようが無くて、どの担当にも要るものだけを�
 
 - **アプリの起動を確かめるときは、`--datadir` に必ず一時ディレクトリを
   指定する。** `~/ytsched/data` の実データを汚さないため
-- **`mise run lint` / `mise run test` は、担当には走らせない。**
-  `upgradeproject`（`rm -f uv.lock` → `uv sync` → `uv pip install -U`）に
-  依存していて、呼ぶたびに依存を上げ直す。テストが壊れたときに、変更の
-  せいか依存が上がったせいかが分からなくなる。担当には
+- **`mise run upgradeproject` は、担当には走らせない。**
+  `rm -f uv.lock` → `uv sync` → `uv pip install -U` が走り、呼ぶたびに
+  依存を上げ直す。テストが壊れたときに、変更のせいか依存が上がったせいかが
+  分からなくなる（TODO-022）。**`mise run fmt` / `typecheck` / `lint` /
+  `test` / `build` は叩かせてよい。** `lint` の `upgradeproject` への
+  依存は切ってあるので、依存は上がらない（TODO-023）。
   `uv run ruff format` / `ruff check` / `basedpyright` / `mypy` /
-  `pytest` を個別に叩かせる（TODO-022）
+  `pytest` を個別に叩かせてもよい

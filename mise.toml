@@ -1,35 +1,3 @@
-[tasks.upgradeapt]
-description = "upgrade apt packages"
-run = '''
-echo "# upgrade apt packages"
-export LANG=C
-sudo apt update
-sudo apt upgrade
-sudo apt autoremove -y
-'''
-alias = "upapt"
-
-[tasks.upgrademise]
-description = "upgrade mise"
-run = '''
-echo "# upgrade mise"
-export LANG=C
-mise self-update
-mise up
-'''
-alias = "upmise"
-depends = ["upgradeapt"]
-
-[tasks.upgradeuv]
-description = "upgrade uv"
-run = '''
-echo "# upgrade uv"
-export LANG=C
-uv tool upgrade --all
-'''
-alias = "upuv"
-depends = ["upgrademise"]
-
 [tasks.upgradeproject]
 description = "upgrade in this project"
 run = '''
@@ -47,34 +15,37 @@ uv pip install -U --group dev -e .
 uv run ytsched --help
 '''
 alias = "uppj"
-# depends = ["upgradeuv"]
 
-[tasks.lint]
-description = "linting"
+[tasks.fmt]
+description = "format (ruff)"
 run = '''
-# format and linting
-
-echo "# ruff"
+echo "# ruff format"
 uv run ruff format --line-length 78 src tests
-uv run ruff check --fix --extend-select I  src tests
 
+echo "# ruff check"
+uv run ruff check --fix --extend-select I src tests
+'''
+
+[tasks.typecheck]
+description = "type check (basedpyright, mypy)"
+run = '''
 echo "# basedpyright"
 uv run basedpyright src tests
 
 echo "# mypy"
 uv run mypy src tests
-
-uv run ytsched --help
 '''
-depends = ["upgradeproject"]
+# fmt も一緒に走るときは、整形が終わってから型を見る。
+# typecheck だけを叩いたときは fmt は走らない。
+wait_for = ["fmt"]
+
+[tasks.lint]
+description = "linting (fmt, typecheck)"
+depends = ["fmt", "typecheck"]
 
 [tasks.test]
 description = "test"
-run = '''
-uv run pytest tests
-
-uv run ytsched --help
-'''
+run = "uv run pytest tests"
 depends = ["lint"]
 
 [tasks.build]
@@ -83,6 +54,18 @@ run = '''
 echo "# build"
 rm -rf dist
 uv build
-uv run ytsched --help
 '''
 depends = ["test"]
+
+[tasks.webapp]
+description = "run web server"
+# 既定は ~/ytsched/data・port 10085。
+# 変えるときは `mise run webapp -- --port 10086` のように渡す
+# （mise が引数を行の末尾へ足す）。
+run = "uv run ytsched webapp"
+alias = "web"
+
+[tasks.migrate]
+description = "migrate old data (.cgi) to JSON Lines"
+# `mise run migrate -- --dry-run` で確認できる。
+run = "uv run ytsched migrate"
