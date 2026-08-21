@@ -137,6 +137,20 @@ TODO-021 までの変更（`src/` 全体）を `/code-review` にかけて出た
 
 ---
 
+## TODO-030. ドキュメント ``docs/Developer.md`` などの整備
+
+ドキュメントの役割を明確に分け、重複を避ける。
+
+- README.md: ytsched利用者用
+- docs/Developer.md: ytsched開発者用。技術スタック、開発ツールなどの説明。コードについては、src/README.md
+- docs/data-format.md: データフォーマット詳細
+- src/README.md: ソースコードの構成、クラス構造など、全体的な説明。個別のコード内のdocstringsでわかるような詳細は説明しない。
+- CLAUDE.md: claude 用。通常、人間は読まない(たまに、確認することはある)。
+
+関係するもの同士リンクをつけて、相互参照出来るようにする。
+
+---
+
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
