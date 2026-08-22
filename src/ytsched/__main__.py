@@ -162,6 +162,14 @@ Web server"""
     help=f"data directory, default='{WebServer.DEF_DATADIR}'",
 )
 @click.option(
+    "--urlprefix",
+    "-u",
+    "urlprefix",
+    type=str,
+    default=WebServer.DEF_URL_PREFIX,
+    help=f"URL prefix, default='{WebServer.DEF_URL_PREFIX}'",
+)
+@click.option(
     "--days",
     "days",
     type=int,
@@ -187,12 +195,13 @@ Web server"""
 @click.option(
     "--debug", "-d", "debug", is_flag=True, default=False, help="debug flag"
 )
-def webapp(port, webroot, datadir, days, size_limit, version, debug):
+def webapp(port, webroot, datadir, urlprefix, days, size_limit, version, debug):
     """webapp"""
     loggerInit(debug=debug)
+    _log.debug(f"urlprefix={urlprefix}")
 
     app = WebServer(
-        port, webroot, datadir, days, size_limit, version, debug=debug
+        port, webroot, datadir, urlprefix, days, size_limit, version, debug=debug
     )
     try:
         app.main()

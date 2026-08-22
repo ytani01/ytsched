@@ -302,18 +302,18 @@ const scrollHdr = (event) => {
     console.log(`scrollHdr:d_top=${d_top}, d_bottom=${d_bottom}`);
     
     if (d_top < 50) {
-        scrollFlag = false;
-        el = document.getElementById("date_from");
-        date = el.value;
-        console.log(`date=${date}`);
-        doPost('/ytsched/', {date: date, sde_align: "top"});
+      scrollFlag = false;
+      el = document.getElementById("date_from");
+      date = el.value;
+      console.log(`date=${date}`);
+      doPost(`${url_prefix}`, {date: date, sde_align: "top"});
     }
     if (d_bottom < 80) {
-        scrollFlag = false;
-        el = document.getElementById("date_to");
-        date = el.value;
-        console.log(`date=${date}`);
-        doPost('/ytsched/', {date: date, sde_align: "bottom"});
+      scrollFlag = false;
+      el = document.getElementById("date_to");
+      date = el.value;
+      console.log(`date=${date}`);
+      doPost(`${url_prefix}`, {date: date, sde_align: "bottom"});
     }
 };
 
