@@ -54,10 +54,6 @@
 <input id="sde_id" name="sde_id"
        type="hidden" value="{{ sde.sde_id }}" />
 
-{% if sde.is_canceled() %}
-<del>
-{% end %}
-
 {% set class_blink = '' %}
 {% if sde.sde_id == modified_sde_id %}
   {% set class_blink = 'blink' %}
@@ -70,10 +66,20 @@
     <div class="row m-0">
       {% if not sde.is_todo() %}
       <div class="col-1 p-0 text-left"
-           style="font-size:xx-small;
+        style="font-size:xx-small;
                   font-weight:bold;
                   line-height: 12px">
-        {{ time_start }}<br/>{{ time_end }}
+
+        {% if sde.is_canceled() %}
+        <span style="text-decoration: line-through !Important;">
+          {% end %}
+
+          {{ time_start }}<br/>{{ time_end }}
+
+          {% if sde.is_canceled() %}
+        </span>
+        {% end %}
+
       </div>
       {% else %}
       <div class="col-1 p-1 text-center">
@@ -94,39 +100,94 @@
                     search_str: '{{ search_str }}',
                     });">
         {% if sde.is_todo() %}
-          {% if sde.date != sched_date %}
-            {% set sde_date = str(sde.date).replace('-', '/') %}
+        {% if sde.date != sched_date %}
+        {% set sde_date = str(sde.date).replace('-', '/') %}
         <span style="font-size:xx-small;
                      font-weight:bold;
                      display:inline-flex;
                      vertical-align:top;
                      line-height:12px">
-          {{ sde_date[0:4] }}<br />{{ sde_date[5:] }}
+
+          {% if sde.is_canceled() %}
+          <span style="text-decoration: line-through !Important;">
+            {% end %}
+
+            {{ sde_date[0:4] }}<br />{{ sde_date[5:] }}
+            
+            {% if sde.is_canceled() %}
+          </span>
+          {% end %}
         </span>
+        {% end %}
+
+        <span style="font-size:xx-small;
+                     font-weight:bold;
+                     display:inline-flex;
+                     vertical-align:top;
+                     line-height:12px">
+          
+          {% if sde.is_canceled() %}
+          <span style="text-decoration: line-through !Important;">
+            {% end %}
+
+            {{ time_start }}<br />{{ time_end }}
+
+            {% if sde.is_canceled() %}
+          </span>
           {% end %}
 
-        <span style="font-size:xx-small;
-                     font-weight:bold;
-                     display:inline-flex;
-                     vertical-align:top;
-                     line-height:12px">
-          {{ time_start }}<br />{{ time_end }}
         </span>
         {% end %}
 
-        {% set type_font="font-size: small; font-weight: normal" %}
-        {% set title_font="font-size: medium; font-weight: normal" %}
+        {% set type_font="font-size: x-small; font-weight: normal;" %}
+        {% set title_font="font-size: medium; font-weight: normal;" %}
         {% if sde.is_important() %}
-          {% set type_font="font-size: small; font-weight: bold" %}
-          {% set title_font="font-size: medium; font-weight: bold" %}
+        {% set type_font="font-size: x-small; font-weight: bold;" %}
+        {% set title_font="font-size: medium; font-weight: bold;" %}
         {% end %}
-        <span style="{{ type_font }}">{{ sde_type }}</span>
-        <span style="{{ title_font }}">{{ sde_title }}</span>
+
+
+        <span style="{{ type_font }}">
+          {% if sde.is_canceled() %}
+          <span style="text-decoration: line-through !Important;">
+            {% end %}
+            {{ sde_type }}
+          {% if sde.is_canceled() %}
+          </span>
+          {% end %}
+        </span>
+
+
+            
+        <span style="{{ title_font }}">
+
+          {% if sde.is_canceled() %}
+          <span style="text-decoration: line-through !Important;">
+            {% end %}
+
+            {{ sde_title }}
+
+            {% if sde.is_canceled() %}
+          </span>
+          {% end %}
+
+        </span>
+
         {% if sde.place %}
+
         <span style="font-size: small;">
-          @{{ sde.place }}
+          {% if sde.is_canceled() %}
+          <span style="text-decoration: line-through !Important;">
+            {% end %}
+
+            @{{ sde.place }}
+            {% if sde.is_canceled() %}
+          </span>
+          {% end %}
+
         </span>
         {% end %}
+       
       </div>
     </div>
     {% if detail %}
@@ -142,10 +203,19 @@
         </label>
       </div>
       <div class="col-11 p-0 longtext" tabindex="0"
-           style="font-size: x-small;">{{ detail }}</div>
+        style="font-size: x-small;">
+        
+        {% if sde.is_canceled() %}
+        <span style="text-decoration: line-through !Important;">
+          {% end %}
+
+          {{ detail }}
+
+          {% if sde.is_canceled() %}
+        </span>
+        {% end %}
+
+      </div>
     </div>
     {% end %}
 </div><!-- container -->
-{% if sde.is_canceled() %}
-</del>
-{% end %}
