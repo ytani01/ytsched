@@ -31,7 +31,7 @@ class WebServer:
 
     __log = getLogger(__qualname__)
 
-    URL_PREFIX = "/ytsched"
+    DEF_URL_PREFIX = "/ytsched"
 
     DEF_PORT = 10085
     # パッケージに同梱した webroot（templates/, static/）
@@ -48,6 +48,7 @@ class WebServer:
         port: int = DEF_PORT,
         webroot: str = DEF_WEBROOT,
         datadir: str = DEF_DATADIR,
+        url_prefix: str = DEF_URL_PREFIX,
         days: int = MainHandler.DEF_DAYS,
         size_limit: int = DEF_SIZE_LIMIT,
         version: bool = False,
@@ -62,6 +63,8 @@ class WebServer:
         webroot: str
 
         datadir: str
+
+        url_prefix: str
 
         days: int
 
@@ -79,6 +82,7 @@ class WebServer:
         self._port = port
         self._webroot = os.path.expanduser(webroot)
         self._datadir = os.path.expanduser(datadir)
+        self._url_prefix = url_prefix
         self._sd = SchedData(self._datadir)
         self._days = days
         self._size_limit = size_limit
@@ -92,19 +96,19 @@ class WebServer:
         self._app = tornado.web.Application(
             [
                 (r"/", MainHandler),
-                (self.URL_PREFIX, MainHandler),
-                (rf"{self.URL_PREFIX}/", MainHandler),
-                (rf"{self.URL_PREFIX}/edit", EditHandler),
-                (rf"{self.URL_PREFIX}/edit/", EditHandler),
+                (self._url_prefix, MainHandler),
+                (rf"{self._url_prefix}/", MainHandler),
+                (rf"{self._url_prefix}/edit", EditHandler),
+                (rf"{self._url_prefix}/edit/", EditHandler),
             ],
             static_path=os.path.join(self._webroot, "static"),
-            static_url_prefix=self.URL_PREFIX + "/static/",
+            static_url_prefix=self._url_prefix + "/static/",
             template_path=os.path.join(self._webroot, "templates"),
             autoreload=self._dbg,
             title=PROG_NAME,
             author=AUTHOR,
             version=VERSION,
-            url_prefix=self.URL_PREFIX + "/",
+            url_prefix=self._url_prefix + "/",
             datadir=self._datadir,
             days=self._days,
             sd=self._sd,

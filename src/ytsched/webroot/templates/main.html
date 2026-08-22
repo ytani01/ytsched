@@ -6,8 +6,8 @@
     
     const homeButtonHdr = (event) => {
       if( !clickCount ) { // single click
-	++clickCount;
-	setTimeout(function() {clickCount = 0;}, 350 );
+	                       ++clickCount;
+	      setTimeout(function() {clickCount = 0;}, 350 );
         console.log("single click");
         
         const search_str0 = '{{ search_str }}';
@@ -26,8 +26,8 @@
         
       } else { // double click
         //event.preventDefault() ;
-	clickCount = 0;
-	console.log( "double click" ) ;
+	      clickCount = 0;
+	      console.log( "double click" ) ;
         
         doPost('{{ url_prefix }}',
                {date: '{{ today }}', sde_align: 'top'} );
@@ -35,6 +35,7 @@
     };
 
     const onloadHdr = (event) => {
+      console.log(`onloadHdr(${event}`);
       elLoadingSpinner = document.getElementById("loadingSpinner");
       loadingSpinner(false);
       
