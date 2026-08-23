@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-036**
-これまでに 35 件を決着させた。
+**残っている項目は無い。**
+これまでに 36 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-037` から。**
 
@@ -14,35 +14,6 @@
 
 着手する項目は利用者が指定する。
 
-## TODO-036. click_utils.py を導入する
-
-見込み: main = Opus 5 / effort high、担当 = implementer + verifier + wording
-
-- [ ] `click_utils.py` に型ヒントを付け、lint・型チェックを通す
-- [ ] `__main__.py` の `cli` と 3 つのサブコマンドで `click_common_opts` を使う
-- [ ] `WebServer` の `version` 引数と、コンストラクタ内の `sys.exit(0)` を消す
-- [ ] `--version` / `--help` / `--debug` が実際に効くか確かめる
-
-`__main__.py` は `--debug` / `-d` を 3 箇所に手書きしており、`-h` / `--help` は
-`cli` の `CONTEXT_SETTINGS` で指定している。これを、他のプロジェクトと共通の
-`src/ytsched/click_utils.py`（`click_common_opts`）にまとめる。
-
-衝突するところと、決めたこと（利用者と相談済み）:
-
-- **`-v` / `--version`**: 今は `webapp` だけにあり、フラグを `WebServer` へ
-  渡して、コンストラクタの中で `Ytsched <ver> by <author>` を表示して
-  `sys.exit(0)` している。`click_common_opts` の `version_option` に寄せ、
-  `WebServer` の `version` 引数ごと消す。表示は `Ytsched <ver>` になり、
-  `by <author>` は出なくなる
-- **`-h` / `--help`**: `click_common_opts` が各コマンドに `help_option` を
-  付けるので、`cli` の `CONTEXT_SETTINGS` は要らなくなる
-- **`ctx`**: `click_common_opts` は必ず `click.pass_context` を付ける。
-  各コマンドの第 1 引数に `ctx` を足し、`cli` の `@click.pass_context` は
-  外す（二重に付くため）
-- **型ヒント**: `click_utils.py` には型ヒントが無い。このリポジトリの
-  lint・型チェックが通るところまで直す（TODO-006 で整備済みなので、そこに
-  揃える）
-
 ---
 
 ## 完了済み
@@ -50,6 +21,7 @@
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-036.** click_utils.py を導入する](archives/todo/TODO-036.%20click_utils.py%20を導入する.md)
 - [**TODO-032.** `Conf.cgi` を JSON 形式にする](archives/todo/TODO-032.%20Conf.cgi%20を%20JSON%20形式にする.md)
 - [**TODO-031.** 文書に Mermaid の図を入れる](archives/todo/TODO-031.%20文書に%20Mermaid%20の図を入れる.md)
 - [**TODO-035.** TODO 項目ごとのトークン消費量を記録する](archives/todo/TODO-035.%20TODO%20項目ごとのトークン消費量を記録する.md)

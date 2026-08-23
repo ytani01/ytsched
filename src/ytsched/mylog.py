@@ -107,9 +107,12 @@ def _filter(record) -> bool:
 def loggerInit(debug: bool = False, out: TextIO = sys.stderr) -> None:
     """logger を初期化する
 
-    各 CLI コマンドの先頭で 1 度だけ呼ぶ。名前ごとの水準は
-    ``getLogger(name, level)`` や ``setLevel(name, level)`` で
-    コードから指定する。
+    各 CLI コマンドの先頭で呼ぶ。``logger.remove()`` してから
+    ``logger.add()`` するので、1 回の実行で何度呼んでも出力は二重に
+    ならない（``ytsched`` はコマンドグループとサブコマンドの両方で
+    呼んでいる）。名前ごとの水準は ``getLogger(name, level)`` や
+    ``setLevel(name, level)`` でコードから指定する。呼び直しても
+    そちらは消えない。
 
     Parameters
     ----------

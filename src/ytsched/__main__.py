@@ -9,7 +9,14 @@ import datetime
 
 import click
 
-from . import MainHandler, SchedDataFile, WebServer, __prog_name__
+from . import (
+    MainHandler,
+    SchedDataFile,
+    WebServer,
+    __prog_name__,
+    __version__,
+)
+from .click_utils import click_common_opts
 from .migrate import Migrator
 from .mylog import getLogger, loggerInit
 
@@ -39,19 +46,32 @@ class DataFileApp:
             print("===== No data =====")
 
 
-CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
+def _is_debug(ctx, debug):
+    """自分の --debug と、グループ側の --debug をまとめる
+
+    `cli` を経由しない呼び出しでは `ctx.obj` が None になるので、
+    dict のときだけ見る。
+    """
+    if isinstance(ctx.obj, dict):
+        return bool(debug) or bool(ctx.obj.get("debug", False))
+
+    return bool(debug)
 
 
 @click.group(
     invoke_without_command=True,
-    context_settings=CONTEXT_SETTINGS,
     help="""
 sample package
 """,
 )
-@click.pass_context
-def cli(ctx):
+@click_common_opts(__version__)
+def cli(ctx, debug):
     """command group"""
+    ctx.ensure_object(dict)
+    ctx.obj["debug"] = bool(debug)
+
+    loggerInit(debug=debug)
+
     subcmd = ctx.invoked_subcommand
 
     if subcmd is None:
@@ -73,11 +93,10 @@ test """
     default=SchedDataFile.DEF_TOP_DIR,
     help=f"data directory, default='{SchedDataFile.DEF_TOP_DIR}'",
 )
-@click.option(
-    "--debug", "-d", "debug", is_flag=True, default=False, help="debug flag"
-)
-def x_data1(year, month, day, datadir, debug):
+@click_common_opts(__version__)
+def x_data1(ctx, year, month, day, datadir, debug):
     """data"""
+    debug = _is_debug(ctx, debug)
     loggerInit(debug=debug)
 
     app = DataFileApp(year, month, day, datadir)
@@ -119,11 +138,10 @@ def x_data1(year, month, day, datadir, debug):
         f"変換できなかった行の書き出し先, default='{Migrator.DEF_ERROR_FILE}'"
     ),
 )
-@click.option(
-    "--debug", "-d", "debug", is_flag=True, default=False, help="debug flag"
-)
-def migrate(datadir, dry_run, error_file, debug):
+@click_common_opts(__version__)
+def migrate(ctx, datadir, dry_run, error_file, debug):
     """migrate"""
+    debug = _is_debug(ctx, debug)
     loggerInit(debug=debug)
 
     app = Migrator(datadir, dry_run=dry_run, error_file=error_file)
@@ -184,21 +202,10 @@ Web server"""
     default=100 * 1024 * 1024,
     help=f"upload size limit, default={WebServer.DEF_SIZE_LIMIT}",
 )
-@click.option(
-    "--version",
-    "-v",
-    "version",
-    is_flag=True,
-    default=False,
-    help="print version",
-)
-@click.option(
-    "--debug", "-d", "debug", is_flag=True, default=False, help="debug flag"
-)
-def webapp(
-    port, webroot, datadir, urlprefix, days, size_limit, version, debug
-):
+@click_common_opts(__version__)
+def webapp(ctx, port, webroot, datadir, urlprefix, days, size_limit, debug):
     """webapp"""
+    debug = _is_debug(ctx, debug)
     loggerInit(debug=debug)
     _log.debug(f"urlprefix={urlprefix}")
 
@@ -209,7 +216,6 @@ def webapp(
         urlprefix,
         days,
         size_limit,
-        version,
         debug=debug,
     )
     try:

@@ -17,6 +17,7 @@ src/ytsched/
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
   migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行と、設定ファイルの JSON 化（`ytsched migrate`）
   mylog.py         # loguru ラッパ
+  click_utils.py   # click の共通オプション（`-h` / `-d` / `-V` `-v`）をまとめたデコレータ
   __main__.py      # click による CLI（`ytsched` コマンド）
   webroot/
     templates/      # tornado のテンプレート（base/main/edit/sde.html）
@@ -27,6 +28,14 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 移行）のほかに、`x_data1` というデバッグ用のサブコマンドが残っている
 （指定した 1 日分のデータを標準出力へダンプするだけで、`webapp` の
 動作には関係ない）。
+
+`-h` / `--help`、`-d` / `--debug`、`-V` / `-v` / `--version` は、
+`click_utils.py` の `click_common_opts()` がグループと全サブコマンドに
+付ける（TODO-036）。このデコレータは `click.pass_context` も付けるので、
+**コマンド関数の第 1 引数は `ctx`** になる。グループ側の `--debug` は
+`ctx.obj` に入れてサブコマンドへ引き継ぎ、`__main__.py` の `_is_debug()`
+でサブコマンド自身の `--debug` とまとめている（`ytsched --debug migrate`
+でも `ytsched migrate --debug` でも DEBUG が出る）。
 
 ## データモデル: `SchedDataEnt` / `SchedDataFile` / `SchedData`
 

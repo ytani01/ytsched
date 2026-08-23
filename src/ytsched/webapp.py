@@ -9,7 +9,6 @@ __author__ = "Yoichi Tanibayashi"
 __date__ = "2021/01"
 
 import os
-import sys
 
 import tornado.httpserver
 import tornado.ioloop
@@ -51,7 +50,6 @@ class WebServer:
         url_prefix: str = DEF_URL_PREFIX,
         days: int = MainHandler.DEF_DAYS,
         size_limit: int = DEF_SIZE_LIMIT,
-        version: bool = False,
         debug: bool = False,
     ):
         """Constructor
@@ -70,8 +68,6 @@ class WebServer:
 
         size_limit: int
             max upload size
-
-        version: bool
         """
         self._dbg = debug
         self.__log.debug(
@@ -86,10 +82,6 @@ class WebServer:
         self._sd = SchedData(self._datadir)
         self._days = days
         self._size_limit = size_limit
-
-        if version:
-            print(f"{PROG_NAME} {VERSION} by {AUTHOR}")
-            sys.exit(0)
 
         os.makedirs(self._datadir, exist_ok=True)
 
