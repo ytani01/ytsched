@@ -20,20 +20,20 @@ alias = "uppj"
 description = "format (ruff)"
 run = '''
 echo "# ruff format"
-uv run ruff format --line-length 78 src tests
+uv run ruff format --line-length 78 src tests tools
 
 echo "# ruff check"
-uv run ruff check --fix --extend-select I src tests
+uv run ruff check --fix --extend-select I src tests tools
 '''
 
 [tasks.typecheck]
 description = "type check (basedpyright, mypy)"
 run = '''
 echo "# basedpyright"
-uv run basedpyright src tests
+uv run basedpyright src tests tools
 
 echo "# mypy"
-uv run mypy src tests
+uv run mypy src tests tools
 '''
 # fmt も一緒に走るときは、整形が終わってから型を見る。
 # typecheck だけを叩いたときは fmt は走らない。
@@ -64,6 +64,12 @@ description = "run web server"
 # （mise が引数を行の末尾へ足す）。
 run = "uv run ytsched webapp"
 alias = "web"
+
+[tasks.tokens]
+description = "token usage of a TODO item (TODO-035)"
+# `mise run tokens -- TODO-034` のように TODO 番号を渡す
+# （mise が引数を行の末尾へ足す）。`-- --list` で一覧。
+run = "uv run python tools/token-usage.py"
 
 [tasks.migrate]
 description = "migrate old data (.cgi) to JSON Lines"

@@ -79,6 +79,31 @@ hook を効かせるには `.claude/settings.json` が読まれている必要�
 **Claude Code は起動時にしか設定を読まないので、置いたり直したら再起動が
 要る**（再起動するのは利用者）。定義ファイルと同じ。
 
+### トークン消費量の記録
+
+`~/.claude/CLAUDE.md` の `消費:` 行に書く数字は、`tools/token-usage.py`
+で集計する（TODO-035）。Claude Code の transcript
+（`~/.claude/projects/-home-ytani-work-ytsched/`）を読み、親セッションと
+サブエージェントの両方を合わせて数える。
+
+```
+mise run tokens -- TODO-034
+mise run tokens -- TODO-034 --since '2026-08-23 14:00:00'
+mise run tokens -- --list
+```
+
+範囲は git のコミット時刻で切る。始点は `docs(todo): … を TODO-NNN と
+して立てる`、終点は `feat/fix(...): …（TODO-NNN）`。**どちらもコミット
+メッセージの 1 行目だけを見る**（本文まで見ると、別の項目に触れている
+コミットを拾ってしまう）。
+
+- **立ててから着手まで空いた項目は、`--since` で始点を指定する。**
+  そうしないと、間に挟まった他の項目の作業まで数に入る。TODO-029 は
+  `--since` の有無で cache_creation が 1,042,774 と 301,888 に分かれた
+- 出力の 2 行目（`（参考: cache_read …）`）は archives に貼らない。
+  画面で見るためのもの
+- **過去の項目は遡れない。** transcript が 2026-08-22 以降しか残っていない
+
 ### 担当への共通の前提
 
 **プロジェクトの前提を `.claude/agents/*.md` へ書き写さない。**
