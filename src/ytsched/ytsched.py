@@ -374,6 +374,8 @@ class SchedDataFile:
         self.__log.debug(f"date={date}, topdir={topdir}")
 
         self.date = date
+        # ``topdir`` は外から読める属性なので、ここでも展開しておく。
+        # パスの組み立て自体は ``date2path()`` 側で展開する (TODO-034)
         self.topdir = os.path.expanduser(topdir)
 
         self.pathname = self.date2path(self.date, self.topdir)
@@ -406,6 +408,9 @@ class SchedDataFile:
         ファイルを開かずにパスだけ知りたいことがあるので、
         インスタンスを作らずに呼べるようにしてある (TODO-028)。
 
+        ``~`` の展開はここで行う。呼ぶ側それぞれで展開していると、
+        展開し忘れた道が開く (TODO-034)。
+
         Parameters
         ----------
         date: datetime.date | None
@@ -415,6 +420,8 @@ class SchedDataFile:
         path: str
 
         """
+        topdir = os.path.expanduser(topdir)
+
         if date:
             pathname = cls.PATH_FORMAT % (
                 topdir,
@@ -730,9 +737,7 @@ class SchedData:
         if date in self._sdf_cache:
             return True
 
-        pathname = SchedDataFile.date2path(
-            date, os.path.expanduser(self._topdir)
-        )
+        pathname = SchedDataFile.date2path(date, self._topdir)
         return os.path.isfile(pathname)
 
     def get_sdf(self, date: datetime.date | None = None) -> SchedDataFile:

@@ -457,6 +457,25 @@ def test_topdir_is_expanded():
     assert not sdf.topdir.startswith("~")
 
 
+def test_date2path_expands_topdir(tmp_path, monkeypatch):
+    """``date2path()`` を単独で呼んでも ``~`` は展開される (TODO-034)。"""
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    pathname = SchedDataFile.date2path(DATE1, "~/data")
+
+    assert pathname == f"{tmp_path}/data/2021/03/01.jsonl"
+
+
+def test_date2path_todo_expands_topdir(tmp_path, monkeypatch):
+    """ToDo のパスでも同じ (TODO-034)。"""
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    assert (
+        SchedDataFile.date2path(None, "~/data")
+        == f"{tmp_path}/data/ToDo.jsonl"
+    )
+
+
 def test_load_no_file(tmp_path):
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
     assert sdf.sde == []

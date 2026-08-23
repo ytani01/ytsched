@@ -7,13 +7,9 @@
   {% set bg_color = '#FAA' %}
 {% end %}
 
-{% set orig_date = sched_date %}
-
 {% set sw_id = 'sw%s-%s' % (sde.sde_id, today_flag) %}
 
 {% if sde.is_todo() %}
-  {% set orig_date = None %}
-
   {% set bg_color = '#FFE' %}
   {% if sde.date < today %}
     {% set bg_color = '#EEB' %}
@@ -87,10 +83,11 @@
            style="font-size: small;"></i>
       </div>
       {% end %}<!-- if not todo -->
+      <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
+           ここからは送らない (TODO-034) -->
       <div class="col-11 p-0 my-btn"
            onmousedown="doPost('{{ url }}',
                     {
-                    orig_date: '{{ orig_date }}',
                     date:'{{ sched_date }}',
                     sde_id: '{{ sde.sde_id }}',
                     todo_flag: {{ str(sde.is_todo()).lower() }},
