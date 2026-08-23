@@ -1,8 +1,10 @@
 # TODO-032. `Conf.cgi` を JSON 形式にする
 
-見込み: main = Opus 5 / effort high、担当 = implementer + verifier + reviewer + wording
-実施: main = Opus 5 / effort medium、担当 = implementer + verifier + reviewer + runner + wording
-消費: output 38,504 / cache_creation 397,739（main 32% + implementer 25% + reviewer 16% + wording 13% + verifier 9% + runner 4%）
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer + wording |
+| 実施 | Opus 5 / effort medium | implementer + verifier + reviewer + runner + wording |
+| 消費 | output 38,504 / cache_creation 397,739（全体） | main 32% + implementer 25% + reviewer 16% + wording 13% + verifier 9% + runner 4% |
 
 ## きっかけ
 

@@ -1,8 +1,10 @@
 # TODO-035. TODO 項目ごとのトークン消費量を記録する
 
-見込み: main = Opus 5 / effort medium、担当 = implementer + verifier + wording
-実施: main = Opus 5 / effort medium、担当 = implementer + verifier + runner + writer + wording
-消費: output 24,816 / cache_creation 331,968（main 26% + implementer 20% + verifier 16% + writer 15% + wording 15% + runner 9%）
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | implementer + verifier + wording |
+| 実施 | Opus 5 / effort medium | implementer + verifier + runner + writer + wording |
+| 消費 | output 24,816 / cache_creation 331,968（全体） | main 26% + implementer 20% + verifier 16% + writer 15% + wording 15% + runner 9% |
 
 分担の理由と各担当の報告は `archives/agents/TODO-035/` にある。
 

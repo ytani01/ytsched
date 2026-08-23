@@ -1,8 +1,10 @@
 # TODO-031. 文書に Mermaid の図を入れる
 
-見込み: main = Opus 5 / effort medium、担当 = writer + verifier + wording
-実施: main = Opus 5 / effort medium、担当 = writer + verifier + wording
-消費: output 22,950 / cache_creation 263,322（main 35% + writer 30% + verifier 24% + wording 11%）
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | writer + verifier + wording |
+| 実施 | Opus 5 / effort medium | writer + verifier + wording |
+| 消費 | output 22,950 / cache_creation 263,322（全体） | main 35% + writer 30% + verifier 24% + wording 11% |
 
 分担の理由と各担当の報告は
 [archives/agents/TODO-031/](../agents/TODO-031/README.md) にある。
