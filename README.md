@@ -201,6 +201,21 @@ sudo loginctl enable-linger $USER
 ```
 
 
+## 同梱しているライブラリ
+
+外部の CDN が届かない環境でも表示が崩れないように、以下を
+`src/ytsched/webroot/static/vendor/` へ同梱しています。ライセンス文書は
+それぞれのディレクトリにあります。
+
+* [Bootstrap](https://getbootstrap.com/) 4.5.0 (CSS のみ) — MIT License
+* [Font Awesome Free](https://fontawesome.com/) 5.6.1 — アイコンが
+  CC BY 4.0、フォントが SIL OFL 1.1、コードが MIT License
+
+Font Awesome のフォントは、クライアントを Google Chrome 前提としているため
+`woff2` と `woff` のみ、使用している `solid` と `regular` のみを
+同梱しています。
+
+
 ## 開発者向け
 
 コードの構成や開発ツールの使い方は [docs/Developer.md](docs/Developer.md)

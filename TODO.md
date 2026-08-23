@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-037・TODO-038・TODO-039。**
-これまでに 36 件を決着させた。
+**残っている項目: TODO-038・TODO-039。**
+これまでに 37 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-040` から。**
 
@@ -13,30 +13,6 @@
 `ytsched migrate` で一度に変換する。
 
 着手する項目は利用者が指定する。
-
----
-
-## TODO-037. CDNに依存しないよう同梱する。
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort medium | implementer + verifier + wording |
-
-- [ ] `jquery` / `popper` / `bootstrap.js` の 3 行を消す（使用箇所ゼロ）
-- [ ] Bootstrap 4.5.0 の `bootstrap.min.css` を `static/vendor/` へ置く
-      （`base.html` にある `integrity` の sha384 で照合する）
-- [ ] Font Awesome 5.6.1 の `all.css` と webfont を `static/vendor/` へ置く
-      （`brands` は使っていないので入れない）
-- [ ] `base.html` の `<link>` を `static_url()` に差し替える
-- [ ] ライセンス表記を置く（Bootstrap は MIT、Font Awesome Free は
-      アイコンが CC BY 4.0、フォントが SIL OFL 1.1、コードが MIT）
-- [ ] `uv tool install --reinstall .` で webfont まで配信されるか確かめる
-- [ ] CDN を遮断した状態で、同梱前と見た目が変わらないことを確かめる
-
-実際に使っているものだけ。外部 CDN が届かないと、レイアウトが崩れて
-アイコンが消え、ボタンが押せなくなる。丸ごと同梱にしたのは、見た目を
-変えずに依存だけ外すため。使っていないクラスを削るのは TODO-038 の側で
-やる。
 
 ---
 
@@ -78,6 +54,7 @@ reviewer を入れるのは、上の 2 件で挙動が変わるため。テス�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-037.** CDNに依存しないよう同梱する](archives/todo/TODO-037.%20CDNに依存しないよう同梱する.md)
 - [**TODO-036.** click_utils.py を導入する](archives/todo/TODO-036.%20click_utils.py%20を導入する.md)
 - [**TODO-032.** `Conf.cgi` を JSON 形式にする](archives/todo/TODO-032.%20Conf.cgi%20を%20JSON%20形式にする.md)
 - [**TODO-031.** 文書に Mermaid の図を入れる](archives/todo/TODO-031.%20文書に%20Mermaid%20の図を入れる.md)
