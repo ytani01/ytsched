@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目は無い。**
+**残っている項目: TODO-037・TODO-038・TODO-039。**
 これまでに 36 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-040` から。**
@@ -18,13 +18,50 @@
 
 ## TODO-037. CDNに依存しないよう同梱する。
 
-実際に使っているものだけ。
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | implementer + verifier + wording |
+
+- [ ] `jquery` / `popper` / `bootstrap.js` の 3 行を消す（使用箇所ゼロ）
+- [ ] Bootstrap 4.5.0 の `bootstrap.min.css` を `static/vendor/` へ置く
+      （`base.html` にある `integrity` の sha384 で照合する）
+- [ ] Font Awesome 5.6.1 の `all.css` と webfont を `static/vendor/` へ置く
+      （`brands` は使っていないので入れない）
+- [ ] `base.html` の `<link>` を `static_url()` に差し替える
+- [ ] ライセンス表記を置く（Bootstrap は MIT、Font Awesome Free は
+      アイコンが CC BY 4.0、フォントが SIL OFL 1.1、コードが MIT）
+- [ ] `uv tool install --reinstall .` で webfont まで配信されるか確かめる
+- [ ] CDN を遮断した状態で、同梱前と見た目が変わらないことを確かめる
+
+実際に使っているものだけ。外部 CDN が届かないと、レイアウトが崩れて
+アイコンが消え、ボタンが押せなくなる。丸ごと同梱にしたのは、見た目を
+変えずに依存だけ外すため。使っていないクラスを削るのは TODO-038 の側で
+やる。
 
 ---
 
 ## TODO-038. HTML, CSSの リファクタリング
 
-- Python, JavaScriptコードは主眼ではないが、HTML、CSSの修正に際してコードを修正したほうが良い場合は、修正も可
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer + wording |
+
+- [ ] `sde.html` の `{% if sde.is_canceled() %}` の繰り返し 6 か所を
+      class 1 つにまとめる
+- [ ] style 属性を CSS へ寄せる
+- [ ] 重複した id を直す（`sde_id` / `menu-content` / `<title>`）
+- [ ] 使われていない CSS と JS を消す
+      （`.my-osd` `.blinkborder` `.longtext:focus` / `editStr()` `clearBusyFlag()`）
+- [ ] `edit.html:98` の `const detail_h` 再代入を直す（横向きで TypeError）
+- [ ] `main.html:100`・`269` の `doPost({{ url_prefix }}, …)` に引用符を付ける
+- [ ] TODO-037 の画面と見比べて、見た目が変わっていないことを確かめる
+
+Python, JavaScriptコードは主眼ではないが、HTML、CSSの修正に際して
+コードを修正したほうが良い場合は、修正も可。
+
+reviewer を入れるのは、上の 2 件で挙動が変わるため。テストは本文の語と
+`id="date-…"` しか見ておらず、崩れは捕まえない。確かめ方は
+スクリーンショットの比較になる。
 
 ---
 
