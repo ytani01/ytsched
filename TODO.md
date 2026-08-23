@@ -1,8 +1,7 @@
 # TODO
 
-**残っている項目: TODO-027, TODO-028, TODO-029, TODO-031, TODO-032,
-TODO-033**
-これまでに 27 件を決着させた。
+**残っている項目: TODO-027, TODO-028, TODO-029, TODO-031, TODO-032**
+これまでに 28 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-034` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
@@ -188,44 +187,6 @@ git の差分を読んでも意味が分からない。`docs/javascript-scroll.s
 
 ---
 
-## TODO-033. URL_PREFIX の改名に追随できていない箇所を直す
-
-見込み: main = Opus 5 / effort medium、担当 = implementer + verifier
-
-- [ ] `tests/helpers.py` / `tests/test_webapp.py` の参照を直す
-- [ ] `src/README.md` の記述を直す
-- [ ] テストが collect できて、全件通ることを確かめる
-
-（背景）
-
-`2b4fcce feat(webapp): add url_prefix option` で `WebServer.URL_PREFIX`
-が `DEF_URL_PREFIX` に変わったが、追随していない箇所が残っている。
-
-```
-tests/helpers.py:23: URL_PREFIX = WebServer.URL_PREFIX
-AttributeError: type object 'WebServer' has no attribute 'URL_PREFIX'
-```
-
-`tests/helpers.py` はほぼ全部のテストファイルが import するので、
-**`pytest` がテストを集める段階で失敗し、1 件も実行できない**
-（`test_handler.py` / `test_main_handler.py` / `test_web.py` /
-`test_ytsched.py` の 4 つがそこで止まる）。`basedpyright` / `mypy` も
-同じところで止まる。
-
-残っているのは 3 か所。
-
-| 場所 | 内容 |
-|---|---|
-| `tests/helpers.py:23` | ここで例外。以降 `URL_PREFIX` を使い回している |
-| `tests/test_webapp.py:30,34` | `WebServer.URL_PREFIX` を直に参照 |
-| `src/README.md:67` | 説明が `WebServer.URL_PREFIX` のまま |
-
-（気をつけること）
-
-- **TODO-027 の未コミットの変更が作業ツリーに残っている。**
-  `git checkout` / `git restore` / `git stash` は使わない
-- `src/README.md` は TODO-027 でも触る。そちらが終わってから
-
 ---
 
 ## 完了済み
@@ -233,6 +194,7 @@ AttributeError: type object 'WebServer' has no attribute 'URL_PREFIX'
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-033.** URL_PREFIX の改名に追随できていない箇所を直す](archives/todo/TODO-033.%20URL_PREFIX%20の改名に追随できていない箇所を直す.md)
 - [**TODO-030.** ドキュメントの役割を分ける](archives/todo/TODO-030.%20ドキュメントの役割を分ける.md)
 - [**TODO-023.** mise.toml の見直し](archives/todo/TODO-023.%20mise.toml%20の見直し.md)
 - [**TODO-024.** リファクタリングで見つかった 8 件の扱い](archives/todo/TODO-024.%20リファクタリングで見つかった%208%20件の扱い.md)

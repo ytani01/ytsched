@@ -64,7 +64,7 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
   書いてある
 
 `WebServer`（`webapp.py`）がこの 2 つを `tornado.web.Application` に
-組み立てる。URL は `/ytsched`（`WebServer.URL_PREFIX`）配下。
+組み立てる。URL は既定で `/ytsched`（`WebServer.DEF_URL_PREFIX`）配下。
 
 ## フィルタ・検索文字列の扱い
 

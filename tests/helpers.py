@@ -20,7 +20,7 @@ from ytsched.main_handler import MainHandler
 from ytsched.webapp import WebServer
 from ytsched.ytsched import SchedData
 
-URL_PREFIX = WebServer.URL_PREFIX
+URL_PREFIX = WebServer.DEF_URL_PREFIX
 
 
 def make_app(datadir, days=MainHandler.DEF_DAYS):

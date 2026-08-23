@@ -27,11 +27,11 @@ def test_app_settings(svr, tmp_path):
     settings = svr._app.settings
 
     assert settings["datadir"] == str(tmp_path / "data")
-    assert settings["url_prefix"] == WebServer.URL_PREFIX + "/"
+    assert settings["url_prefix"] == WebServer.DEF_URL_PREFIX + "/"
     assert settings["days"] == MainHandler.DEF_DAYS
     assert settings["debug"] is False
     assert settings["static_url_prefix"] == (
-        WebServer.URL_PREFIX + "/static/"
+        WebServer.DEF_URL_PREFIX + "/static/"
     )
 
 
