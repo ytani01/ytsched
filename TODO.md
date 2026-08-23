@@ -1,8 +1,9 @@
 # TODO
 
-**残っている項目は無い。**
+**残っている項目: TODO-036**
 これまでに 35 件を決着させた。
-新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-036` から。**
+新しく足すときは「完了済み」の上に節を作る。
+**番号は `TODO-037` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -12,6 +13,35 @@
 `ytsched migrate` で一度に変換する。
 
 着手する項目は利用者が指定する。
+
+## TODO-036. click_utils.py を導入する
+
+見込み: main = Opus 5 / effort high、担当 = implementer + verifier + wording
+
+- [ ] `click_utils.py` に型ヒントを付け、lint・型チェックを通す
+- [ ] `__main__.py` の `cli` と 3 つのサブコマンドで `click_common_opts` を使う
+- [ ] `WebServer` の `version` 引数と、コンストラクタ内の `sys.exit(0)` を消す
+- [ ] `--version` / `--help` / `--debug` が実際に効くか確かめる
+
+`__main__.py` は `--debug` / `-d` を 3 箇所に手書きしており、`-h` / `--help` は
+`cli` の `CONTEXT_SETTINGS` で指定している。これを、他のプロジェクトと共通の
+`src/ytsched/click_utils.py`（`click_common_opts`）にまとめる。
+
+衝突するところと、決めたこと（利用者と相談済み）:
+
+- **`-v` / `--version`**: 今は `webapp` だけにあり、フラグを `WebServer` へ
+  渡して、コンストラクタの中で `Ytsched <ver> by <author>` を表示して
+  `sys.exit(0)` している。`click_common_opts` の `version_option` に寄せ、
+  `WebServer` の `version` 引数ごと消す。表示は `Ytsched <ver>` になり、
+  `by <author>` は出なくなる
+- **`-h` / `--help`**: `click_common_opts` が各コマンドに `help_option` を
+  付けるので、`cli` の `CONTEXT_SETTINGS` は要らなくなる
+- **`ctx`**: `click_common_opts` は必ず `click.pass_context` を付ける。
+  各コマンドの第 1 引数に `ctx` を足し、`cli` の `@click.pass_context` は
+  外す（二重に付くため）
+- **型ヒント**: `click_utils.py` には型ヒントが無い。このリポジトリの
+  lint・型チェックが通るところまで直す（TODO-006 で整備済みなので、そこに
+  揃える）
 
 ---
 
