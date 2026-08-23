@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-031, TODO-032**
+**残っている項目: TODO-031, TODO-032, TODO-035**
 これまでに 32 件を決着させた。
-新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-035` から。**
+新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-036` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -70,6 +70,39 @@ git の差分を読んでも意味が分からない。`docs/javascript-scroll.s
 
 改良案
 - Conf.cgi を JSON 形式にする。
+
+---
+
+## TODO-035. TODO 項目ごとのトークン消費量を記録する
+
+見込み: main = Opus 5 / effort medium、担当 = implementer + verifier + wording
+
+- [ ] `tools/token-usage.py` を書く
+- [ ] `mise.toml` に `tokens` タスクを足す
+- [ ] archives の TODO ファイルに書く形を決める
+- [ ] `CLAUDE.md` に運用を書く
+
+（背景）
+
+「この規模ならどの担当で足りたか」を振り返る材料が、今は見込みと実施の
+分担しか無い。実際にどれだけ使ったかが分かれば、次の項目の見立てに使える。
+
+**Claude Code の transcript から集計する。**
+`~/.claude/projects/-home-ytani-work-ytsched/` に、モデル別・時刻付きの
+`usage` が残っている。当初は「着手時と完了時の残りトークンを手で書く」案
+だったが、残りはリセットを跨ぐと差が壊れ、モデル別の内訳も取れないので採らない。
+
+（気をつけること）
+
+- **サブエージェントの分は `<session>/subagents/agent-*.jsonl` に別で入る。**
+  親だけ集計すると 3 分の 1 になる（実測: 親 8.0M に対し subagents 18.9M）
+- 範囲は git のコミット時刻で切る。始点 = `docs(todo): …として立てる`、
+  終点 = `feat/fix(...): …（TODO-NNN）`。立ててから着手まで空いた項目だけ
+  手で始点を指定できるようにする
+- 指標は `output_tokens` と `cache_creation_input_tokens` を主にする。
+  `cache_read` は会話の長さでほぼ決まり、項目の重さを表さない
+- `mise.toml` の `fmt` / `typecheck` は対象が `src tests` なので、`tools` を足す
+- **過去の項目は遡れない。** transcript が 2026-08-22 以降しか無い
 
 ---
 
