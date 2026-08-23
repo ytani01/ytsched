@@ -44,7 +44,7 @@ from test_web import (
 from ytsched.main_handler import MainHandler
 from ytsched.ytsched import SchedData
 
-CONF_FNAME = "Conf.cgi"
+CONF_FNAME = "conf.json"
 
 
 def test_cookie_todo_days_is_removed():
@@ -64,7 +64,7 @@ class TestConfArgs(WebTestBase):
 
     ``search_str``/``filter_str``/``search_n`` は ``is not None`` で、
     ``todo_days`` だけ truthy で分岐する（``empty_is_given``）。
-    差が出るのは空文字を渡したときだけなので、``Conf.cgi`` の中身と
+    差が出るのは空文字を渡したときだけなので、``conf.json`` の中身と
     画面で押さえる。
 
     ``filter_str`` は TODO-028 で ``search_str`` と揃えた。空文字を
@@ -77,18 +77,18 @@ class TestConfArgs(WebTestBase):
     入らなくても結果が変わらない。
     """
 
-    def conf_text(self):
-        """``Conf.cgi`` の中身。ファイルが無ければ ``None``。"""
+    def conf_data(self):
+        """``conf.json`` の中身。ファイルが無ければ ``None``。"""
         path = self.datadir / CONF_FNAME
         if not path.exists():
             return None
-        return path.read_text(encoding="utf-8")
+        return json.loads(path.read_text(encoding="utf-8"))
 
     def test_empty_search_str_is_saved(self):
         """空の ``search_str`` は「渡された」扱いで、保存される。"""
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_str="")
 
-        assert self.conf_text() == "SearchStr\t\n"
+        assert self.conf_data() == {"SearchStr": ""}
 
     def test_empty_filter_str_is_saved(self):
         """空の ``filter_str`` は「渡された」扱いで、保存される。
@@ -97,7 +97,7 @@ class TestConfArgs(WebTestBase):
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="")
 
-        assert self.conf_text() == "FilterStr\t\n"
+        assert self.conf_data() == {"FilterStr": ""}
 
     def test_empty_search_str_clears_saved_search_str(self):
         """空の ``search_str`` は、保存済みの検索語を消す。"""
@@ -106,14 +106,14 @@ class TestConfArgs(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_str="")
 
-        assert self.conf_text() == "SearchStr\t\n"
+        assert self.conf_data() == {"SearchStr": ""}
         # 検索モードから抜けるので、検索期間・件数のバーは出ない
         assert "目標件数" not in body
 
     def test_empty_filter_str_clears_saved_filter_str(self):
         """空の ``filter_str`` は、保存済みの絞り込みを解除する。
 
-        TODO-028 の前は「渡されていない」扱いで ``Conf.cgi`` の値へ
+        TODO-028 の前は「渡されていない」扱いで ``conf.json`` の値へ
         落ちてしまい、**絞り込みを解除できなかった**。
         """
         self.write_data(
@@ -127,7 +127,7 @@ class TestConfArgs(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="")
 
-        assert self.conf_text() == "FilterStr\t\n"
+        assert self.conf_data() == {"FilterStr": ""}
         assert "歯医者" in body
         assert "定例ミーティング" in body
 
@@ -137,14 +137,14 @@ class TestConfArgs(WebTestBase):
         ``is not None`` で分岐するので空文字がそのまま ``int()`` へ
         渡るが、数字として読めないので「渡されていない」のと同じ扱いに
         なる（TODO-027）。**以前はここで 500 になり、空のまま
-        ``Conf.cgi`` に残っていた**。
+        ``conf.json`` に残っていた**。
         """
         res = self.fetch(
             URL_PREFIX + "/?" + urlencode({"date": DATE1_STR, "search_n": ""})
         )
 
         assert res.code == 200
-        assert self.conf_text() is None
+        assert self.conf_data() is None
 
     def test_empty_search_n_does_not_break_next_request(self):
         """空の ``search_n`` のあとも、次の表示は既定値のまま。"""
@@ -165,19 +165,19 @@ class TestConfArgs(WebTestBase):
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="")
 
-        assert self.conf_text() is None
+        assert self.conf_data() is None
 
     def test_search_str_is_saved_normalized(self):
         """``search_str`` は、保存も表示も ``normalize()`` 後（TODO-029）。
 
-        TODO-029 の前は ``Conf.cgi`` へ元のまま入り、小文字化は
+        TODO-029 の前は ``conf.json`` へ元のまま入り、小文字化は
         ``set_conf()`` の**あと**だった。
         """
         body = self.get_body(
             URL_PREFIX + "/", date=DATE1_STR, search_str="ABC"
         )
 
-        assert self.conf_text() == "SearchStr\tabc\n"
+        assert self.conf_data() == {"SearchStr": "abc"}
         assert 'value="abc"' in body
 
     def test_search_str_zenkaku_paren_is_normalized(self):
@@ -186,7 +186,7 @@ class TestConfArgs(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, search_str="（重要）"
         )
 
-        assert self.conf_text() == "SearchStr\t(重要)\n"
+        assert self.conf_data() == {"SearchStr": "(重要)"}
         assert 'value="(重要)"' in body
 
     def test_filter_str_is_saved_normalized(self):
@@ -198,7 +198,7 @@ class TestConfArgs(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC（重要）"
         )
 
-        assert self.conf_text() == "FilterStr\tabc(重要)\n"
+        assert self.conf_data() == {"FilterStr": "abc(重要)"}
         assert 'value="abc(重要)"' in body
 
     def test_saved_filter_str_is_not_rewritten_when_unchanged(self):
@@ -206,7 +206,7 @@ class TestConfArgs(WebTestBase):
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC")
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="abc")
 
-        assert self.conf_text() == "FilterStr\tabc\n"
+        assert self.conf_data() == {"FilterStr": "abc"}
 
 
 #

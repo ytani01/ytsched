@@ -11,11 +11,11 @@
 ```
 src/ytsched/
   ytsched.py       # データモデル: SchedDataEnt / SchedDataFile / SchedData
-  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、Conf.cgi の読み書き、引数の変換と検証）
+  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、conf.json の読み書き、引数の変換と検証）
   main_handler.py  # MainHandler（一覧表示・追加/修正/削除の実行）
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
-  migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行（`ytsched migrate`）
+  migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行と、設定ファイルの JSON 化（`ytsched migrate`）
   mylog.py         # loguru ラッパ
   __main__.py      # click による CLI（`ytsched` コマンド）
   webroot/
@@ -129,8 +129,11 @@ classDiagram
 
 - **`HandlerBase`**（`handler.py`）が `tornado.web.RequestHandler` の
   共通部分。リクエストのたびにデータディレクトリ直下の設定ファイル
-  `Conf.cgi` を読み書きする（`load_conf()` / `save_conf()` /
-  `get_conf()` / `set_conf()`）。人が手で編集するファイルではない。
+  `conf.json` を読み書きする（`load_conf()` / `save_conf()` /
+  `get_conf()` / `set_conf()`）。JSON のオブジェクト 1 つで、値は
+  すべて文字列（TODO-032）。人が手で編集するファイルではない。
+  読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
+  でないキー）は、警告を 1 行出して無視する。
   引数や設定値の変換と検証もここに置く（`convert_value()` /
   `str2date()` / `check_date()` / `date_range()` / `check_int_range()`。
   TODO-027）
@@ -165,7 +168,7 @@ sequenceDiagram
     participant Template
 
     Browser->>Handler: GET または POST
-    Note over Handler: __init__ のたびに Conf.cgi を読む (load_conf)
+    Note over Handler: __init__ のたびに conf.json を読む (load_conf)
     alt POST
         Handler->>Handler: post() は get() に委譲するだけ
     end
@@ -178,7 +181,7 @@ sequenceDiagram
     end
     SD-->>Handler: SchedDataFile / SchedDataEnt
     opt 設定値が変わった (filter_str など)
-        Handler->>Handler: set_conf() が Conf.cgi へ書き直す
+        Handler->>Handler: set_conf() が conf.json へ書き直す
     end
     Handler->>Template: render(html, ...)
     Template-->>Browser: HTML
@@ -188,10 +191,10 @@ sequenceDiagram
 
 利用者の入力を正規表現として扱う（利用者本人しか使わないアプリという
 前提）。`MainHandler.get()` の中で 1 回だけコンパイルし、**不正なら
-その条件を無視して全件を出す**。不正な文字列でも入力欄と `Conf.cgi` から
+その条件を無視して全件を出す**。不正な文字列でも入力欄と `conf.json` から
 消さず、マッチに使うかどうかだけを分けている。`filter_str` も
 `search_str` も、照合される側（`SchedDataEnt.search_str()`）と同じ
-`normalize()` を通してから `Conf.cgi` へ保存する（TODO-029。全角括弧の
+`normalize()` を通してから `conf.json` へ保存する（TODO-029。全角括弧の
 扱いは [../docs/data-format.md](../docs/data-format.md) にある）。検索
 モードかどうかは「文字列が空でないか」ではなく「コンパイルできたか」で
 判定する（`search_mode`）。

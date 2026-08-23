@@ -5,8 +5,11 @@
 
 変換の手順は ``docs/data-format.md`` の「変換の手順」1〜6 のとおり。
 
-対象は ``{年}/{月}/{日}.cgi`` と ``ToDo.cgi`` だけ。
+予定データの対象は ``{年}/{月}/{日}.cgi`` と ``ToDo.cgi`` だけ。
 ``{日}-backup.cgi`` ``{日}.cgi.bak`` ``iappli_log.cgi`` は対象にしない。
+
+設定ファイル ``Conf.cgi`` (タブ区切り) から ``conf.json`` への変換も
+ここで行う (TODO-032)。
 """
 
 __author__ = "Yoichi Tanibayashi"
@@ -198,6 +201,12 @@ class MigrateStat:
     error_lines: int = 0
     """変換できなかった行数(捨てずに書き出す)"""
 
+    conf_files: int = 0
+    """変換した設定ファイル数 (0 か 1)"""
+
+    skipped_conf_files: int = 0
+    """既に ``conf.json`` があって飛ばした設定ファイル数 (0 か 1)"""
+
     @property
     def skipped_lines(self) -> int:
         """飛ばした行数"""
@@ -213,6 +222,12 @@ class Migrator:
     NEW_EXT = ".jsonl"
 
     TODO_NAME = "ToDo"
+
+    #: 旧・新の設定ファイル名 (TODO-032)。
+    #: ``handler.py`` を import すると、移行ツールが tornado に
+    #: 依存してしまうので、名前はここに持つ
+    CONF_OLD_FNAME = "Conf.cgi"
+    CONF_NEW_FNAME = "conf.json"
 
     DEF_ERROR_FILE = "migrate-errors.txt"
 
@@ -311,6 +326,64 @@ class Migrator:
         with open(new_path, mode="w", encoding=SchedDataFile.ENCODING) as f:
             f.writelines(line + "\n" for line in out_lines)
 
+    def conv_conf(self, path: pathlib.Path) -> dict[str, str]:
+        """旧 ``Conf.cgi`` を読んで dict にする (TODO-032)。
+
+        読み方は他の変換と揃える。バイト列で読んで 1 行ずつ
+        デコードし(旧データが euc_jp のこともある)、タブの左を
+        キー、右を値にする。
+
+        **タブの無い行は、警告を出して飛ばす。**予定データと違い、
+        ``--error-file`` へは書き出さない(設定はアプリが書いたもので、
+        行数も数行のため)。
+        """
+        raw_data = path.read_bytes()
+
+        conf: dict[str, str] = {}
+        raw_lines = SchedDataFile.split_lines(raw_data)
+        for i, raw_line in enumerate(raw_lines, start=1):
+            line_bytes = raw_line.removesuffix(b"\r")
+
+            if SchedDataFile.is_empty_line(line_bytes):
+                continue
+
+            line = decode_line(line_bytes)
+
+            if "\t" not in line:
+                self.__log.warning(f"{path}:{i}: no tab .. ignored")
+                continue
+
+            param, value = line.split("\t", maxsplit=1)
+            conf[param] = value
+
+        return conf
+
+    def migrate_conf(self) -> None:
+        """設定ファイルを変換して保存する (TODO-032)。
+
+        元の ``Conf.cgi`` は消さない(他のファイルと同じ)。
+        """
+        old_path = self.topdir / self.CONF_OLD_FNAME
+        if not old_path.is_file():
+            self.__log.debug(f"{old_path}: not found .. ignored")
+            return
+
+        new_path = self.topdir / self.CONF_NEW_FNAME
+        if new_path.exists():
+            self.__log.warning(f"{new_path}: already exists .. skipped")
+            self.stat.skipped_conf_files += 1
+            return
+
+        conf = self.conv_conf(old_path)
+        self.stat.conf_files += 1
+
+        if self.dry_run:
+            return
+
+        with open(new_path, mode="w", encoding=SchedDataFile.ENCODING) as f:
+            json.dump(conf, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+
     def save_error_lines(self) -> None:
         """変換できなかった行を書き出す。"""
         if not self.error_lines or self.dry_run:
@@ -325,13 +398,15 @@ class Migrator:
         """変換を実行して、結果を返す。"""
         files = self.find_files()
 
-        if not files:
+        if not files and not (self.topdir / self.CONF_OLD_FNAME).is_file():
             self.__log.warning(
                 f"{self.topdir}: no target file .. check --datadir"
             )
 
         for path in files:
             self.migrate_file(path)
+
+        self.migrate_conf()
 
         self.save_error_lines()
 
@@ -345,6 +420,10 @@ class Migrator:
             f"飛ばした行      : {self.stat.skipped_lines}"
             f" (空行 {self.stat.empty_lines},"
             f" 変換できず {self.stat.error_lines})"
+        )
+        print(
+            f"設定ファイル    : 変換 {self.stat.conf_files},"
+            f" 飛ばした {self.stat.skipped_conf_files}"
         )
 
         if self.error_lines and not self.dry_run:

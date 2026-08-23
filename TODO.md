@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-032**
-これまでに 34 件を決着させた。
+**残っている項目は無い。**
+これまでに 35 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-036` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
@@ -15,43 +15,12 @@
 
 ---
 
-## TODO-032. `Conf.cgi` を JSON 形式にする
-
-見込み: main = Opus 5 / effort high、担当 = implementer + verifier + reviewer + wording
-
-- [ ] `handler.py` の `load_conf()` / `save_conf()` を JSON の読み書きにする
-- [ ] 設定ファイル名を `Conf.cgi` から `conf.json` へ変える
-- [ ] `ytsched migrate` に `Conf.cgi` → `conf.json` の変換を足す
-- [ ] テストを直す
-- [ ] 文書を直す（`src/README.md`、`docs/data-format.md`）
-
-設定を datadir の `Conf.cgi` にタブ区切りで置いている（`ToDo_Days`、
-`FilterStr`、`SearchStr`、`SearchN` の 4 つ）。自前で 1 行ずつ分解して
-読み書きしているところを、標準ライブラリの `json` に置き換える。
-
-TODO-011 で一度「対応しない」と決めた件。あのときの主題は TOML 化で、
-書き込みに依存が増えることを理由に見送った。JSON なら依存は増えず、
-自前のパーサも消せる。TODO-011 が挙げた蒸し返しの条件（設定の値の型が
-文字列だけで収まらなくなる）は今も満たしていないが、利用者の判断で進める。
-
-決めたこと:
-
-- **移行は `ytsched migrate` に載せる。** JSON Lines への移行と入口を揃える。
-  移行のコードは `migrate.py` に集め、`handler.py` に後方互換を残さない
-- **ファイル名は `conf.json` へ変える。** `.cgi` は Perl CGI 時代の名残で、
-  中身とも合わない。移行と同じタイミングで変えられる
-- **値は文字列のまま保存する。** `main_handler.py` の `get_conf_arg()` /
-  `convert_value()` の変換をそのまま使い、形式の変更だけに範囲を絞る。
-  数値を `int` で持つと、不正な値を保存しない扱い（TODO-027）にも
-  手を入れることになる
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-032.** `Conf.cgi` を JSON 形式にする](archives/todo/TODO-032.%20Conf.cgi%20を%20JSON%20形式にする.md)
 - [**TODO-031.** 文書に Mermaid の図を入れる](archives/todo/TODO-031.%20文書に%20Mermaid%20の図を入れる.md)
 - [**TODO-035.** TODO 項目ごとのトークン消費量を記録する](archives/todo/TODO-035.%20TODO%20項目ごとのトークン消費量を記録する.md)
 - [**TODO-034.** `orig_date` と `expanduser()` の紛らわしいところを片付ける](archives/todo/TODO-034.%20orig_date%20と%20expanduser%20の紛らわしいところを片付ける.md)

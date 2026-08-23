@@ -56,3 +56,117 @@
 
 いずれも一般に通用する語・言い回しに見え、TODO-021 の「足場」のような
 リポジトリ独自の言い換えには見えなかった。最終判断は main に委ねる。
+
+---
+
+## 着手時の分（コミットに入る `.md` 全部）
+
+対象: `TODO.md`（差分）、
+`archives/todo/TODO-032. Conf.cgi を JSON 形式にする.md`（新規）、
+`archives/agents/TODO-032/` の `.md` 全部（README・
+implementer-request・reviewer-request・reviewer-report・
+verifier-request・verifier-report・runner-report。新規）、
+`src/README.md`・`docs/data-format.md`・`tests/README.md`（差分）。
+
+前例は `HEAD`（この作業ツリーの変更が入る前のコミット）の `*.md` 全体を
+基準に `git grep -cF` で数えた。上の節（項目を立てたときの分）と語が
+重ならないよう、今回はそちらに出ていない語だけを挙げる。
+
+### 前例の無い語（件数 0）
+
+- **セッションの上限**
+  - 箇所: `verifier-request.md`「実装者は**セッションの上限**で途中終了した」、
+    `reviewer-request.md` 同文、`archives/todo/TODO-032. …md` 79 行目
+    「`implementer` が**セッションの上限**に当たって途中終了した」
+    （`README.md` 30 行目では「**API のセッション上限**」という表記もある）
+  - `git grep -cF セッションの上限 HEAD -- '*.md'`: 0 件
+  - 見立て: Claude Code の API 利用上限を指す言い回し。一般に通用する語
+    ではないが、このプロジェクト内で意味の通じる説明的な言い方で、
+    造語というより状況の記述に見える。判断は main に委ねる
+
+- **途中終了**
+  - 箇所: `README.md` 30 行目「セッション上限に当たって**途中終了した**」、
+    ほか `archives/todo/…md`・`reviewer-request.md`・`verifier-request.md`
+    にも同文言あり
+  - `git grep -cF 途中終了 HEAD -- '*.md'`: 0 件
+  - 見立て: 一般的な日本語（「途中で終わる」の名詞化）。問題は無さそう
+
+- **キー単位**
+  - 箇所: `verifier-report.md` 85 行目「（**キー単位**で読み飛ばす仕様
+    どおり。○）」
+  - `git grep -cF キー単位 HEAD -- '*.md'`: 0 件
+  - 見立て: JSON のキー（キー・バリューのキー）を単位として扱う、という
+    技術的に自然な言い方。造語ではなさそう
+
+- **落とし穴**
+  - 箇所: `reviewer-request.md` 18 行目「書き出しの形（…）に**落とし穴**が
+    無いか」
+  - `git grep -cF 落とし穴 HEAD -- '*.md'`: 0 件
+  - 見立て: 普通の日本語の比喩表現。問題は無さそう
+
+- **縛る**
+  - 箇所: `reviewer-report.md` 145 行目「書式も揃えるなら共通化ではなく
+    テストで**縛る**ほうが素直だと思う」、`README.md` にも「同じ書式で
+    あることを縛るテスト」という同種の使い方
+  - `git grep -cF 縛る HEAD -- '*.md'`: 0 件
+  - 見立て: 「テストで縛る」＝制約として押さえる、の意。テストの文脈で
+    使われる一般的な言い回しだが、このリポジトリでは初出。判断できない
+
+- **書き出しの書式**
+  - 箇所: `reviewer-report.md` 137 行目の見出し「## 8. **書き出しの書式**
+    が 2 か所にある」、`README.md` にも同見出し引用あり
+  - `git grep -cF 書き出しの書式 HEAD -- '*.md'`: 0 件（「書式」単独は
+    34 件あり既出）
+  - 見立て: 既出語「書式」の自然な組み合わせ。造語ではなさそう
+
+- **引き継ぐ／引き継いだ／引き継ぎ**
+  - 箇所: `archives/todo/TODO-032. …md` 80 行目「作業ツリーを**引き継いだ**」、
+    `README.md` 19 行目「旧形式のどこまでを**引き継ぐか**」、34 行目
+    「作業ツリーの差分を読んで**引き継ぎ**」
+  - `git grep -cF 引き継 HEAD -- '*.md'`: 0 件
+  - 見立て: ごく普通の日本語動詞。問題は無さそう
+
+- **行分解**
+  - 箇所: `archives/todo/TODO-032. …md` 27 行目「自前の**行分解**を消した」、
+    `implementer-request.md` 12 行目「自前の**行分解**は消す」
+  - `git grep -cF 行分解 HEAD -- '*.md'`: 0 件
+  - 見立て: 「1 行ずつ分解する処理」を指す省略語。一般的な用語ではなく、
+    このリポジトリ（このコミット）で初めて使われた短縮の言い方に見える。
+    造語寄りだが、意味は文脈から明らかで誤読の余地は薄い
+
+- **落とし方**
+  - 箇所: `reviewer-report.md` 12 行目「値が壊れているときの既定値への
+    **落とし方**」
+  - `git grep -cF 落とし方 HEAD -- '*.md'`: 0 件
+  - 見立て: 「（既定値へ）落とす」の名詞化。一般的な言い回しの範囲内に
+    見える
+
+### 前例はあるが件数が少なめの語（参考、造語ではなさそう）
+
+- 経緯: 3 件（`docs/data-format.md`「見送った**経緯**は」）
+- 採否: 1 件（`archives/todo/TODO-032. …md`・`README.md` の見出し
+  「reviewer の指摘の**採否**」）
+- 常駐: 2 件（`verifier-report.md`「実データを対象に**常駐**している」。
+  `README.md`・`archives/agents/TODO-008/…` に既出の用法と同じ意味）
+
+いずれも一般的な日本語で、このリポジトリだけの言い換えには見えなかった。
+
+### 読んだファイル
+
+`TODO.md`（差分）、
+`archives/todo/TODO-032. Conf.cgi を JSON 形式にする.md`、
+`archives/agents/TODO-032/README.md`・`implementer-request.md`・
+`reviewer-request.md`・`reviewer-report.md`・`verifier-request.md`・
+`verifier-report.md`・`runner-report.md`、
+`src/README.md`（差分）、`docs/data-format.md`（差分）、
+`tests/README.md`（差分）。
+
+### 前例の無い語の数（今回の分）
+
+**8 語**（セッションの上限、途中終了、キー単位、落とし穴、縛る、
+書き出しの書式、引き継ぐ、行分解、落とし方 — うち「書き出しの書式」は
+既出語の組み合わせ、「落とし方」も一般的な範囲に見えるため、実質的に
+気になるのは「セッションの上限」「行分解」「縛る」の 3 語程度）。
+
+いずれも一般に通用する語・言い回しの範囲に見え、TODO-021 の「足場」の
+ようなリポジトリ独自の言い換えには見えなかった。最終判断は main に委ねる。

@@ -14,7 +14,7 @@
   `run_in_c_locale()` もここにある
 - `test_ytsched.py` — データモデル（`SchedDataEnt` /
   `SchedDataFile` / `SchedData`）のテスト
-- `test_handler.py` — `HandlerBase`（`Conf.cgi` の読み書き）と
+- `test_handler.py` — `HandlerBase`（`conf.json` の読み書き）と
   `days2y_offset` のテスト
 - `test_main_handler.py` — `MainHandler` の個々のメソッドのテスト
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /

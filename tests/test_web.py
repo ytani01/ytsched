@@ -58,6 +58,22 @@ def date_id(date):
     return f'id="date-{date}"'
 
 
+CONF_FNAME = "conf.json"
+
+
+def read_conf(datadir):
+    """``conf.json`` の中身（TODO-032）。無ければ ``FileNotFoundError``。"""
+    path = datadir / CONF_FNAME
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_conf(datadir, conf):
+    """``conf.json`` を書く（テストの下ごしらえ用）。"""
+    (datadir / CONF_FNAME).write_text(
+        json.dumps(conf, ensure_ascii=False), encoding="utf-8"
+    )
+
+
 def orig_date_in(body):
     """編集画面の隠しフィールド ``orig_date`` の値（無ければ ``None``）。"""
     match = re.search(r'id="orig_date"[^>]*value="([^"]*)"', body, re.DOTALL)
@@ -199,8 +215,7 @@ class TestMainHandler(WebTestBase):
     def test_filter_str_is_saved(self):
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="歯医者")
 
-        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
-        assert "FilterStr\t歯医者\n" in conf
+        assert read_conf(self.datadir)["FilterStr"] == "歯医者"
 
     def test_search_str(self):
         """``search_str`` に合うものだけが出る。
@@ -252,14 +267,12 @@ class TestMainHandler(WebTestBase):
     def test_todo_days(self):
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
 
-        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
-        assert "ToDo_Days\t7\n" in conf
+        assert read_conf(self.datadir)["ToDo_Days"] == "7"
 
     def test_search_n(self):
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="3")
 
-        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
-        assert "SearchN\t3\n" in conf
+        assert read_conf(self.datadir)["SearchN"] == "3"
 
     def test_saved_filter_str_is_reused(self):
         """一度指定した ``filter_str`` は、次の表示にも効く。"""
@@ -338,8 +351,7 @@ class TestMainHandler(WebTestBase):
         """不正な ``filter_str`` も、今までどおり保存される。"""
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="[")
 
-        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
-        assert "FilterStr\t[\n" in conf
+        assert read_conf(self.datadir)["FilterStr"] == "["
 
     def test_year_month_day_arguments(self):
         body = self.get_body(
@@ -490,16 +502,15 @@ class TestInvalidArgs(WebTestBase):
     """数字・日付として読めない引数の扱い（TODO-027）
 
     500 にせず、その指定を無視して画面を出す。不正な値は
-    ``Conf.cgi`` へ保存しない。不正な正規表現の扱い（TODO-012）と
+    ``conf.json`` へ保存しない。不正な正規表現の扱い（TODO-012）と
     同じ考え方。
     """
 
-    def conf_text(self):
-        """``Conf.cgi`` の中身。ファイルが無ければ ``None``。"""
-        path = self.datadir / "Conf.cgi"
-        if not path.exists():
+    def conf_data(self):
+        """``conf.json`` の中身。ファイルが無ければ ``None``。"""
+        if not (self.datadir / CONF_FNAME).exists():
             return None
-        return path.read_text(encoding="utf-8")
+        return read_conf(self.datadir)
 
     def today_id(self):
         return date_id(datetime.date.today())
@@ -514,10 +525,10 @@ class TestInvalidArgs(WebTestBase):
         assert date_id(DATE1) in body
 
     def test_invalid_search_n_is_not_saved(self):
-        """数字にならない ``search_n`` は ``Conf.cgi`` に残らない。"""
+        """数字にならない ``search_n`` は ``conf.json`` に残らない。"""
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="abc")
 
-        assert self.conf_text() is None
+        assert self.conf_data() is None
 
     def test_invalid_search_n_does_not_break_next_request(self):
         """一度踏んでも、次の素の GET が開ける。
@@ -544,7 +555,7 @@ class TestInvalidArgs(WebTestBase):
     def test_invalid_search_n_keeps_saved_search_n(self):
         """保存済みの ``SearchN`` は、不正な値では消えない。
 
-        「渡されていない」のと同じ扱いなので、``Conf.cgi`` の値へ
+        「渡されていない」のと同じ扱いなので、``conf.json`` の値へ
         落ちる。
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="3")
@@ -556,19 +567,16 @@ class TestInvalidArgs(WebTestBase):
             search_n="abc",
         )
 
-        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
-        assert "SearchN\t3\n" in conf
+        assert read_conf(self.datadir)["SearchN"] == "3"
         assert 'value="3" selected' in body
 
     def test_broken_search_n_in_conf_falls_back_to_the_default(self):
-        """``Conf.cgi`` に残っている不正な値も既定値へ落とす。
+        """``conf.json`` に残っている不正な値も既定値へ落とす。
 
-        保存の側だけ直しても、踏んでしまった ``Conf.cgi`` は
+        保存の側だけ直しても、踏んでしまった ``conf.json`` は
         直らないため。
         """
-        (self.datadir / "Conf.cgi").write_text(
-            "SearchN\tabc\n", encoding="utf-8"
-        )
+        write_conf(self.datadir, {"SearchN": "abc"})
 
         body = self.get_body(
             URL_PREFIX + "/", date=DATE1_STR, search_str="ミーティング"
@@ -588,10 +596,10 @@ class TestInvalidArgs(WebTestBase):
         assert date_id(DATE1) in body
 
     def test_invalid_todo_days_is_not_saved(self):
-        """数字にならない ``todo_days`` は ``Conf.cgi`` に残らない。"""
+        """数字にならない ``todo_days`` は ``conf.json`` に残らない。"""
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="abc")
 
-        assert self.conf_text() is None
+        assert self.conf_data() is None
 
     def test_invalid_todo_days_falls_back_to_the_default(self):
         """数字にならない ``todo_days`` は既定値になる。"""
@@ -602,10 +610,8 @@ class TestInvalidArgs(WebTestBase):
         assert f'value="{MainHandler.DEF_TODO_DAYS}" selected' in body
 
     def test_broken_todo_days_in_conf_falls_back_to_the_default(self):
-        """``Conf.cgi`` に残っている不正な値も既定値へ落とす。"""
-        (self.datadir / "Conf.cgi").write_text(
-            "ToDo_Days\tabc\n", encoding="utf-8"
-        )
+        """``conf.json`` に残っている不正な値も既定値へ落とす。"""
+        write_conf(self.datadir, {"ToDo_Days": "abc"})
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
@@ -852,19 +858,19 @@ class TestInvalidArgs(WebTestBase):
         assert date_id(DATE1) in body
 
     def test_huge_todo_days_is_not_saved(self):
-        """大きすぎる ``todo_days`` は ``Conf.cgi`` に残らない。"""
+        """大きすぎる ``todo_days`` は ``conf.json`` に残らない。"""
         self.write_todo(DATE1)
 
         self.get_body(
             URL_PREFIX + "/", date=DATE1_STR, todo_days="99999999999"
         )
 
-        assert self.conf_text() is None
+        assert self.conf_data() is None
 
     def test_huge_todo_days_does_not_break_next_request(self):
         """一度踏んでも、次の素の GET が開ける。
 
-        以前は ``ToDo_Days=99999999999`` が ``Conf.cgi`` に残って、
+        以前は ``ToDo_Days=99999999999`` が ``conf.json`` に残って、
         ToDo がある限りトップページも開けなかった。
         """
         self.write_todo(DATE1)
@@ -877,11 +883,9 @@ class TestInvalidArgs(WebTestBase):
         assert date_id(DATE1) in body
 
     def test_huge_todo_days_in_conf_falls_back_to_the_default(self):
-        """``Conf.cgi`` に残っている大きすぎる値も既定値へ落とす。"""
+        """``conf.json`` に残っている大きすぎる値も既定値へ落とす。"""
         self.write_todo(DATE1)
-        (self.datadir / "Conf.cgi").write_text(
-            "ToDo_Days\t99999999999\n", encoding="utf-8"
-        )
+        write_conf(self.datadir, {"ToDo_Days": "99999999999"})
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
@@ -892,7 +896,7 @@ class TestInvalidArgs(WebTestBase):
         """保存済みの ``ToDo_Days`` は、不正な値では消えない。
 
         ``search_n`` と同じで、「渡されていない」のと同じ扱いなので
-        ``Conf.cgi`` の値へ落ちる。
+        ``conf.json`` の値へ落ちる。
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
 
@@ -900,8 +904,7 @@ class TestInvalidArgs(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, todo_days="abc"
         )
 
-        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
-        assert "ToDo_Days\t7\n" in conf
+        assert read_conf(self.datadir)["ToDo_Days"] == "7"
         assert 'value="7" selected' in body
 
     #
@@ -1076,8 +1079,7 @@ class TestUpdate(WebTestBase):
             search_str="",
         )
 
-        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
-        assert "SearchStr\t\n" in conf
+        assert read_conf(self.datadir)["SearchStr"] == ""
 
     def test_update_search_str_is_lowered(self):
         """``cmd=update`` 経由でも、検索語が小文字になる。

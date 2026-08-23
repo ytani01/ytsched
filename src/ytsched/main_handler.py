@@ -115,7 +115,7 @@ class MainHandler(HandlerBase):
         #
         # 照合される側 (``SchedDataEnt.search_str()``) と同じ
         # ``normalize()`` を通す (TODO-029)。
-        # 変換後の値を ``Conf.cgi`` へ保存する
+        # 変換後の値を ``conf.json`` へ保存する
         search_str = self.get_conf_arg(
             "search_str",
             self.CONF_KEY_SEARCH_STR,
@@ -158,7 +158,7 @@ class MainHandler(HandlerBase):
         # filter_str
         #
         # 空文字は「絞り込みの解除」(TODO-028)。
-        # ``normalize()`` を通してから ``Conf.cgi`` へ保存する
+        # ``normalize()`` を通してから ``conf.json`` へ保存する
         # (小文字化に加えて、全角括弧が半角になる。TODO-029)
         filter_str = self.get_conf_arg(
             "filter_str",
@@ -312,10 +312,10 @@ class MainHandler(HandlerBase):
         empty_is_given: bool,
         convert: Callable[[str], T],
     ) -> T:
-        """引数か ``Conf.cgi`` から設定値を取り出す。
+        """引数か ``conf.json`` から設定値を取り出す。
 
-        引数が渡されていれば、その値を使い、``Conf.cgi`` の値と違えば
-        保存する。渡されていなければ ``Conf.cgi`` の値、それも無ければ
+        引数が渡されていれば、その値を使い、``conf.json`` の値と違えば
+        保存する。渡されていなければ ``conf.json`` の値、それも無ければ
         ``default`` を使う。
 
         ``empty_is_given`` は、**空文字を「渡された」とみなすか**。
@@ -323,11 +323,11 @@ class MainHandler(HandlerBase):
         ``todo_days`` だけ ``False`` (TODO-021・TODO-028)。
 
         値は ``convert`` を通してから返す。**変換できない値は「渡されて
-        いない」のと同じ扱いにして、``Conf.cgi`` へ保存しない**
-        (TODO-027)。``Conf.cgi`` に既に入っている値も、変換できなければ
+        いない」のと同じ扱いにして、``conf.json`` へ保存しない**
+        (TODO-027)。``conf.json`` に既に入っている値も、変換できなければ
         ``default`` へ落とす。
 
-        ``Conf.cgi`` へ保存するのは、**変換したあとの値**
+        ``conf.json`` へ保存するのは、**変換したあとの値**
         (``search_str``/``filter_str`` なら ``normalize()`` を通したもの。
         TODO-028・TODO-029)。ただし ``search_n``/``todo_days`` のように
         文字列でない値になるものは、渡された文字列のまま保存する。
@@ -337,9 +337,9 @@ class MainHandler(HandlerBase):
         arg_name: str
             リクエスト引数の名前
         conf_key: str
-            ``Conf.cgi`` のキー
+            ``conf.json`` のキー
         default: T
-            引数も ``Conf.cgi`` も無い (または変換できない) ときの値
+            引数も ``conf.json`` も無い (または変換できない) ときの値
         empty_is_given: bool
         convert: Callable[[str], T]
             ``search_n`` は ``int``、``todo_days`` は

@@ -531,3 +531,99 @@ def test_summary_is_printed(datadir, capsys):
     assert "変換したファイル: 8" in out
     assert "変換した行      : 27" in out
     assert "飛ばした行      : 0" in out
+    # 合成データに ``Conf.cgi`` は無いので、どちらも 0
+    assert "設定ファイル    : 変換 0, 飛ばした 0" in out
+
+
+#
+# 設定ファイル Conf.cgi → conf.json (TODO-032)
+#
+def mk_conf_datadir(tmp_path, raw_conf=None):
+    """``Conf.cgi`` だけを置いた一時ディレクトリを作る。
+
+    合成データ（``tests/data/old_format/``）には ``Conf.cgi`` を
+    置かない（あちらは予定データの壊れ方を再現するためのもの）。
+    """
+    datadir = tmp_path / "data"
+    datadir.mkdir()
+    if raw_conf is not None:
+        (datadir / "Conf.cgi").write_bytes(raw_conf)
+    return datadir
+
+
+def load_conf_json(datadir):
+    """変換後の ``conf.json`` を読む。"""
+    return json.loads((datadir / "conf.json").read_text(encoding="utf-8"))
+
+
+def test_conf_is_migrated(tmp_path):
+    """タブ区切りの ``Conf.cgi`` が ``conf.json`` になる。"""
+    datadir = mk_conf_datadir(
+        tmp_path,
+        b"ToDo_Days\t7\nFilterStr\t\nSearchN\t3\n",
+    )
+
+    stat = mk_migrator(datadir).main()
+
+    assert stat.conf_files == 1
+    assert stat.skipped_conf_files == 0
+    assert load_conf_json(datadir) == {
+        "ToDo_Days": "7",
+        "FilterStr": "",
+        "SearchN": "3",
+    }
+    # 元の Conf.cgi は消さない（他のファイルと同じ）
+    assert (datadir / "Conf.cgi").exists()
+
+
+def test_conf_euc_jp_value(tmp_path):
+    """euc_jp の値も読める（予定データと同じデコードの仕方）。"""
+    datadir = mk_conf_datadir(
+        tmp_path, "FilterStr\t歯医者\n".encode("euc_jp")
+    )
+
+    mk_migrator(datadir).main()
+
+    assert load_conf_json(datadir) == {"FilterStr": "歯医者"}
+
+
+def test_conf_line_without_tab_is_skipped(tmp_path):
+    """タブの無い行は飛ばして、他の行は読む。"""
+    datadir = mk_conf_datadir(tmp_path, b"broken\nToDo_Days\t7\n\n")
+
+    mk_migrator(datadir).main()
+
+    assert load_conf_json(datadir) == {"ToDo_Days": "7"}
+
+
+def test_existing_conf_json_is_skipped(tmp_path):
+    """``conf.json`` が既にあれば、上書きしない。"""
+    datadir = mk_conf_datadir(tmp_path, b"ToDo_Days\t7\n")
+    (datadir / "conf.json").write_text("{}", encoding="utf-8")
+
+    stat = mk_migrator(datadir).main()
+
+    assert stat.conf_files == 0
+    assert stat.skipped_conf_files == 1
+    assert load_conf_json(datadir) == {}
+
+
+def test_no_conf_file(tmp_path):
+    """``Conf.cgi`` が無ければ、何もしない。"""
+    datadir = mk_conf_datadir(tmp_path)
+
+    stat = mk_migrator(datadir).main()
+
+    assert stat.conf_files == 0
+    assert stat.skipped_conf_files == 0
+    assert not (datadir / "conf.json").exists()
+
+
+def test_conf_dry_run(tmp_path):
+    """``--dry-run`` では ``conf.json`` を書かない。"""
+    datadir = mk_conf_datadir(tmp_path, b"ToDo_Days\t7\n")
+
+    stat = mk_migrator(datadir, dry_run=True).main()
+
+    assert stat.conf_files == 1
+    assert not (datadir / "conf.json").exists()

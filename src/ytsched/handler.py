@@ -9,6 +9,7 @@ __author__ = "Yoichi Tanibayashi"
 __date__ = "2021/01"
 
 import datetime
+import json
 import os
 from collections.abc import Callable
 
@@ -26,7 +27,7 @@ class HandlerBase(tornado.web.RequestHandler):
     # ``MainHandler`` ではなくここに置く (TODO-027)
     SEARCH_MODE_MAX_DAYS = 365 * 5
 
-    CONF_FNAME = "Conf.cgi"
+    CONF_FNAME = "conf.json"
     CONF_ENCODE = "utf-8"
     CONF_KEY_TODO_DAYS = "ToDo_Days"
     CONF_KEY_FILTER_STR = "FilterStr"
@@ -66,10 +67,25 @@ class HandlerBase(tornado.web.RequestHandler):
 
         self._conf = self.load_conf()
 
-    def load_conf(self):
-        """``Conf.cgi`` を読み込んで dict で返す。
+    def load_conf(self) -> dict[str, str]:
+        """``conf.json`` を読み込んで dict で返す (TODO-032)。
 
         ファイルが無ければ空の dict を返す。
+
+        **JSON として読めなくても例外にしない。** 壊れている場合や
+        トップレベルが object でない場合は、警告を 1 行出して空の dict
+        を返す。値が文字列でないキーは、そのキーだけ飛ばす。不正な
+        正規表現の扱い (TODO-012)、不正な引数の扱い (TODO-027) と同じ
+        考え方 (設定ファイルが壊れて画面が出ないほうが困る)。
+
+        ファイルそのものが読めない場合 (``PermissionError`` など) は
+        捕まえない。設定の中身の問題ではなく、直すべき環境の問題なので、
+        黙って既定値で動かない (TODO-032)。
+
+        Returns
+        -------
+        conf: dict[str, str]
+
         """
         self.__log.debug("")
 
@@ -77,33 +93,39 @@ class HandlerBase(tornado.web.RequestHandler):
 
         try:
             with open(self._conf_file, encoding=self.CONF_ENCODE) as f:
-                lines = f.readlines()
+                data = json.load(f)
         except FileNotFoundError:
             return conf
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            self.__log.warning(f"{self._conf_file}: {e} .. ignored")
+            return conf
 
-        for line in lines:
-            line = line.rstrip("\n")
-            if not line:
+        if not isinstance(data, dict):
+            self.__log.warning(f"{self._conf_file}: not an object .. ignored")
+            return conf
+
+        # JSON の object のキーは必ず文字列
+        loaded: dict[str, object] = data
+        for param, value in loaded.items():
+            if not isinstance(value, str):
+                self.__log.warning(
+                    f"{self._conf_file}: {param!a}={value!a}:"
+                    " not a string .. ignored"
+                )
                 continue
 
-            self.__log.debug(f"line={line}")
-
-            if "\t" not in line:
-                self.__log.warning(f"{line!a}: no tab .. ignored")
-                continue
-
-            (param, value) = line.split("\t", maxsplit=1)
             self.__log.debug(f"{param!a},{value!a}.")
             conf[param] = value
 
         return conf
 
     def save_conf(self):
-        """設定を ``Conf.cgi`` へ書き出す。"""
+        """設定を ``conf.json`` へ書き出す (TODO-032)。"""
         self.__log.debug("")
 
         with open(self._conf_file, mode="w", encoding=self.CONF_ENCODE) as f:
-            f.writelines(f"{p}\t{self._conf[p]}\n" for p in self._conf)
+            json.dump(self._conf, f, ensure_ascii=False, indent=2)
+            f.write("\n")
 
     def get_conf(self, name):
         """設定値を返す。無ければ ``None`` を返す。"""
@@ -112,7 +134,7 @@ class HandlerBase(tornado.web.RequestHandler):
         return self._conf.get(name)
 
     def set_conf(self, name, value):
-        """設定値を変更して、``Conf.cgi`` へ保存する。"""
+        """設定値を変更して、``conf.json`` へ保存する。"""
         self.__log.debug(f"name={name}, value='{value}'")
         self._conf[name] = value
         self.save_conf()
@@ -134,7 +156,7 @@ class HandlerBase(tornado.web.RequestHandler):
         Parameters
         ----------
         name: str
-            警告に出す名前 (引数名か ``Conf.cgi`` のキー)
+            警告に出す名前 (引数名か ``conf.json`` のキー)
         value: str
         convert: Callable[[str], T]
             ``int`` や ``str2date()`` など

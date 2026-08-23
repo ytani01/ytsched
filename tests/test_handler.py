@@ -1,8 +1,9 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""HandlerBase（Conf.cgi の読み書き）と days2y_offset のテスト"""
+"""HandlerBase（conf.json の読み書き）と days2y_offset のテスト"""
 
+import json
 import os
 import subprocess
 import sys
@@ -51,7 +52,7 @@ def test_load_conf_no_file(datadir):
 
 def test_load_conf(datadir):
     (datadir / CONF_FNAME).write_text(
-        "ToDo_Days\t365\nFilterStr\t会議\n", encoding="utf-8"
+        '{"ToDo_Days": "365", "FilterStr": "会議"}', encoding="utf-8"
     )
 
     handler = make_handler(make_app(datadir), HandlerBase)
@@ -61,12 +62,14 @@ def test_load_conf(datadir):
     assert handler.get_conf("NoSuchKey") is None
 
 
-def test_save_conf_is_tab_separated(datadir):
+def test_save_conf_is_json(datadir):
+    """JSON で書き出す（TODO-032）。人が読める形にする。"""
     handler = make_handler(make_app(datadir), HandlerBase)
     handler.set_conf(HandlerBase.CONF_KEY_SEARCH_STR, "会議")
 
     text = (datadir / CONF_FNAME).read_text(encoding="utf-8")
-    assert text == "SearchStr\t会議\n"
+    assert text == '{\n  "SearchStr": "会議"\n}\n'
+    assert json.loads(text) == {"SearchStr": "会議"}
 
 
 def test_conf_round_trip(datadir):
@@ -93,41 +96,73 @@ def test_set_conf_overwrite(datadir):
 
 
 def test_load_conf_empty_value(datadir):
-    """値が空文字列の行も読める。"""
-    (datadir / CONF_FNAME).write_text("SearchStr\t\n", encoding="utf-8")
+    """値が空文字列でも読める。"""
+    (datadir / CONF_FNAME).write_text('{"SearchStr": ""}', encoding="utf-8")
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
     assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == ""
 
 
-def test_load_conf_empty_line(datadir):
-    """空行があっても、他の行は読める。"""
-    (datadir / CONF_FNAME).write_text("ToDo_Days\t365\n\n", encoding="utf-8")
+def test_conf_round_trip_value_with_tab_and_newline(datadir):
+    """タブや改行を含む値も、そのまま往復する（TODO-032）。"""
+    app = make_app(datadir)
+
+    handler = make_handler(app, HandlerBase)
+    handler.set_conf(HandlerBase.CONF_KEY_SEARCH_STR, "a\tb\nc")
+
+    handler2 = make_handler(app, HandlerBase)
+    assert handler2.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == "a\tb\nc"
+
+
+def test_load_conf_broken_json(datadir):
+    """JSON として壊れていても例外にせず、空の設定として扱う。
+
+    設定ファイルが壊れて画面が出ないほうが困るので、不正な正規表現
+    （TODO-012）・不正な引数（TODO-027）と同じ扱いにする（TODO-032）。
+    """
+    (datadir / CONF_FNAME).write_text('{"ToDo_Days": ', encoding="utf-8")
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "365"
+    assert handler._conf == {}
 
 
-def test_load_conf_line_without_tab(datadir):
-    """タブの無い行があっても、他の行は読める。"""
-    (datadir / CONF_FNAME).write_text(
-        "ToDo_Days\t365\nbroken\n", encoding="utf-8"
+def test_load_conf_invalid_encoding(datadir):
+    """utf-8 で読めなくても、空の設定として扱う。
+
+    旧 ``Conf.cgi``（euc_jp のことがある）を手で ``conf.json`` に
+    しただけ、といった場合に踏む（TODO-032）。
+    """
+    (datadir / CONF_FNAME).write_bytes(
+        '{"FilterStr": "会議"}'.encode("euc_jp")
     )
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "365"
+    assert handler._conf == {}
 
 
-def test_load_conf_value_with_tab(datadir):
-    """値にタブが含まれる行も読める。"""
-    (datadir / CONF_FNAME).write_text("SearchStr\ta\tb\n", encoding="utf-8")
+def test_load_conf_not_object(datadir):
+    """トップレベルが dict でなければ、空の設定として扱う。"""
+    (datadir / CONF_FNAME).write_text(
+        '["ToDo_Days", "365"]', encoding="utf-8"
+    )
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_SEARCH_STR) == "a\tb"
+    assert handler._conf == {}
+
+
+def test_load_conf_non_string_value(datadir):
+    """値が文字列でないキーだけを飛ばして、他のキーは読める。"""
+    (datadir / CONF_FNAME).write_text(
+        '{"ToDo_Days": 365, "FilterStr": "会議"}', encoding="utf-8"
+    )
+
+    handler = make_handler(make_app(datadir), HandlerBase)
+
+    assert handler._conf == {"FilterStr": "会議"}
 
 
 C_LOCALE_CONF_SCRIPT = """\
@@ -154,7 +189,7 @@ def test_conf_is_not_locale_dependent(tmp_path, datadir):
     assert res.returncode == 0, res.stderr
     assert (datadir / CONF_FNAME).read_text(
         encoding="utf-8"
-    ) == "SearchStr\t会議\n"
+    ) == '{\n  "SearchStr": "会議"\n}\n'
 
 
 #
