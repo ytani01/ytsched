@@ -270,11 +270,16 @@ class Migrator:
         # 行の分け方(U+2028 で切らない)は読み込み側と同じものを使う
         raw_lines = SchedDataFile.split_lines(raw_data)
         for i, raw_line in enumerate(raw_lines, start=1):
-            if SchedDataFile.is_empty_line(raw_line):
+            # CRLF の旧データで、行末の ``\r`` が最後の項目(``detail``)に
+            # 残らないようにする (TODO-029)。旧形式ではテキストモードの
+            # ``readlines()`` で消えていたので、移行で新しく入れない
+            line_bytes = raw_line.removesuffix(b"\r")
+
+            if SchedDataFile.is_empty_line(line_bytes):
                 self.stat.empty_lines += 1
                 continue
 
-            line = decode_line(raw_line)
+            line = decode_line(line_bytes)
 
             try:
                 data = line2dict(line)

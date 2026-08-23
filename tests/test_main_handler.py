@@ -167,29 +167,39 @@ class TestConfArgs(WebTestBase):
 
         assert self.conf_text() is None
 
-    def test_search_str_is_saved_as_is_and_shown_lowered(self):
-        """``Conf.cgi`` には元のまま、画面には小文字で出る。
+    def test_search_str_is_saved_normalized(self):
+        """``search_str`` は、保存も表示も ``normalize()`` 後（TODO-029）。
 
-        小文字化は ``set_conf()`` の**あと**に行われる。
+        TODO-029 の前は ``Conf.cgi`` へ元のまま入り、小文字化は
+        ``set_conf()`` の**あと**だった。
         """
         body = self.get_body(
             URL_PREFIX + "/", date=DATE1_STR, search_str="ABC"
         )
 
-        assert self.conf_text() == "SearchStr\tABC\n"
+        assert self.conf_text() == "SearchStr\tabc\n"
         assert 'value="abc"' in body
 
-    def test_filter_str_is_saved_lowered(self):
-        """``filter_str`` は、保存も表示も小文字（TODO-028）。
-
-        ``search_str`` と違って、``Conf.cgi`` へ入る前に小文字になる。
-        """
+    def test_search_str_zenkaku_paren_is_normalized(self):
+        """全角括弧は半角になる（TODO-029）。"""
         body = self.get_body(
-            URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC"
+            URL_PREFIX + "/", date=DATE1_STR, search_str="（重要）"
         )
 
-        assert self.conf_text() == "FilterStr\tabc\n"
-        assert 'value="abc"' in body
+        assert self.conf_text() == "SearchStr\t(重要)\n"
+        assert 'value="(重要)"' in body
+
+    def test_filter_str_is_saved_normalized(self):
+        """``filter_str`` は、保存も表示も ``normalize()`` 後。
+
+        小文字にするのは TODO-028、全角括弧の半角化は TODO-029。
+        """
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC（重要）"
+        )
+
+        assert self.conf_text() == "FilterStr\tabc(重要)\n"
+        assert 'value="abc(重要)"' in body
 
     def test_saved_filter_str_is_not_rewritten_when_unchanged(self):
         """同じ ``filter_str`` を送り直しても、小文字のまま。"""

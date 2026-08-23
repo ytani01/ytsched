@@ -447,6 +447,55 @@ def test_error_line_is_saved(tmp_path):
     assert [d["sde_id"] for d in data] == ["id-1"]
 
 
+def test_crlf_line_has_no_cr(tmp_path):
+    """CRLF の旧データでも、行末の ``\\r`` が残らない（TODO-029）。
+
+    合成テストデータは LF だけなので、ここで作る。旧形式では
+    テキストモードの読み込みで消えていたので、移行で新しく入れない。
+    """
+    datadir = tmp_path / "data"
+    (datadir / "2021" / "08").mkdir(parents=True)
+    (datadir / "2021/08/01.cgi").write_bytes(
+        "id-1\t2021/08/01\t10:00-11:00\t予定\t打合せ\t会議室"
+        "\t議題<br />・進捗\r\n"
+        "id-2\t2021/08/01\t:-:\t予定\t2 行目\t\t\r\n".encode()
+    )
+
+    stat = mk_migrator(datadir).main()
+
+    assert stat.lines == 2
+    assert stat.skipped_lines == 0
+
+    data = load_jsonl(datadir / "2021/08/01.jsonl")
+    assert data[0]["detail"] == "議題\n・進捗"
+    assert data[1]["detail"] == ""
+    # 値そのものを見る。json.dumps() の結果を見ると CR が ``\r`` の
+    # 2 文字にエスケープされるので、どんな値でも通ってしまう
+    assert all(
+        "\r" not in v for d in data for v in d.values() if isinstance(v, str)
+    )
+
+
+def test_crlf_empty_line_is_skipped(tmp_path):
+    """``\\r`` だけの行は空行として飛ばす（TODO-029）。
+
+    ``is_empty_line()`` が ``strip()`` を使うので、TODO-029 の
+    ``removesuffix(b"\\r")`` が無くても空行になる。**挙動が変わって
+    いないことの確認**で、TODO-029 の変更を守るテストではない。
+    """
+    datadir = tmp_path / "data"
+    (datadir / "2021" / "08").mkdir(parents=True)
+    (datadir / "2021/08/01.cgi").write_bytes(
+        "id-1\t2021/08/01\t:-:\t予定\t読める行\t\t\r\n\r\n".encode()
+    )
+
+    stat = mk_migrator(datadir).main()
+
+    assert stat.lines == 1
+    assert stat.empty_lines == 1
+    assert stat.error_lines == 0
+
+
 def test_empty_line_is_skipped(tmp_path):
     """空行は飛ばす（変換できなかった行にはしない）。"""
     datadir = tmp_path / "data"

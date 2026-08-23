@@ -18,7 +18,7 @@ import tornado.web
 
 from .handler import HandlerBase
 from .mylog import getLogger
-from .ytsched import SchedDataEnt
+from .ytsched import SchedDataEnt, normalize
 
 
 def days2y_offset(days: float) -> int:
@@ -113,14 +113,16 @@ class MainHandler(HandlerBase):
         #
         # search_str
         #
+        # 照合される側 (``SchedDataEnt.search_str()``) と同じ
+        # ``normalize()`` を通す (TODO-029)。
+        # 変換後の値を ``Conf.cgi`` へ保存する
         search_str = self.get_conf_arg(
             "search_str",
             self.CONF_KEY_SEARCH_STR,
             "",
             empty_is_given=True,
-            convert=str,
+            convert=normalize,
         )
-        search_str = search_str.lower()
         self.__log.debug(f"search_str='{search_str}'")
 
         #
@@ -156,13 +158,14 @@ class MainHandler(HandlerBase):
         # filter_str
         #
         # 空文字は「絞り込みの解除」(TODO-028)。
-        # 小文字にしてから ``Conf.cgi`` へ保存する
+        # ``normalize()`` を通してから ``Conf.cgi`` へ保存する
+        # (小文字化に加えて、全角括弧が半角になる。TODO-029)
         filter_str = self.get_conf_arg(
             "filter_str",
             self.CONF_KEY_FILTER_STR,
             "",
             empty_is_given=True,
-            convert=str.lower,
+            convert=normalize,
         )
         self.__log.debug(f"filter_str={filter_str!a}")
 
@@ -325,9 +328,9 @@ class MainHandler(HandlerBase):
         ``default`` へ落とす。
 
         ``Conf.cgi`` へ保存するのは、**変換したあとの値**
-        (``filter_str`` なら小文字にしたもの。TODO-028)。ただし
-        ``search_n``/``todo_days`` のように文字列でない値になるものは、
-        渡された文字列のまま保存する。
+        (``search_str``/``filter_str`` なら ``normalize()`` を通したもの。
+        TODO-028・TODO-029)。ただし ``search_n``/``todo_days`` のように
+        文字列でない値になるものは、渡された文字列のまま保存する。
 
         Parameters
         ----------
@@ -340,9 +343,9 @@ class MainHandler(HandlerBase):
         empty_is_given: bool
         convert: Callable[[str], T]
             ``search_n`` は ``int``、``todo_days`` は
-            ``str2todo_days()``、``filter_str`` は ``str.lower``。
-            ``search_str`` は ``str`` で、**これは失敗しないので検証には
-            ならない** (返す型を決めるために渡している)
+            ``str2todo_days()``、``search_str``/``filter_str`` は
+            ``normalize()``。**``normalize()`` は失敗しないので検証には
+            ならない** (揃えるためと、返す型を決めるために渡している)
 
         Returns
         -------
@@ -408,6 +411,11 @@ class MainHandler(HandlerBase):
 
         sde = self.get_modified_sde(cmd, modified_date, modified_sde_id)
 
+        # 読み直したファイルの日付を、編集画面の ``orig_date`` にする
+        # (ToDo は None)。次の更新・削除が、その行が実際に入っている
+        # ファイルへ届くようにする (TODO-029)
+        orig_date = modified_date
+
         todo_flag = sde.is_todo()
         if todo_flag:
             modified_date = sde.date
@@ -423,6 +431,7 @@ class MainHandler(HandlerBase):
                 url_prefix=self._url_prefix,
                 post_url=self._url_prefix,
                 date=modified_date,
+                orig_date=orig_date,
                 sde=sde,
                 new_flag=False,
                 todo_flag=todo_flag,

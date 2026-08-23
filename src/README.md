@@ -64,7 +64,13 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
   `get()` を呼ぶ（`post()` は `self.get()` に委譲するだけ）
 - **`EditHandler`**（`edit_handler.py`）が編集画面を出す。`date` /
   `sde_id` の決め方（引数 → クエリ文字列 → 既定値の順）は docstring に
-  書いてある
+  書いてある。フォームの隠しフィールド `orig_date`（更新・削除のときに
+  見に行くファイルの日付）は、テンプレートではなく handler が決める
+  ＝ **その `sde` を読み込んだファイルの日付**（ToDo は `None`。
+  TODO-029）。新規（`sde_id` 無し）のときは、まだどのファイルにも
+  入っていないので**表示している日付**にする（`None` にすると、
+  新規の画面で `fix` を押したときに `ToDo.jsonl` を開いて `.bak` まで
+  作る道が開く）
 
 `WebServer`（`webapp.py`）がこの 2 つを `tornado.web.Application` に
 組み立てる。URL は既定で `/ytsched`（`WebServer.DEF_URL_PREFIX`）配下。
@@ -74,8 +80,10 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 利用者の入力を正規表現として扱う（利用者本人しか使わないアプリという
 前提）。`MainHandler.get()` の中で 1 回だけコンパイルし、**不正なら
 その条件を無視して全件を出す**。不正な文字列でも入力欄と `Conf.cgi` から
-消さず、マッチに使うかどうかだけを分けている（`filter_str` は保存する
-前に小文字にする。`search_str` は今のところ入力どおり保存する）。検索
+消さず、マッチに使うかどうかだけを分けている。`filter_str` も
+`search_str` も、照合される側（`SchedDataEnt.search_str()`）と同じ
+`normalize()` を通してから `Conf.cgi` へ保存する（TODO-029。全角括弧の
+扱いは [../docs/data-format.md](../docs/data-format.md) にある）。検索
 モードかどうかは「文字列が空でないか」ではなく「コンパイルできたか」で
 判定する（`search_mode`）。
 

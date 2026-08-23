@@ -92,6 +92,14 @@ class EditHandler(HandlerBase):
         #
         new_flag = False
 
+        # ``orig_date`` は「その ``sde`` を読み込んだファイルの日付」
+        # (ToDo は None)。行の ``date`` がファイル名から決まる日付と
+        # 食い違っていても、``cmd_del()`` が実際にその行が入っている
+        # ファイルを見に行けるようにする (TODO-029)。
+        # 新規のときは、まだどのファイルにも入っていないので、
+        # 今までどおり表示している日付にする
+        orig_date = date
+
         if sde_id:
             if todo_flag:
                 sdf = self._sd.get_sdf(None)
@@ -104,6 +112,8 @@ class EditHandler(HandlerBase):
                 raise tornado.web.HTTPError(
                     404, "sde not found: sde_id=%s", sde_id
                 )
+
+            orig_date = sdf.date
 
         else:
             sde = SchedDataEnt("", date)
@@ -118,6 +128,7 @@ class EditHandler(HandlerBase):
             url_prefix=self._url_prefix,
             post_url=self._url_prefix,
             date=date,
+            orig_date=orig_date,
             sde=sde,
             new_flag=new_flag,
             todo_flag=todo_flag,

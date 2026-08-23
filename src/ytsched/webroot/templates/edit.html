@@ -2,13 +2,13 @@
 
 {% block content %}
 
-{% set orig_date = sde.date %}
+{# orig_date は handler が渡す。その sde が実際に入っている
+   ファイルの日付で、ToDo は None (TODO-029) #}
 {% set deadline_date = '' %}
 {% set deadline_time_start = '' %}
 {% set deadline_time_end = '' %}
 
 {% if sde.is_todo() %}
-  {% set orig_date = None %}
   {% set deadline_date = sde.date %}
 
   {% if sde.time_start %}

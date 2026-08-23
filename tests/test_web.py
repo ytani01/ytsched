@@ -7,6 +7,7 @@ import contextlib
 import datetime
 import io
 import json
+import re
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -55,6 +56,14 @@ FORM_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 def date_id(date):
     """1 日分の欄に付く id（テンプレート ``main.html``）。"""
     return f'id="date-{date}"'
+
+
+def orig_date_in(body):
+    """編集画面の隠しフィールド ``orig_date`` の値（無ければ ``None``）。"""
+    match = re.search(r'id="orig_date"[^>]*value="([^"]*)"', body, re.DOTALL)
+    if match is None:
+        return None
+    return match.group(1)
 
 
 @contextlib.contextmanager
@@ -207,6 +216,38 @@ class TestMainHandler(WebTestBase):
 
         assert "歯医者" in body
         assert "定例ミーティング" not in body
+
+    def test_search_str_with_zenkaku_paren(self):
+        """全角括弧のまま検索しても当たる（TODO-029）。
+
+        入力側も ``normalize()`` を通るので、``（重要）`` は
+        ``(重要)`` として（正規表現のグループとして）照合される。
+        """
+        self.write_data(
+            DATE1,
+            [mk_dataline(title="会議（重要）の件"), DATALINE2],
+        )
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="（重要）"
+        )
+
+        assert "会議（重要）の件" in body
+        assert "歯医者" not in body
+
+    def test_filter_str_with_zenkaku_paren(self):
+        """絞り込みも同じく、全角括弧のまま当たる（TODO-029）。"""
+        self.write_data(
+            DATE1,
+            [mk_dataline(title="会議（重要）の件"), DATALINE2],
+        )
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, filter_str="（重要）"
+        )
+
+        assert "会議（重要）の件" in body
+        assert "歯医者" not in body
 
     def test_todo_days(self):
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
@@ -1544,6 +1585,22 @@ class TestEditHandler(WebTestBase):
         today = datetime.date.today()
         assert f'value="{today.isoformat()}"' in body
 
+    def test_orig_date_is_the_file_date(self):
+        """``orig_date`` は、その行が入っているファイルの日付。"""
+        self.write_data(DATE1, [DATALINE1])
+
+        body = self.get_body(
+            URL_PREFIX + "/edit", date=DATE1_STR, sde_id="id-1"
+        )
+
+        assert orig_date_in(body) == DATE1_STR
+
+    def test_orig_date_of_a_new_sde_is_the_date(self):
+        """新規のときは、今までどおり表示している日付。"""
+        body = self.get_body(URL_PREFIX + "/edit", date=DATE1_STR)
+
+        assert orig_date_in(body) == DATE1_STR
+
     def test_get_existing_todo(self):
         todo_line = mk_dataline(
             sde_id="id-t",
@@ -1566,3 +1623,66 @@ class TestEditHandler(WebTestBase):
         )
 
         assert "ノートを買う" in body
+        # ToDo は ``ToDo.jsonl`` にあるので、``orig_date`` は付かない
+        assert orig_date_in(body) is None
+
+
+class TestEditOrigDate(WebTestBase):
+    """行の ``date`` がファイル名から決まる日付と食い違うとき（TODO-029）
+
+    ``load_line()`` は行の ``date`` を信じて残す（警告だけ出す）。
+    編集画面の ``orig_date`` を「その行が入っているファイルの日付」に
+    してあるので、``fix`` しても重複しない。
+    """
+
+    OTHER_STR = "2021-03-05"
+    OTHER = datetime.date(2021, 3, 5)
+
+    def write_mismatched(self):
+        """``2021/03/01.jsonl`` に ``date`` が別の日の行を書く。"""
+        return self.write_data(DATE1, [mk_dataline(date=self.OTHER_STR)])
+
+    def test_orig_date_is_the_file_date(self):
+        """行の ``date``（表示）ではなく、ファイルの日付になる。"""
+        self.write_mismatched()
+
+        body = self.get_body(
+            URL_PREFIX + "/edit", date=DATE1_STR, sde_id="id-1"
+        )
+
+        assert orig_date_in(body) == DATE1_STR
+        # 表示上の日付は、今までどおり行の ``date``
+        assert f'value="{self.OTHER_STR}"' in body
+
+    def test_fix_does_not_duplicate(self):
+        """編集画面から ``fix`` しても、行が二重にならない。
+
+        TODO-029 の前は ``orig_date`` が行の ``date``（``03-05``）
+        だったので、``03-01`` の行が消えずに残り、``03-05`` にも
+        書かれて**重複**した。
+        """
+        self.write_mismatched()
+        body = self.get_body(
+            URL_PREFIX + "/edit", date=DATE1_STR, sde_id="id-1"
+        )
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="fix",
+            sde_id="id-1",
+            orig_date=orig_date_in(body),
+            date=self.OTHER_STR,
+            sde_type="会議",
+            title="定例ミーティング",
+            place="会議室",
+            detail="detail1",
+        )
+
+        assert self.data_path(DATE1).read_text(encoding="utf-8") == ""
+        lines = (
+            self.data_path(self.OTHER)
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
+        assert len(lines) == 1
+        assert json.loads(lines[0])["sde_id"] == "id-1"
