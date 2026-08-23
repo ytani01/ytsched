@@ -31,6 +31,45 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 ## データモデル: `SchedDataEnt` / `SchedDataFile` / `SchedData`
 
 3 つのクラスが `ytsched.py` に入っていて、下から上へ積み上がっている。
+関係を図にすると次のようになる。
+
+```mermaid
+classDiagram
+    class SchedDataEnt {
+        +sde_id
+        +date
+        +time_start
+        +time_end
+        +type
+        +title
+        +place
+        +detail
+    }
+    class SchedDataFile {
+        +date
+        +topdir
+        +pathname
+        +sde : list~SchedDataEnt~
+        +load()
+        +save()
+        +add_sde()
+        +del_sde()
+        +get_sde()
+    }
+    class SchedData {
+        -_sdf_cache : OrderedDict
+        +get_sdf()
+        +get_sde()
+        +add_sde()
+        +del_sde()
+    }
+    class MainHandler
+    class EditHandler
+    SchedDataFile "1" *-- "many" SchedDataEnt
+    SchedData "1" o-- "many" SchedDataFile : LRU キャッシュ
+    MainHandler ..> SchedData : 経由してアクセス
+    EditHandler ..> SchedData : 経由してアクセス
+```
 
 - **`SchedDataEnt`** が予定・ToDo 1 件を表す。`sde_id`（UUID）、`date`、
   `time_start`/`time_end`、`type`、`title`、`place`、`detail` を持つ。
@@ -51,6 +90,42 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 [../docs/data-format.md](../docs/data-format.md) にまとめてある。
 
 ## Web ハンドラ: `HandlerBase` / `MainHandler` / `EditHandler`
+
+継承関係と、`WebServer` がどの URL にどちらを割り当てているかを
+図にすると次のようになる。
+
+```mermaid
+classDiagram
+    class RequestHandler {
+        <<tornado.web>>
+    }
+    class HandlerBase {
+        +load_conf()
+        +save_conf()
+        +get_conf()
+        +set_conf()
+        +convert_value()
+        +str2date()
+        +check_date()
+        +date_range()
+    }
+    class MainHandler {
+        +get()
+        +post()
+    }
+    class EditHandler {
+        +get()
+        +post()
+    }
+    class WebServer {
+        +main()
+    }
+    RequestHandler <|-- HandlerBase
+    HandlerBase <|-- MainHandler
+    HandlerBase <|-- EditHandler
+    WebServer ..> MainHandler : "/", url_prefix, url_prefix/
+    WebServer ..> EditHandler : url_prefix/edit, url_prefix/edit/
+```
 
 - **`HandlerBase`**（`handler.py`）が `tornado.web.RequestHandler` の
   共通部分。リクエストのたびにデータディレクトリ直下の設定ファイル
@@ -74,6 +149,40 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 
 `WebServer`（`webapp.py`）がこの 2 つを `tornado.web.Application` に
 組み立てる。URL は既定で `/ytsched`（`WebServer.DEF_URL_PREFIX`）配下。
+
+## リクエストが来てから画面が出るまでの流れ
+
+`MainHandler`/`EditHandler` に共通の、リクエスト 1 回の流れを図にすると
+次のようになる。クラス図だけでは分からない「時間の流れ」を示すためのもの
+なので、クラス同士の関係は上の図を見ること。
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Handler as MainHandler / EditHandler
+    participant SD as SchedData
+    participant SDF as SchedDataFile
+    participant Template
+
+    Browser->>Handler: GET または POST
+    Note over Handler: __init__ のたびに Conf.cgi を読む (load_conf)
+    alt POST
+        Handler->>Handler: post() は get() に委譲するだけ
+    end
+    Handler->>SD: get_sdf(date) / get_sde(date, sde_id)
+    alt キャッシュに無い
+        SD->>SDF: SchedDataFile(date, topdir)
+        SDF->>SDF: load()
+    else キャッシュに当たる
+        Note over SD: ファイルを読まずにそのまま返す
+    end
+    SD-->>Handler: SchedDataFile / SchedDataEnt
+    opt 設定値が変わった (filter_str など)
+        Handler->>Handler: set_conf() が Conf.cgi へ書き直す
+    end
+    Handler->>Template: render(html, ...)
+    Template-->>Browser: HTML
+```
 
 ## フィルタ・検索文字列の扱い
 

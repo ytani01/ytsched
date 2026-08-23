@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-031, TODO-032**
-これまでに 33 件を決着させた。
+**残っている項目: TODO-032**
+これまでに 34 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-036` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
@@ -12,53 +12,6 @@
 `ytsched migrate` で一度に変換する。
 
 着手する項目は利用者が指定する。
-
----
-
-## TODO-031. 文書に Mermaid の図を入れる
-
-見込み: main = Opus 5 / effort medium、担当 = writer + verifier + wording
-
-- [ ] どの図をどこに入れるかを決める
-- [ ] Mermaid のソースを書いて、文書に埋め込む
-- [ ] GitHub で実際に図として表示されるか確かめる
-
-（背景）
-
-TODO-030 で文書を 6 つに分けたが、どれも文章と箇条書きだけで、
-クラス同士の関係やモジュールの依存は読まないと分からない。
-
-**Mermaid にする。** Markdown の中に ```mermaid のブロックを書くだけで
-GitHub がそのまま図として表示する。ソースが数行で済み、コードが変わった
-ときに直しやすい。SVG を直に書く手もあるが、座標を自分で決めることになり、
-git の差分を読んでも意味が分からない。`docs/javascript-scroll.svg` は
-画面の座標そのものを説明する図なので直書きのままでよく、**今回のような
-関係を示す図とは別の用途**。
-
-（決めること）
-
-**どの図を作るか。着手するときに利用者と決める。** 候補:
-
-1. `src/README.md` — `SchedDataEnt` / `SchedDataFile` / `SchedData` の
-   積み上がり（`classDiagram`）
-2. `src/README.md` — `HandlerBase` と `MainHandler` / `EditHandler` の
-   継承、`WebServer` からの組み立て（`classDiagram` か `graph`）
-3. `src/README.md` — リクエストが来てから画面が出るまでの流れ
-   （`sequenceDiagram`）
-4. `docs/data-format.md` — 旧形式から JSON Lines への移行の手順（`graph`）
-5. `tests/README.md` — `helpers.py` とテストファイルの関係（`graph`）
-
-全部入れると多すぎるので、**絞る**。
-
-（気をつけること）
-
-- **色を決め打ちにしない。** GitHub にも Artifact にもダークテーマが
-  あるので、背景色を固定すると片方で読めなくなる
-- 図を入れても、文章のほうを消さない。図だけでは分からない「なぜそう
-  なっているか」は文章側にある
-- `mermaid-cli`（`mmdc`）で SVG に書き出す案は**採らない**。依存が増える
-  わりに、GitHub がそのまま表示できる以上の利点が無い。必要になったら
-  そのとき考える
 
 ---
 
@@ -80,6 +33,7 @@ git の差分を読んでも意味が分からない。`docs/javascript-scroll.s
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-031.** 文書に Mermaid の図を入れる](archives/todo/TODO-031.%20文書に%20Mermaid%20の図を入れる.md)
 - [**TODO-035.** TODO 項目ごとのトークン消費量を記録する](archives/todo/TODO-035.%20TODO%20項目ごとのトークン消費量を記録する.md)
 - [**TODO-034.** `orig_date` と `expanduser()` の紛らわしいところを片付ける](archives/todo/TODO-034.%20orig_date%20と%20expanduser%20の紛らわしいところを片付ける.md)
 - [**TODO-029.** コードレビューで見つかった 3 件を直す](archives/todo/TODO-029.%20コードレビューで見つかった%203%20件を直す.md)
