@@ -17,6 +17,10 @@ TODO-021 のリファクタリングは「挙動を一切変えない」のが�
 4. 日付の決定順
 5. ToDo の表示条件
 
+6 番目の「ファイルが無い日を開かない」（TODO-028）だけは、挙動を
+**変えない**ための確認なので、押さえ方が他と違う（変更前と同じ結果に
+なるかを、その場で突き合わせる）。
+
 日付は ``id="date-YYYY-MM-DD"`` で見る（1 日につき 1 回だけ出る）。
 検索モードでは、1 件も見つからなかった日は出ないので、この印が
 「その日が出たかどうか」になる。
@@ -24,10 +28,11 @@ TODO-021 のリファクタリングは「挙動を一切変えない」のが�
 
 import datetime
 import json
+import re
 from unittest import mock
 from urllib.parse import urlencode
 
-from helpers import URL_PREFIX
+from helpers import URL_PREFIX, make_handler
 from test_web import (
     DATE1,
     DATE1_STR,
@@ -37,28 +42,39 @@ from test_web import (
 )
 
 from ytsched.main_handler import MainHandler
+from ytsched.ytsched import SchedData
 
 CONF_FNAME = "Conf.cgi"
+
+
+def test_cookie_todo_days_is_removed():
+    """使われていない ``COOKIE_TODO_DAYS`` は消した（TODO-028）。
+
+    どこからも参照されていない定数だった。同じものを足し直さない
+    ための覚え書き。
+    """
+    assert not hasattr(MainHandler, "COOKIE_TODO_DAYS")
 
 
 #
 # 1. 設定値の取り出し 4 か所の、条件の食い違い
 #
 class TestConfArgs(WebTestBase):
-    """設定値の取り出し 4 か所は、条件が揃っていない。
+    """設定値の取り出し 4 か所の、空文字の扱い。
 
-    ``search_str`` と ``search_n`` は ``is not None`` で、
-    ``todo_days`` と ``filter_str`` は truthy で分岐する
-    （``empty_is_given``）。差が出るのは空文字を渡したときだけなので、
-    ``Conf.cgi`` の中身と画面で押さえる。
+    ``search_str``/``filter_str``/``search_n`` は ``is not None`` で、
+    ``todo_days`` だけ truthy で分岐する（``empty_is_given``）。
+    差が出るのは空文字を渡したときだけなので、``Conf.cgi`` の中身と
+    画面で押さえる。
 
-    ただし、**外から差が見えるのは ``search_str``/``filter_str`` の
-    2 か所だけ**。``search_n`` の ``convert`` は ``int``、
-    ``todo_days`` の ``convert`` は ``str2todo_days()``（中で ``int()``
-    を呼ぶ）で、どちらも ``int('')`` が必ず失敗して「渡されていない」
-    のと同じ扱いになる（TODO-027）ため、空文字が分岐に入っても
-    入らなくても結果が変わらない。つまり、この 2 か所の
-    ``empty_is_given`` を揃えてもここのテストは落ちない（TODO-028）。
+    ``filter_str`` は TODO-028 で ``search_str`` と揃えた。空文字を
+    送れば絞り込みが解除される。
+
+    ``search_n`` の ``convert`` は ``int``、``todo_days`` の
+    ``convert`` は ``str2todo_days()``（中で ``int()`` を呼ぶ）で、
+    どちらも ``int('')`` が必ず失敗して「渡されていない」のと同じ
+    扱いになる（TODO-027）ため、この 2 か所は空文字が分岐に入っても
+    入らなくても結果が変わらない。
     """
 
     def conf_text(self):
@@ -74,14 +90,14 @@ class TestConfArgs(WebTestBase):
 
         assert self.conf_text() == "SearchStr\t\n"
 
-    def test_empty_filter_str_is_not_saved(self):
-        """空の ``filter_str`` は「渡されていない」扱いで、保存されない。
+    def test_empty_filter_str_is_saved(self):
+        """空の ``filter_str`` は「渡された」扱いで、保存される。
 
-        ``Conf.cgi`` そのものが作られない。
+        TODO-028 で ``search_str`` と揃えた。
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="")
 
-        assert self.conf_text() is None
+        assert self.conf_text() == "FilterStr\t\n"
 
     def test_empty_search_str_clears_saved_search_str(self):
         """空の ``search_str`` は、保存済みの検索語を消す。"""
@@ -94,11 +110,11 @@ class TestConfArgs(WebTestBase):
         # 検索モードから抜けるので、検索期間・件数のバーは出ない
         assert "目標件数" not in body
 
-    def test_empty_filter_str_keeps_saved_filter_str(self):
-        """空の ``filter_str`` では、保存済みの絞り込みが消えない。
+    def test_empty_filter_str_clears_saved_filter_str(self):
+        """空の ``filter_str`` は、保存済みの絞り込みを解除する。
 
-        空文字は「渡されていない」扱いなので、``Conf.cgi`` の値へ
-        落ちて、絞り込みがそのまま効き続ける。
+        TODO-028 の前は「渡されていない」扱いで ``Conf.cgi`` の値へ
+        落ちてしまい、**絞り込みを解除できなかった**。
         """
         self.write_data(
             DATE1,
@@ -111,9 +127,9 @@ class TestConfArgs(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="")
 
-        assert self.conf_text() == "FilterStr\t病院\n"
+        assert self.conf_text() == "FilterStr\t\n"
         assert "歯医者" in body
-        assert "定例ミーティング" not in body
+        assert "定例ミーティング" in body
 
     def test_empty_search_n_is_not_saved(self):
         """空の ``search_n`` は ``int('')`` にならず、保存もされない。
@@ -163,14 +179,24 @@ class TestConfArgs(WebTestBase):
         assert self.conf_text() == "SearchStr\tABC\n"
         assert 'value="abc"' in body
 
-    def test_filter_str_is_saved_as_is_and_shown_lowered(self):
-        """``filter_str`` も、保存は元のまま・表示は小文字。"""
+    def test_filter_str_is_saved_lowered(self):
+        """``filter_str`` は、保存も表示も小文字（TODO-028）。
+
+        ``search_str`` と違って、``Conf.cgi`` へ入る前に小文字になる。
+        """
         body = self.get_body(
             URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC"
         )
 
-        assert self.conf_text() == "FilterStr\tABC\n"
+        assert self.conf_text() == "FilterStr\tabc\n"
         assert 'value="abc"' in body
+
+    def test_saved_filter_str_is_not_rewritten_when_unchanged(self):
+        """同じ ``filter_str`` を送り直しても、小文字のまま。"""
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC")
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="abc")
+
+        assert self.conf_text() == "FilterStr\tabc\n"
 
 
 #
@@ -400,15 +426,22 @@ class TestExecUpdateDeadline(WebTestBase):
         data = self.read_json(datetime.date.today())
         assert data["detail"] == "〆2021/03/05 10:00-11:00\n詳細"
 
-    def test_deadline_without_times_keeps_the_space(self):
-        """時刻が空でも形は変わらない（``〆日付 `` のあとが空になる）。
-
-        末尾に空白が 1 つ残るが、いまはこう動く。
-        """
+    def test_deadline_without_times_has_no_trailing_space(self):
+        """時刻が空なら、区切りの空白も付かない（TODO-028）。"""
         self.post_done(deadline_time_start="", deadline_time_end="")
 
         data = self.read_json(datetime.date.today())
-        assert data["detail"] == "〆2021/03/05 \n詳細"
+        assert data["detail"] == "〆2021/03/05\n詳細"
+
+    def test_deadline_with_only_end_time(self):
+        """開始時刻だけが空なら、空白は付いたままになる。
+
+        ``-11:00`` と時刻の部分が空でないため。
+        """
+        self.post_done(deadline_time_start="")
+
+        data = self.read_json(datetime.date.today())
+        assert data["detail"] == "〆2021/03/05 -11:00\n詳細"
 
     def test_deadline_with_only_start_time(self):
         """終了時刻が空のときは ``-`` も付かない。"""
@@ -683,3 +716,199 @@ class TestTodoDisplay(WebTestBase):
             URL_PREFIX + "/", todo_days="7", search_str="買い物"
         )
         assert self.TITLE not in body
+
+
+#
+# 6. ファイルが無い日を開かないこと（TODO-028）
+#
+class TestLoadSchedScan(WebTestBase):
+    """データファイルが無い日は ``get_sdf()`` を呼ばない（TODO-028）。
+
+    検索モードは最大 1825 日さかのぼるので、無い日まで開くと、その
+    日数ぶんの空の ``SchedDataFile`` がキャッシュに積まれる。開かなく
+    しても**結果が 1 件も変わらない**ことを、「全部開く」ようにした
+    ときの結果と突き合わせて確かめる。
+    """
+
+    DAYS = 3
+
+    BASE = datetime.date(2021, 3, 15)
+    KEYWORD = "けんさく"
+    TODO_TITLE = "ノートを買う"
+
+    def write_mixed_data(self):
+        """ファイルがある日・無い日・ToDo が当たる日を混ぜて置く。
+
+        - ``BASE``: 当たる予定が 1 件
+        - ``BASE - 1``: 休日（検索には当たらない）
+        - ``BASE - 2``: ファイル無し。期限がその日の ToDo だけがある
+        - ``BASE - 300``: 当たる予定（検索モードでしか見えない日）
+        - それ以外: ファイル無し
+        """
+        self.write_data(
+            self.BASE,
+            [
+                mk_dataline(
+                    sde_id="id-base",
+                    date=self.BASE.isoformat(),
+                    place=self.KEYWORD,
+                )
+            ],
+        )
+        self.write_data(
+            self.BASE - datetime.timedelta(1),
+            [
+                mk_dataline(
+                    sde_id="id-holiday",
+                    date=(self.BASE - datetime.timedelta(1)).isoformat(),
+                    type="休日",
+                    title="祝日",
+                )
+            ],
+        )
+        old = self.BASE - datetime.timedelta(300)
+        self.write_data(
+            old,
+            [
+                mk_dataline(
+                    sde_id="id-old", date=old.isoformat(), place=self.KEYWORD
+                )
+            ],
+        )
+
+        todo_date = self.BASE - datetime.timedelta(2)
+        (self.datadir / "ToDo.jsonl").write_text(
+            mk_dataline(
+                sde_id="id-todo",
+                date=todo_date.isoformat(),
+                time_start=None,
+                time_end=None,
+                type="□買い物",
+                title=self.TODO_TITLE,
+                place="",
+                detail="",
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    def call_load_sched(self, handler, search_str="", todo_days_value=365):
+        """``load_todo()`` → ``load_sched()`` を、``get()`` と同じ順で。"""
+        search_re = re.compile(search_str) if search_str else None
+        todo_sde, todo_today_sde = handler.load_todo(
+            None, False, search_re, todo_days_value
+        )
+        return handler.load_sched(
+            self.BASE,
+            None,
+            False,
+            search_re,
+            search_re is not None,
+            5,
+            todo_days_value,
+            todo_sde,
+            todo_today_sde,
+        )
+
+    def open_every_day(self):
+        """変更前と同じく「どの日も開きに行く」ようにするパッチ。"""
+        return mock.patch.object(
+            SchedData, "sdf_exists", lambda _self, _date=None: True
+        )
+
+    def assert_same_as_opening_every_day(self, **kwargs):
+        """飛ばしたときと、全部開いたときで、結果が同じか。"""
+        handler = make_handler(self._app, MainHandler)
+
+        skipped = self.call_load_sched(handler, **kwargs)
+        with self.open_every_day():
+            opened = self.call_load_sched(handler, **kwargs)
+
+        assert skipped == opened
+        return skipped
+
+    def test_search_mode_sched_is_same_as_opening_every_day(self):
+        """検索モードで、``sched``・``date_from``・``date_to`` が同じ。"""
+        self.write_mixed_data()
+
+        sched, date_from, date_to = self.assert_same_as_opening_every_day(
+            search_str=self.KEYWORD
+        )
+
+        # 当たった 2 日だけが、古い順に並ぶ
+        assert [s["date"] for s in sched] == [
+            self.BASE - datetime.timedelta(300),
+            self.BASE,
+        ]
+        # 1 件目が見つかったので、365 日前で打ち切られる
+        assert date_from == self.BASE - datetime.timedelta(
+            MainHandler.SEARCH_MODE_DAYS
+        )
+        assert date_to == self.BASE
+
+    def test_normal_mode_sched_is_same_as_opening_every_day(self):
+        """検索しないときも同じ。ファイルが無い日の欄も出る。"""
+        self.write_mixed_data()
+
+        sched, date_from, date_to = self.assert_same_as_opening_every_day()
+
+        day = datetime.timedelta(1)
+        assert [s["date"] for s in sched] == [
+            self.BASE - day * self.DAYS + day * i
+            for i in range(self.DAYS * 2)
+        ]
+        assert date_from == self.BASE - day * self.DAYS
+        assert date_to == self.BASE + day * (self.DAYS - 1)
+
+    def test_is_holiday_is_kept(self):
+        """休日の印は、ファイルがある日だけに付く。"""
+        self.write_mixed_data()
+
+        sched, _date_from, _date_to = self.assert_same_as_opening_every_day()
+
+        holiday = {s["date"] for s in sched if s["is_holiday"]}
+        assert holiday == {self.BASE - datetime.timedelta(1)}
+
+    def test_todo_is_shown_on_a_day_without_data_file(self):
+        """ファイルが無い日でも、期限が来ている ToDo は出る。"""
+        self.write_mixed_data()
+
+        sched, _date_from, _date_to = self.assert_same_as_opening_every_day()
+
+        todo_date = self.BASE - datetime.timedelta(2)
+        assert not self.data_path(todo_date).exists()
+        day = next(s for s in sched if s["date"] == todo_date)
+        assert [sde.title for sde in day["sde"]] == [self.TODO_TITLE]
+
+    def test_days_without_file_are_not_opened(self):
+        """1825 日さかのぼっても、キャッシュに積まれるのは実在する分だけ。
+
+        変更前は、当たらなかった日まで ``SchedDataFile`` を作って
+        キャッシュへ積んでいた（1 件も当たらなければ 1825 日ぶん）。
+        """
+        sd = self._app.settings["sd"]
+        assert sd.get_cache_size() == 0
+
+        self.get_body(
+            URL_PREFIX + "/",
+            date=self.BASE.isoformat(),
+            search_str=self.KEYWORD,
+        )
+
+        # ToDo（``date`` が None）の 1 つだけ
+        assert sd.get_cache_size() == 1
+
+    def test_existing_days_are_opened(self):
+        """ファイルがある日は、今までどおり開く。"""
+        self.write_mixed_data()
+        sd = self._app.settings["sd"]
+
+        self.get_body(
+            URL_PREFIX + "/",
+            date=self.BASE.isoformat(),
+            search_str=self.KEYWORD,
+        )
+
+        # ToDo と、ファイルがある 3 日ぶん（``BASE - 1`` は検索に
+        # 当たらないが、ファイルはあるので開く）
+        assert sd.get_cache_size() == 4

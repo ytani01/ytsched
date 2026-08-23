@@ -398,10 +398,14 @@ class SchedDataFile:
         )
         return out_str
 
+    @classmethod
     def date2path(
-        self, date: datetime.date | None = None, topdir: str = DEF_TOP_DIR
+        cls, date: datetime.date | None = None, topdir: str = DEF_TOP_DIR
     ) -> str:
         """
+        ファイルを開かずにパスだけ知りたいことがあるので、
+        インスタンスを作らずに呼べるようにしてある (TODO-028)。
+
         Parameters
         ----------
         date: datetime.date | None
@@ -412,14 +416,14 @@ class SchedDataFile:
 
         """
         if date:
-            pathname = self.PATH_FORMAT % (
+            pathname = cls.PATH_FORMAT % (
                 topdir,
                 date.strftime("%Y"),
                 date.strftime("%m"),
                 date.strftime("%d"),
             )
         else:
-            pathname = self.TODO_PATH_FORMAT % (topdir)
+            pathname = cls.TODO_PATH_FORMAT % (topdir)
 
         return pathname
 
@@ -705,6 +709,31 @@ class SchedData:
 
     def get_cache_size(self):
         return len(self._sdf_cache)
+
+    def sdf_exists(self, date: datetime.date | None = None) -> bool:
+        """その日のデータがあるか (TODO-028)。
+
+        キャッシュに載っていれば ``True``、載っていなければ
+        データファイルがあるかどうかを見る。**ファイルを開かない**ので、
+        無い日を ``get_sdf()`` で作ってキャッシュへ積まずに済む。
+
+        Parameters
+        ----------
+        date: datetime.date | None
+            None: ToDo
+
+        Returns
+        -------
+        bool
+
+        """
+        if date in self._sdf_cache:
+            return True
+
+        pathname = SchedDataFile.date2path(
+            date, os.path.expanduser(self._topdir)
+        )
+        return os.path.isfile(pathname)
 
     def get_sdf(self, date: datetime.date | None = None) -> SchedDataFile:
         """

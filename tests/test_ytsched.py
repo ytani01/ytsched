@@ -1079,6 +1079,48 @@ def test_sched_data_del_sde(tmp_path):
     assert (tmp_path / "2021/03/01.jsonl").read_text(encoding="utf-8") == ""
 
 
+def test_sdf_exists(tmp_path):
+    """ファイルがあるかどうかを、開かずに見る（TODO-028）。"""
+    write_data(tmp_path, DATE1, [DATALINE1])
+    sd = SchedData(str(tmp_path))
+
+    assert sd.sdf_exists(DATE1) is True
+    assert sd.sdf_exists(DATE1 + datetime.timedelta(1)) is False
+    # 見るだけなので、キャッシュには積まれない
+    assert sd.get_cache_size() == 0
+
+
+def test_sdf_exists_todo(tmp_path):
+    """``date`` が None なら ``ToDo.jsonl`` を見る。"""
+    sd = SchedData(str(tmp_path))
+    assert sd.sdf_exists(None) is False
+
+    (tmp_path / "ToDo.jsonl").write_text("", encoding="utf-8")
+    assert sd.sdf_exists(None) is True
+
+
+def test_sdf_exists_cached(tmp_path):
+    """ファイルが無くても、キャッシュに載っていれば ``True``。
+
+    書き込む前のデータを、開いたときのまま返すため。
+    """
+    sd = SchedData(str(tmp_path))
+    assert sd.sdf_exists(DATE1) is False
+
+    sd.get_sdf(DATE1)
+    assert sd.sdf_exists(DATE1) is True
+
+
+def test_sdf_exists_expands_topdir(tmp_path, monkeypatch):
+    """``~`` 付きの ``topdir`` でも、展開してから見に行く。"""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    write_data(tmp_path / "data", DATE1, [DATALINE1])
+
+    sd = SchedData("~/data")
+
+    assert sd.sdf_exists(DATE1) is True
+
+
 def test_get_sdf_cache_miss_is_not_warning(tmp_path):
     """正常系のキャッシュミスで warning を出さない。"""
     # ``self.__log`` は ``_SchedData__log`` にマングリングされる

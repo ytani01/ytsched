@@ -94,8 +94,6 @@ class MainHandler(HandlerBase):
     }
     DEF_TODO_DAYS = 365
 
-    COOKIE_TODO_DAYS = "todo_days"
-
     DELTA_DAY1 = datetime.timedelta(1)
 
     def post(self):
@@ -157,14 +155,15 @@ class MainHandler(HandlerBase):
         #
         # filter_str
         #
+        # 空文字は「絞り込みの解除」(TODO-028)。
+        # 小文字にしてから ``Conf.cgi`` へ保存する
         filter_str = self.get_conf_arg(
             "filter_str",
             self.CONF_KEY_FILTER_STR,
             "",
-            empty_is_given=False,
-            convert=str,
+            empty_is_given=True,
+            convert=str.lower,
         )
-        filter_str = filter_str.lower()
         self.__log.debug(f"filter_str={filter_str!a}")
 
         #
@@ -317,14 +316,18 @@ class MainHandler(HandlerBase):
         ``default`` を使う。
 
         ``empty_is_given`` は、**空文字を「渡された」とみなすか**。
-        ``search_str``/``search_n`` は ``True``、
-        ``todo_days``/``filter_str`` は ``False`` で、
-        4 つの取り出し方は揃っていない (TODO-021)。
+        ``search_str``/``filter_str``/``search_n`` は ``True``、
+        ``todo_days`` だけ ``False`` (TODO-021・TODO-028)。
 
         値は ``convert`` を通してから返す。**変換できない値は「渡されて
         いない」のと同じ扱いにして、``Conf.cgi`` へ保存しない**
         (TODO-027)。``Conf.cgi`` に既に入っている値も、変換できなければ
         ``default`` へ落とす。
+
+        ``Conf.cgi`` へ保存するのは、**変換したあとの値**
+        (``filter_str`` なら小文字にしたもの。TODO-028)。ただし
+        ``search_n``/``todo_days`` のように文字列でない値になるものは、
+        渡された文字列のまま保存する。
 
         Parameters
         ----------
@@ -337,9 +340,9 @@ class MainHandler(HandlerBase):
         empty_is_given: bool
         convert: Callable[[str], T]
             ``search_n`` は ``int``、``todo_days`` は
-            ``str2todo_days()``。``search_str``/``filter_str`` は
-            ``str`` で、**これは失敗しないので検証にはならない**
-            (返す型を決めるために渡している)
+            ``str2todo_days()``、``filter_str`` は ``str.lower``。
+            ``search_str`` は ``str`` で、**これは失敗しないので検証には
+            ならない** (返す型を決めるために渡している)
 
         Returns
         -------
@@ -353,8 +356,13 @@ class MainHandler(HandlerBase):
         if value is not None and (empty_is_given or value):
             converted = self.convert_value(arg_name, value, convert)
             if converted is not None:
-                if value != conf_value:
-                    self.set_conf(conf_key, value)
+                # 保存するのは、実際に使う値 (TODO-028)。
+                # 文字列にならないものは、渡された文字列のまま
+                save_value = (
+                    converted if isinstance(converted, str) else value
+                )
+                if save_value != conf_value:
+                    self.set_conf(conf_key, save_value)
                 return converted
 
         if conf_value:
@@ -645,6 +653,46 @@ class MainHandler(HandlerBase):
 
         return todo_sde, todo_today_sde
 
+    def mk_todo_by_date(
+        self,
+        search_re: re.Pattern[str] | None,
+        todo_days_value: int,
+        todo_sde: list[SchedDataEnt],
+    ) -> dict[datetime.date, list[SchedDataEnt]]:
+        """ToDo を期限の日付で引けるようにする (TODO-028)。
+
+        ``load_sched()`` は 1 日ずつさかのぼるので、日ごとに
+        ``todo_sde`` を全件見ると、日数 × 件数だけ照合が走る。
+        先に日付でまとめておけば 1 回で済む。並び順は ``todo_sde`` の
+        まま。
+
+        ``todo_days_value`` が負のときは ToDo を混ぜないので、空の
+        ``dict`` を返す。
+
+        Parameters
+        ----------
+        search_re: re.Pattern[str] | None
+        todo_days_value: int
+        todo_sde: list[SchedDataEnt]
+
+        Returns
+        -------
+        dict[datetime.date, list[SchedDataEnt]]
+
+        """
+        by_date: dict[datetime.date, list[SchedDataEnt]] = {}
+
+        if todo_days_value < 0:
+            return by_date
+
+        for sde in todo_sde:
+            if not self.search_match(search_re, sde):
+                continue
+
+            by_date.setdefault(sde.date, []).append(sde)
+
+        return by_date
+
     def load_sched(
         self,
         date: datetime.date,
@@ -678,7 +726,23 @@ class MainHandler(HandlerBase):
             検索モードでは、打ち切った日まで縮む
         date_to: datetime.date
 
+        Notes
+        -----
+        検索モードでは最大 ``SEARCH_MODE_MAX_DAYS``(1825) 日をさかのぼる
+        ので、**データファイルが無い日は開きに行かない** (TODO-028)。
+        開いても中身が空の ``SchedDataFile`` になるだけで、``sched`` の
+        中身も ``search_count`` の数え方も変わらない。日付の欄そのものは
+        今までどおり出す (検索モードで 1 件も当たらない日を落とすのは、
+        下の ``if search_mode and not out_sde`` のほう)。
+
+        ``todo_sde`` の照合も、日ごとに全件見ずに、日付で引けるように
+        しておく (TODO-028)。
+
         """
+        todo_by_date = self.mk_todo_by_date(
+            search_re, todo_days_value, todo_sde
+        )
+
         sched = []
         date_from = date - datetime.timedelta(self._days)
         date_to = date + datetime.timedelta(self._days - 1)
@@ -702,10 +766,13 @@ class MainHandler(HandlerBase):
 
             date1 -= self.DELTA_DAY1
 
-            sdf = self._sd.get_sdf(date1)
+            # ファイルが無い日は開きに行かない (TODO-028)
+            sdf = None
+            if self._sd.sdf_exists(date1):
+                sdf = self._sd.get_sdf(date1)
 
             out_sde = []
-            for sde in sdf.sde:
+            for sde in sdf.sde if sdf else []:
                 # self.__log.debug(f"sde={sde}")
                 if not self.filter_match(filter_re, filter_neg, sde):
                     continue
@@ -718,13 +785,7 @@ class MainHandler(HandlerBase):
 
             if todo_days_value >= 0:
                 # todo_sde
-                for sde in todo_sde:
-                    if not self.search_match(search_re, sde):
-                        continue
-
-                    if sde.date == date1:
-                        out_sde.append(sde)
-                        self.__log.debug(f"out_sde.append:{sde}")
+                out_sde.extend(todo_by_date.get(date1, []))
 
                 # todo_today_sde
                 if not search_mode and date1 == datetime.date.today():
@@ -736,7 +797,11 @@ class MainHandler(HandlerBase):
             out_sde = sorted(out_sde, key=lambda x: x.get_sortkey())
 
             sched.append(
-                {"date": date1, "is_holiday": sdf.is_holiday, "sde": out_sde}
+                {
+                    "date": date1,
+                    "is_holiday": sdf.is_holiday if sdf else False,
+                    "sde": out_sde,
+                }
             )
 
         return sched[::-1], date_from, date_to
@@ -1051,11 +1116,13 @@ class MainHandler(HandlerBase):
         time_end = None
 
         deadline_date = deadline_date_str.replace("-", "/")
-        detail = (
-            f"〆{deadline_date} "
-            f"{deadline_time_start_str}{deadline_time_end_str}\n"
-            f"{detail}"
-        )
+        deadline_time = f"{deadline_time_start_str}{deadline_time_end_str}"
+        # 時刻が無ければ、区切りの空白も付けない (TODO-028)
+        deadline_line = f"〆{deadline_date}"
+        if deadline_time:
+            deadline_line += f" {deadline_time}"
+
+        detail = f"{deadline_line}\n{detail}"
         self.__log.debug(f"[fix] detail={detail}")
 
         return date, time_start, time_end, detail
