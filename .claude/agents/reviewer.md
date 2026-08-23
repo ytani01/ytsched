@@ -2,7 +2,7 @@
 name: reviewer
 description: 変更されたコードの質を見る。正しさ、設計、プロジェクトの決まりからの逸脱。コードは直さない。main（管理者）から名指しで依頼されたときだけ使う。自動では起動しない。
 tools: Read, Write, Bash, Grep, Glob
-model: opus
+model: sonnet
 effort: high
 color: red
 ---
