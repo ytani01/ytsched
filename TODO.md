@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-031, TODO-032**
+**残っている項目: TODO-031, TODO-032, TODO-034**
 これまでに 31 件を決着させた。
-新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-034` から。**
+新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-035` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -70,6 +70,38 @@ git の差分を読んでも意味が分からない。`docs/javascript-scroll.s
 
 改良案
 - Conf.cgi を JSON 形式にする。
+
+---
+
+## TODO-034. `orig_date` と `expanduser()` の紛らわしいところを片付ける
+
+見込み: main = Sonnet 5 / effort medium、担当 = verifier のみ（実装は main）
+
+- [ ] `sde.html` が送っている `orig_date` を消す
+- [ ] `date2path()` の `expanduser()` を 1 か所に寄せる
+
+（背景）
+
+どちらも**今はバグではない**が、読む人に誤解させる。TODO-029 の
+reviewer と TODO-028 の reviewer から、それぞれ据え置かれていたもの。
+
+**1. `sde.html` の `orig_date`。** `sde.html` が `orig_date` を組み立てて
+`doPost()` のパラメータに載せているが、受け取る `EditHandler.get()` は
+`orig_date` を読んでいない（TODO-029 より前からそう）。ToDo のときは
+`'{{ None }}'` が文字列 `"None"` として送られている。TODO-029 で
+「`orig_date` は handler が決める」と方針が定まったので、送る側の
+死んだコードが残っているのは紛らわしい。
+
+**2. `date2path()` の `expanduser()`。** `SchedDataFile.__init__` と
+`SchedData.sdf_exists()` の 2 か所に分かれている。`topdir` を省いて
+`date2path()` を単独で呼ぶと `~` が展開されないまま渡る道が開いている
+（現状、そう呼んでいる箇所は無い）。
+
+（気をつけること）
+
+- 1 は、消す前に `sde.html` の `doPost()` を通る経路をすべて洗うこと。
+  受け取る側が読んでいないことの確認だけでは足りない
+- 2 は展開する場所を寄せるだけで、`~` の展開そのものの挙動は変えない
 
 ---
 
