@@ -11,7 +11,7 @@
 ```
 src/ytsched/
   ytsched.py       # データモデル: SchedDataEnt / SchedDataFile / SchedData
-  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、Conf.cgi の読み書き）
+  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、Conf.cgi の読み書き、引数の変換と検証）
   main_handler.py  # MainHandler（一覧表示・追加/修正/削除の実行）
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
@@ -55,7 +55,10 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 - **`HandlerBase`**（`handler.py`）が `tornado.web.RequestHandler` の
   共通部分。リクエストのたびにデータディレクトリ直下の設定ファイル
   `Conf.cgi` を読み書きする（`load_conf()` / `save_conf()` /
-  `get_conf()` / `set_conf()`）。人が手で編集するファイルではない
+  `get_conf()` / `set_conf()`）。人が手で編集するファイルではない。
+  引数や設定値の変換と検証もここに置く（`convert_value()` /
+  `str2date()` / `check_date()` / `date_range()` / `check_int_range()`。
+  TODO-027）
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
   実行（`cmd=add/fix/update/del`）を兼ねる。`GET`/`POST` とも同じ
   `get()` を呼ぶ（`post()` は `self.get()` に委譲するだけ）

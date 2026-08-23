@@ -58,7 +58,9 @@ class EditHandler(HandlerBase):
             date_str = self.get_argument("date", None)
 
             if date_str:
-                date = datetime.date.fromisoformat(date_str)
+                # 日付として読めなければ「指定が無かった」のと同じ
+                # ＝ 今日 (TODO-027)
+                date = self.convert_value("date", date_str, self.str2date)
 
         if not date:
             date = datetime.date.today()

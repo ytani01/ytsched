@@ -3,7 +3,9 @@
 #
 """MainHandler / EditHandler のテスト（tornado.testing）"""
 
+import contextlib
 import datetime
+import io
 import json
 from unittest import mock
 from urllib.parse import urlencode
@@ -11,6 +13,7 @@ from urllib.parse import urlencode
 import pytest
 import tornado.testing
 from helpers import URL_PREFIX, make_app
+from loguru import logger
 
 from ytsched.main_handler import MainHandler
 from ytsched.ytsched import SchedDataFile
@@ -47,6 +50,26 @@ DATALINE2 = mk_dataline(
 )
 
 FORM_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
+
+
+def date_id(date):
+    """1 日分の欄に付く id（テンプレート ``main.html``）。"""
+    return f'id="date-{date}"'
+
+
+@contextlib.contextmanager
+def capture_log(level="WARNING"):
+    """ログを集める。
+
+    ``mylog`` は loguru なので、``caplog``（標準の ``logging``）では
+    拾えない。``logger.add()`` で一時的な出力先を足す。
+    """
+    out = io.StringIO()
+    handler_id = logger.add(out, level=level, format="{level}:{message}")
+    try:
+        yield out
+    finally:
+        logger.remove(handler_id)
 
 
 class WebTestBase(tornado.testing.AsyncHTTPTestCase):
@@ -422,6 +445,447 @@ class TestMainHandler(WebTestBase):
         assert "ノートを買う" not in body
 
 
+class TestInvalidArgs(WebTestBase):
+    """数字・日付として読めない引数の扱い（TODO-027）
+
+    500 にせず、その指定を無視して画面を出す。不正な値は
+    ``Conf.cgi`` へ保存しない。不正な正規表現の扱い（TODO-012）と
+    同じ考え方。
+    """
+
+    def conf_text(self):
+        """``Conf.cgi`` の中身。ファイルが無ければ ``None``。"""
+        path = self.datadir / "Conf.cgi"
+        if not path.exists():
+            return None
+        return path.read_text(encoding="utf-8")
+
+    def today_id(self):
+        return date_id(datetime.date.today())
+
+    #
+    # search_n
+    #
+    def test_invalid_search_n_is_not_an_error(self):
+        """数字にならない ``search_n`` でも画面は出る。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="abc")
+
+        assert date_id(DATE1) in body
+
+    def test_invalid_search_n_is_not_saved(self):
+        """数字にならない ``search_n`` は ``Conf.cgi`` に残らない。"""
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="abc")
+
+        assert self.conf_text() is None
+
+    def test_invalid_search_n_does_not_break_next_request(self):
+        """一度踏んでも、次の素の GET が開ける。
+
+        以前は ``SearchN=abc`` が残って、以後ずっと 500 だった。
+        """
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="abc")
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert date_id(DATE1) in body
+
+    def test_invalid_search_n_falls_back_to_the_default(self):
+        """数字にならない ``search_n`` は既定値になる。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            search_str="ミーティング",
+            search_n="abc",
+        )
+
+        assert f'value="{MainHandler.DEF_SEARCH_N}" selected' in body
+
+    def test_invalid_search_n_keeps_saved_search_n(self):
+        """保存済みの ``SearchN`` は、不正な値では消えない。
+
+        「渡されていない」のと同じ扱いなので、``Conf.cgi`` の値へ
+        落ちる。
+        """
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="3")
+
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            search_str="ミーティング",
+            search_n="abc",
+        )
+
+        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
+        assert "SearchN\t3\n" in conf
+        assert 'value="3" selected' in body
+
+    def test_broken_search_n_in_conf_falls_back_to_the_default(self):
+        """``Conf.cgi`` に残っている不正な値も既定値へ落とす。
+
+        保存の側だけ直しても、踏んでしまった ``Conf.cgi`` は
+        直らないため。
+        """
+        (self.datadir / "Conf.cgi").write_text(
+            "SearchN\tabc\n", encoding="utf-8"
+        )
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="ミーティング"
+        )
+
+        assert f'value="{MainHandler.DEF_SEARCH_N}" selected' in body
+
+    #
+    # todo_days
+    #
+    def test_invalid_todo_days_is_not_an_error(self):
+        """数字にならない ``todo_days`` でも画面は出る。"""
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, todo_days="abc"
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_invalid_todo_days_is_not_saved(self):
+        """数字にならない ``todo_days`` は ``Conf.cgi`` に残らない。"""
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="abc")
+
+        assert self.conf_text() is None
+
+    def test_invalid_todo_days_falls_back_to_the_default(self):
+        """数字にならない ``todo_days`` は既定値になる。"""
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, todo_days="abc"
+        )
+
+        assert f'value="{MainHandler.DEF_TODO_DAYS}" selected' in body
+
+    def test_broken_todo_days_in_conf_falls_back_to_the_default(self):
+        """``Conf.cgi`` に残っている不正な値も既定値へ落とす。"""
+        (self.datadir / "Conf.cgi").write_text(
+            "ToDo_Days\tabc\n", encoding="utf-8"
+        )
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert date_id(DATE1) in body
+        assert f'value="{MainHandler.DEF_TODO_DAYS}" selected' in body
+
+    #
+    # date / cur_day / year+month+day
+    #
+    def test_invalid_date_falls_back_to_cur_day(self):
+        """日付として読めない ``date`` は「無し」扱い。"""
+        body = self.get_body(URL_PREFIX + "/", date="abc", cur_day=DATE1_STR)
+
+        assert date_id(DATE1) in body
+
+    def test_invalid_cur_day_falls_back_to_today(self):
+        """日付として読めない ``cur_day`` は今日になる。"""
+        body = self.get_body(URL_PREFIX + "/", cur_day="abc")
+
+        assert self.today_id() in body
+
+    def test_invalid_date_and_cur_day_fall_back_to_today(self):
+        """両方とも読めなければ今日。"""
+        body = self.get_body(URL_PREFIX + "/", date="abc", cur_day="abc")
+
+        assert self.today_id() in body
+
+    def test_invalid_year_is_ignored(self):
+        """数字にならない ``year`` は「無し」扱いで、``date`` が残る。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="abc",
+            month="3",
+            day="1",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_out_of_range_month_is_ignored(self):
+        """``month=13`` も「無し」扱い。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="2021",
+            month="13",
+            day="1",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_out_of_range_day_is_ignored(self):
+        """``day=32`` も「無し」扱い。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="2021",
+            month="3",
+            day="32",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_invalid_year_month_day_falls_back_to_today(self):
+        """``date``/``cur_day`` も無ければ今日。"""
+        body = self.get_body(
+            URL_PREFIX + "/", year="2021", month="13", day="1"
+        )
+
+        assert self.today_id() in body
+
+    def test_valid_year_month_day_still_works(self):
+        """正しい ``year``/``month``/``day`` は今までどおり効く。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date="2021-04-01",
+            year="2021",
+            month="3",
+            day="1",
+        )
+
+        assert date_id(DATE1) in body
+
+    #
+    # 数字・日付にはなるが、表示に使えない値（TODO-027）
+    #
+    def test_huge_year_is_ignored(self):
+        """C の ``int`` に収まらない ``year`` も「無し」扱い。
+
+        ``datetime.date()`` は ``ValueError`` ではなく
+        ``OverflowError`` を投げるので、以前はここで 500 になった。
+        """
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="99999999999",
+            month="1",
+            day="1",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_huge_month_is_ignored(self):
+        """C の ``int`` に収まらない ``month`` も「無し」扱い。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="2021",
+            month="99999999999",
+            day="1",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_huge_day_is_ignored(self):
+        """C の ``int`` に収まらない ``day`` も「無し」扱い。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="2021",
+            month="1",
+            day="99999999999",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_hugely_negative_day_is_ignored(self):
+        """負の側にはみ出す ``day`` も「無し」扱い。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="2021",
+            month="1",
+            day="-99999999999",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_huge_month_logs_a_warning(self):
+        """範囲外の ``month`` も、範囲が分かる形で警告を出す。"""
+        with capture_log() as log:
+            self.get_body(
+                URL_PREFIX + "/",
+                date=DATE1_STR,
+                year="2021",
+                month="99999999999",
+                day="1",
+            )
+
+        assert "month must be in 1..12" in log.getvalue()
+
+    def test_far_future_date_is_ignored(self):
+        """``datetime.date.max`` に近すぎる ``date`` は「無し」扱い。
+
+        日付としては正しいが、前後へ広げるところで
+        ``OverflowError`` になる。
+        """
+        body = self.get_body(
+            URL_PREFIX + "/", date="9999-12-31", cur_day=DATE1_STR
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_far_past_date_is_ignored(self):
+        """``datetime.date.min`` に近すぎる ``date`` も同じ。"""
+        body = self.get_body(
+            URL_PREFIX + "/", date="0001-01-01", cur_day=DATE1_STR
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_far_future_year_month_day_is_ignored(self):
+        """``year``/``month``/``day`` で指定しても同じ。"""
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            year="9999",
+            month="12",
+            day="31",
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_the_newest_usable_date_still_works(self):
+        """使える範囲の上端は、今までどおり出る。"""
+        date = datetime.date.max - datetime.timedelta(
+            MainHandler.SEARCH_MODE_MAX_DAYS
+        )
+
+        body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
+
+        assert date_id(date) in body
+
+    def test_the_oldest_usable_date_works_in_search_mode(self):
+        """使える範囲の下端は、検索モード（5 年前まで遡る）でも開ける。
+
+        範囲の幅は、この遡る分（``SEARCH_MODE_MAX_DAYS``）で決めて
+        いる。1 件も見つからない日は出ないので、200 で見る。
+        """
+        date = datetime.date.min + datetime.timedelta(
+            MainHandler.SEARCH_MODE_MAX_DAYS
+        )
+
+        res = self.fetch(
+            URL_PREFIX
+            + "/?"
+            + urlencode({"date": date.isoformat(), "search_str": "会議"})
+        )
+
+        assert res.code == 200
+
+    #
+    # todo_days: 数字にはなるが大きすぎる値（TODO-027）
+    #
+    # ToDo が 1 件も無いと ``load_todo()`` の中の足し算まで行かない
+    # ので、ToDo を置いた状態で見る。
+    #
+    TODO_TITLE = "ノートを買う"
+
+    def write_todo(self, deadline):
+        """期限 ``deadline`` の ToDo を 1 件書く。"""
+        line = mk_dataline(
+            sde_id="id-t",
+            date=deadline.isoformat(),
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title=self.TODO_TITLE,
+            place="",
+            detail="",
+        )
+        (self.datadir / "ToDo.jsonl").write_text(
+            line + "\n", encoding="utf-8"
+        )
+
+    def test_huge_todo_days_is_not_an_error(self):
+        """大きすぎる ``todo_days`` でも画面は出る。"""
+        self.write_todo(DATE1)
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, todo_days="99999999999"
+        )
+
+        assert date_id(DATE1) in body
+
+    def test_huge_todo_days_is_not_saved(self):
+        """大きすぎる ``todo_days`` は ``Conf.cgi`` に残らない。"""
+        self.write_todo(DATE1)
+
+        self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, todo_days="99999999999"
+        )
+
+        assert self.conf_text() is None
+
+    def test_huge_todo_days_does_not_break_next_request(self):
+        """一度踏んでも、次の素の GET が開ける。
+
+        以前は ``ToDo_Days=99999999999`` が ``Conf.cgi`` に残って、
+        ToDo がある限りトップページも開けなかった。
+        """
+        self.write_todo(DATE1)
+        self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, todo_days="99999999999"
+        )
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert date_id(DATE1) in body
+
+    def test_huge_todo_days_in_conf_falls_back_to_the_default(self):
+        """``Conf.cgi`` に残っている大きすぎる値も既定値へ落とす。"""
+        self.write_todo(DATE1)
+        (self.datadir / "Conf.cgi").write_text(
+            "ToDo_Days\t99999999999\n", encoding="utf-8"
+        )
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert date_id(DATE1) in body
+        assert f'value="{MainHandler.DEF_TODO_DAYS}" selected' in body
+
+    def test_invalid_todo_days_keeps_saved_todo_days(self):
+        """保存済みの ``ToDo_Days`` は、不正な値では消えない。
+
+        ``search_n`` と同じで、「渡されていない」のと同じ扱いなので
+        ``Conf.cgi`` の値へ落ちる。
+        """
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, todo_days="abc"
+        )
+
+        conf = (self.datadir / "Conf.cgi").read_text(encoding="utf-8")
+        assert "ToDo_Days\t7\n" in conf
+        assert 'value="7" selected' in body
+
+    #
+    # 警告ログ
+    #
+    def test_invalid_search_n_logs_a_warning(self):
+        """不正な値は、黙って捨てずに警告を 1 行出す。"""
+        with capture_log() as log:
+            self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="abc")
+
+        assert "WARNING:search_n='abc'" in log.getvalue()
+        assert "ignored" in log.getvalue()
+
+    def test_out_of_range_todo_days_logs_a_warning(self):
+        """範囲外の値も、範囲が分かる形で警告を出す。"""
+        days_max = max(MainHandler.TODO_DAYS.values())
+
+        with capture_log() as log:
+            self.get_body(
+                URL_PREFIX + "/", date=DATE1_STR, todo_days="99999999999"
+            )
+
+        assert f"must be in -1..{days_max}" in log.getvalue()
+
+
 class TestUpdate(WebTestBase):
     """``cmd=add`` → ``cmd=update`` → ``cmd=del``"""
 
@@ -689,6 +1153,332 @@ class TestUpdate(WebTestBase):
         assert json.loads(line)["title"] == "ノートを買う"
 
 
+class TestInvalidUpdateArgs(WebTestBase):
+    """``cmd=add``/``fix``/``update``/``del`` の日付・時刻が読めないとき
+
+    ここは**データを書き込む**経路なので、読めない引数は既定値へ
+    落とさずに 400 で断る（TODO-027）。表示の経路のように「無視して
+    既定値」にすると、利用者が指定していない日へデータが動いてしまう。
+
+    400 のときに**データが 1 行も変わっていないこと**まで見る。
+    """
+
+    def add_sde(self, title="新しい予定"):
+        """DATE1 に 1 件追加して、その sde_id を返す。"""
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            sde_type="会議",
+            title=title,
+            place="",
+            detail="",
+        )
+
+        lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 1
+        return json.loads(lines[0])["sde_id"]
+
+    def write_todo(self, sde_id="id-t"):
+        """ToDo を 1 件書く。"""
+        line = mk_dataline(
+            sde_id=sde_id,
+            time_start=None,
+            time_end=None,
+            type="□買い物",
+            title="ノートを買う",
+            place="",
+            detail="",
+        )
+        (self.datadir / "ToDo.jsonl").write_text(
+            line + "\n", encoding="utf-8"
+        )
+
+    def post_res(self, **args):
+        """POST して、レスポンスをそのまま返す（200 を確かめない）。"""
+        return self.fetch(
+            URL_PREFIX + "/",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(args),
+        )
+
+    def snapshot(self):
+        """``datadir`` 以下のファイルの中身を全部読む。
+
+        400 のときに 1 行も変わっていないことを、日付ごとのファイルも
+        ``ToDo.jsonl`` もまとめて見るため。
+        """
+        return {
+            str(p.relative_to(self.datadir)): p.read_bytes()
+            for p in sorted(self.datadir.rglob("*"))
+            if p.is_file()
+        }
+
+    #
+    # date が読めないとき: 400（書き込みは 1 つも起きない）
+    #
+    def test_add_with_unreadable_date_is_400(self):
+        """日付として読めない ``date`` は 400。"""
+        before = self.snapshot()
+
+        res = self.post_res(
+            cmd="add",
+            sde_id="",
+            date="abc",
+            sde_type="会議",
+            title="読めない日付の予定",
+            place="",
+            detail="",
+        )
+
+        assert res.code == 400
+        assert self.snapshot() == before
+        assert not (self.datadir / "ToDo.jsonl").exists()
+        assert not self.data_path(datetime.date.today()).exists()
+
+    def test_add_with_far_future_date_is_400(self):
+        """日付にはなるが、表示に使えない ``date`` も 400。"""
+        before = self.snapshot()
+
+        res = self.post_res(
+            cmd="add",
+            sde_id="",
+            date="9999-12-31",
+            sde_type="会議",
+            title="遠すぎる予定",
+            place="",
+            detail="",
+        )
+
+        assert res.code == 400
+        assert self.snapshot() == before
+        assert not self.data_path(datetime.date.today()).exists()
+
+    #
+    # orig_date が読めないとき: 400（消しも足しもしない）
+    #
+    def test_del_with_unreadable_orig_date_is_400(self):
+        """読めない ``orig_date`` の ``cmd=del`` は 400。元の予定も無事。"""
+        sde_id = self.add_sde()
+        before = self.snapshot()
+
+        res = self.post_res(
+            cmd="del",
+            sde_id=sde_id,
+            orig_date="abc",
+            date=DATE1_STR,
+            sde_type="会議",
+            title="新しい予定",
+        )
+
+        assert res.code == 400
+        assert self.snapshot() == before
+        assert "新しい予定" in self.data_path(DATE1).read_text(
+            encoding="utf-8"
+        )
+
+    def test_del_with_unreadable_orig_date_keeps_todo(self):
+        """``None`` へ落として ToDo を消す、という消し間違いをしない。
+
+        ``orig_date`` が無い（＝ ToDo）ときは ``None`` で ToDo の
+        ファイルを指すので、読めない値をそのまま ``None`` にすると
+        別のファイルを消しに行くことになる。
+        """
+        self.write_todo()
+        before = self.snapshot()
+
+        res = self.post_res(
+            cmd="del",
+            sde_id="id-t",
+            orig_date="abc",
+            date=DATE1_STR,
+            sde_type="□買い物",
+            title="ノートを買う",
+        )
+
+        assert res.code == 400
+        assert self.snapshot() == before
+        todo = (self.datadir / "ToDo.jsonl").read_text(encoding="utf-8")
+        assert "ノートを買う" in todo
+
+    def test_del_with_unreadable_orig_date_logs_a_warning(self):
+        """断ったことは、黙って済ませずに警告を出す。"""
+        sde_id = self.add_sde()
+
+        with capture_log() as log:
+            res = self.post_res(
+                cmd="del",
+                sde_id=sde_id,
+                orig_date="abc",
+                date=DATE1_STR,
+                sde_type="会議",
+                title="新しい予定",
+            )
+
+        assert res.code == 400
+        assert "orig_date='abc'" in log.getvalue()
+
+    def test_update_with_unreadable_orig_date_is_400(self):
+        """``cmd=update`` も 400。元の予定は消えず、重複も作らない。"""
+        self.add_sde()
+        sde_id = json.loads(
+            self.data_path(DATE1).read_text(encoding="utf-8").rstrip("\n")
+        )["sde_id"]
+        before = self.snapshot()
+
+        res = self.post_res(
+            cmd="update",
+            sde_id=sde_id,
+            orig_date="abc",
+            date=DATE1_STR,
+            sde_type="会議",
+            title="変更後",
+            place="",
+            detail="",
+        )
+
+        assert res.code == 400
+        assert self.snapshot() == before
+        lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 1
+        assert "新しい予定" in lines[0]
+
+    def test_far_future_orig_date_is_400(self):
+        """日付にはなるが表示に使えない ``orig_date`` も 400。"""
+        self.write_todo()
+        before = self.snapshot()
+
+        res = self.post_res(
+            cmd="del",
+            sde_id="id-t",
+            orig_date="9999-12-31",
+            date=DATE1_STR,
+            sde_type="□買い物",
+            title="ノートを買う",
+        )
+
+        assert res.code == 400
+        assert self.snapshot() == before
+        todo = (self.datadir / "ToDo.jsonl").read_text(encoding="utf-8")
+        assert "ノートを買う" in todo
+
+    #
+    # time_start / time_end が読めないとき: 400（前は 500 だった）
+    #
+    def assert_unreadable_time_is_400(self, arg_name):
+        """時刻として読めない値を渡して、400 とデータ無傷を確かめる。
+
+        ``AsyncHTTPTestCase`` は ``unittest.TestCase`` なので
+        ``pytest.mark.parametrize`` が効かない。呼び分ける。
+        """
+        before = self.snapshot()
+
+        args = {
+            "cmd": "add",
+            "sde_id": "",
+            "date": DATE1_STR,
+            "sde_type": "会議",
+            "title": "読めない時刻の予定",
+            "place": "",
+            "detail": "",
+            arg_name: "abc",
+        }
+        res = self.post_res(**args)
+
+        assert res.code == 400
+        assert self.snapshot() == before
+        assert not self.data_path(DATE1).exists()
+
+    def test_unreadable_time_start_is_400(self):
+        """時刻として読めない ``time_start`` は 400。
+
+        ``datetime.time.fromisoformat()`` を素通しにしていた頃は 500
+        だった（TODO-027）。
+        """
+        self.assert_unreadable_time_is_400("time_start")
+
+    def test_unreadable_time_end_is_400(self):
+        """``time_end`` も同じ。"""
+        self.assert_unreadable_time_is_400("time_end")
+
+    def test_out_of_range_time_is_400(self):
+        """``25:00`` のような時刻も 400。"""
+        res = self.post_res(
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            sde_type="会議",
+            title="範囲外の時刻",
+            place="",
+            detail="",
+            time_start="25:00",
+        )
+
+        assert res.code == 400
+        assert not self.data_path(DATE1).exists()
+
+    #
+    # 400 のガードが、普通の操作まで止めていないこと
+    #
+    def test_del_with_valid_orig_date_deletes(self):
+        """``orig_date`` が正しければ、今までどおり消える。"""
+        sde_id = self.add_sde()
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="del",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+            sde_type="会議",
+            title="新しい予定",
+        )
+
+        assert self.data_path(DATE1).read_text(encoding="utf-8") == ""
+
+    def test_update_with_valid_orig_date_replaces(self):
+        """``orig_date`` が正しければ、今までどおり置き換わる。"""
+        sde_id = self.add_sde()
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="update",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+            sde_type="会議",
+            title="変更後",
+            place="",
+            detail="",
+        )
+
+        lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 1
+        assert json.loads(lines[0])["title"] == "変更後"
+
+    def test_del_todo_with_empty_orig_date_still_works(self):
+        """``orig_date`` が空のときは、今までどおり ToDo を消す。
+
+        空は「指定が無かった」で、読めない値とは別扱い（TODO-016）。
+        """
+        self.write_todo()
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="del",
+            sde_id="id-t",
+            orig_date="",
+            date="",
+            sde_type="□買い物",
+            title="ノートを買う",
+        )
+
+        todo = (self.datadir / "ToDo.jsonl").read_text(encoding="utf-8")
+        assert "ノートを買う" not in todo
+
+
 class TestEditHandler(WebTestBase):
     """``EditHandler``"""
 
@@ -736,6 +1526,23 @@ class TestEditHandler(WebTestBase):
             )
         )
         assert res.code == 404
+
+    def test_unreadable_date_falls_back_to_today(self):
+        """日付として読めない ``date`` は今日 (TODO-027)。
+
+        以前はここが ``fromisoformat()`` の素通しで 500 だった。
+        """
+        body = self.get_body(URL_PREFIX + "/edit", date="abc")
+
+        today = datetime.date.today()
+        assert f'value="{today.isoformat()}"' in body
+
+    def test_far_future_date_falls_back_to_today(self):
+        """日付にはなるが、表示に使えない ``date`` も今日。"""
+        body = self.get_body(URL_PREFIX + "/edit", date="9999-12-31")
+
+        today = datetime.date.today()
+        assert f'value="{today.isoformat()}"' in body
 
     def test_get_existing_todo(self):
         todo_line = mk_dataline(

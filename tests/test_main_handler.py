@@ -28,16 +28,17 @@ from unittest import mock
 from urllib.parse import urlencode
 
 from helpers import URL_PREFIX
-from test_web import DATE1, DATE1_STR, WebTestBase, mk_dataline
+from test_web import (
+    DATE1,
+    DATE1_STR,
+    WebTestBase,
+    date_id,
+    mk_dataline,
+)
 
 from ytsched.main_handler import MainHandler
 
 CONF_FNAME = "Conf.cgi"
-
-
-def date_id(date):
-    """1 日分の欄に付く id（テンプレート ``main.html``）。"""
-    return f'id="date-{date}"'
 
 
 #
@@ -47,9 +48,17 @@ class TestConfArgs(WebTestBase):
     """設定値の取り出し 4 か所は、条件が揃っていない。
 
     ``search_str`` と ``search_n`` は ``is not None`` で、
-    ``todo_days`` と ``filter_str`` は truthy で分岐する。
-    **空文字を渡したときだけ差が出る**ので、``Conf.cgi`` の中身と
-    画面で押さえる。4 か所を 1 つにまとめるときも、この差は残る。
+    ``todo_days`` と ``filter_str`` は truthy で分岐する
+    （``empty_is_given``）。差が出るのは空文字を渡したときだけなので、
+    ``Conf.cgi`` の中身と画面で押さえる。
+
+    ただし、**外から差が見えるのは ``search_str``/``filter_str`` の
+    2 か所だけ**。``search_n`` の ``convert`` は ``int``、
+    ``todo_days`` の ``convert`` は ``str2todo_days()``（中で ``int()``
+    を呼ぶ）で、どちらも ``int('')`` が必ず失敗して「渡されていない」
+    のと同じ扱いになる（TODO-027）ため、空文字が分岐に入っても
+    入らなくても結果が変わらない。つまり、この 2 か所の
+    ``empty_is_given`` を揃えてもここのテストは落ちない（TODO-028）。
     """
 
     def conf_text(self):
@@ -106,25 +115,23 @@ class TestConfArgs(WebTestBase):
         assert "歯医者" in body
         assert "定例ミーティング" not in body
 
-    def test_empty_search_n_is_an_error(self):
-        """空の ``search_n`` は ``int('')`` になり、500 になる。
+    def test_empty_search_n_is_not_saved(self):
+        """空の ``search_n`` は ``int('')`` にならず、保存もされない。
 
         ``is not None`` で分岐するので空文字がそのまま ``int()`` へ
-        渡る。**保存だけは先に済んでいる**。
+        渡るが、数字として読めないので「渡されていない」のと同じ扱いに
+        なる（TODO-027）。**以前はここで 500 になり、空のまま
+        ``Conf.cgi`` に残っていた**。
         """
         res = self.fetch(
             URL_PREFIX + "/?" + urlencode({"date": DATE1_STR, "search_n": ""})
         )
 
-        assert res.code == 500
-        assert self.conf_text() == "SearchN\t\n"
+        assert res.code == 200
+        assert self.conf_text() is None
 
     def test_empty_search_n_does_not_break_next_request(self):
-        """空で保存された ``SearchN`` は、次の表示では既定値に戻る。
-
-        引数を渡さなければ ``Conf.cgi`` の空文字は truthy でないので、
-        ``DEF_SEARCH_N`` へ落ちる。
-        """
+        """空の ``search_n`` のあとも、次の表示は既定値のまま。"""
         self.fetch(
             URL_PREFIX + "/?" + urlencode({"date": DATE1_STR, "search_n": ""})
         )
@@ -138,7 +145,7 @@ class TestConfArgs(WebTestBase):
     def test_empty_todo_days_is_ignored(self):
         """空の ``todo_days`` は「渡されていない」扱いで、既定値になる。
 
-        ``search_n`` と違って ``int('')`` にならず、エラーにならない。
+        ``search_n`` と違って ``int('')`` を試すところまで行かない。
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="")
 

@@ -11,6 +11,7 @@ __date__ = "2021/01"
 import datetime
 import math
 import re
+from collections.abc import Callable
 from typing import ClassVar
 
 import tornado.web
@@ -76,7 +77,7 @@ class MainHandler(HandlerBase):
     __log = getLogger(__qualname__)
 
     DEF_DAYS = 45
-    SEARCH_MODE_MAX_DAYS = 365 * 5
+    # SEARCH_MODE_MAX_DAYS は HandlerBase にある (TODO-027)
     SEARCH_MODE_DAYS = 365
     DEF_SEARCH_N = 5
 
@@ -119,6 +120,7 @@ class MainHandler(HandlerBase):
             self.CONF_KEY_SEARCH_STR,
             "",
             empty_is_given=True,
+            convert=str,
         )
         search_str = search_str.lower()
         self.__log.debug(f"search_str='{search_str}'")
@@ -138,13 +140,13 @@ class MainHandler(HandlerBase):
         #
         # todo_days_value
         #
-        todo_days_str = self.get_conf_arg(
+        todo_days_value = self.get_conf_arg(
             "todo_days",
             self.CONF_KEY_TODO_DAYS,
-            str(self.DEF_TODO_DAYS),
+            self.DEF_TODO_DAYS,
             empty_is_given=False,
+            convert=self.str2todo_days,
         )
-        todo_days_value = int(todo_days_str)
         self.__log.debug(f"todo_days_value={todo_days_value!a}")
 
         #
@@ -160,6 +162,7 @@ class MainHandler(HandlerBase):
             self.CONF_KEY_FILTER_STR,
             "",
             empty_is_given=False,
+            convert=str,
         )
         filter_str = filter_str.lower()
         self.__log.debug(f"filter_str={filter_str!a}")
@@ -183,13 +186,13 @@ class MainHandler(HandlerBase):
         #
         # search_n
         #
-        search_n_str = self.get_conf_arg(
+        search_n = self.get_conf_arg(
             "search_n",
             self.CONF_KEY_SEARCH_N,
-            str(self.DEF_SEARCH_N),
+            self.DEF_SEARCH_N,
             empty_is_given=True,
+            convert=int,
         )
-        search_n = int(search_n_str)
         self.__log.debug(f"search_n={search_n}")
 
         #
@@ -243,14 +246,70 @@ class MainHandler(HandlerBase):
             gage=GAGE,
         )
 
-    def get_conf_arg(
+    def str2ymd_date(self, value: str) -> datetime.date:
+        """``year/month/day`` の形の文字列を日付にする (TODO-027)。
+
+        ``convert_value()`` に渡す変換関数。``ymd2date()`` が 3 つの
+        引数を ``/`` で繋いで渡す。数が合わなければ ``ValueError``。
+
+        年・月・日は、``datetime.date()`` へ渡す**前に**、それぞれの
+        範囲を見る (``check_int_range()``)。日が月末を越えているか
+        どうかは ``datetime.date()`` が見る。
+
+        Parameters
+        ----------
+        value: str
+            ``2021/3/1`` の形 (0 詰めはしない)
+
+        Returns
+        -------
+        datetime.date
+
+        """
+        year_str, month_str, day_str = value.split("/")
+
+        year = self.check_int_range(
+            "year", int(year_str), datetime.MINYEAR, datetime.MAXYEAR
+        )
+        month = self.check_int_range("month", int(month_str), 1, 12)
+        day = self.check_int_range("day", int(day_str), 1, 31)
+
+        return self.check_date(datetime.date(year, month, day))
+
+    def str2todo_days(self, value: str) -> int:
+        """ToDo の期間 (日数) にする (TODO-027)。
+
+        ``convert_value()`` に渡す変換関数。数字にならない値も、
+        画面で選べる範囲 (``TODO_DAYS``) の外も ``ValueError``。
+        範囲外の日数は、``load_todo()`` の
+        ``today + datetime.timedelta(todo_days_value)`` が
+        ``OverflowError`` になる。
+
+        Parameters
+        ----------
+        value: str
+
+        Returns
+        -------
+        int
+
+        """
+        return self.check_int_range(
+            "todo_days",
+            int(value),
+            min(self.TODO_DAYS.values()),
+            max(self.TODO_DAYS.values()),
+        )
+
+    def get_conf_arg[T](
         self,
         arg_name: str,
         conf_key: str,
-        default: str,
+        default: T,
         *,
         empty_is_given: bool,
-    ) -> str:
+        convert: Callable[[str], T],
+    ) -> T:
         """引数か ``Conf.cgi`` から設定値を取り出す。
 
         引数が渡されていれば、その値を使い、``Conf.cgi`` の値と違えば
@@ -262,19 +321,29 @@ class MainHandler(HandlerBase):
         ``todo_days``/``filter_str`` は ``False`` で、
         4 つの取り出し方は揃っていない (TODO-021)。
 
+        値は ``convert`` を通してから返す。**変換できない値は「渡されて
+        いない」のと同じ扱いにして、``Conf.cgi`` へ保存しない**
+        (TODO-027)。``Conf.cgi`` に既に入っている値も、変換できなければ
+        ``default`` へ落とす。
+
         Parameters
         ----------
         arg_name: str
             リクエスト引数の名前
         conf_key: str
             ``Conf.cgi`` のキー
-        default: str
-            引数も ``Conf.cgi`` も無いときの値
+        default: T
+            引数も ``Conf.cgi`` も無い (または変換できない) ときの値
         empty_is_given: bool
+        convert: Callable[[str], T]
+            ``search_n`` は ``int``、``todo_days`` は
+            ``str2todo_days()``。``search_str``/``filter_str`` は
+            ``str`` で、**これは失敗しないので検証にはならない**
+            (返す型を決めるために渡している)
 
         Returns
         -------
-        str
+        T
 
         """
         conf_value = self.get_conf(conf_key)
@@ -282,12 +351,16 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"{arg_name}={value!a}, {conf_key}={conf_value!a}")
 
         if value is not None and (empty_is_given or value):
-            if value != conf_value:
-                self.set_conf(conf_key, value)
-            return value
+            converted = self.convert_value(arg_name, value, convert)
+            if converted is not None:
+                if value != conf_value:
+                    self.set_conf(conf_key, value)
+                return converted
 
         if conf_value:
-            return conf_value
+            converted = self.convert_value(conf_key, conf_value, convert)
+            if converted is not None:
+                return converted
 
         return default
 
@@ -407,7 +480,10 @@ class MainHandler(HandlerBase):
 
         cur_day_str = self.get_argument("cur_day", None)
         if cur_day_str:
-            cur_day = datetime.date.fromisoformat(cur_day_str)
+            # 日付として読めなければ今日のまま (TODO-027)
+            parsed = self.convert_value("cur_day", cur_day_str, self.str2date)
+            if parsed is not None:
+                cur_day = parsed
         self.__log.debug(f"cur_day={cur_day}")
 
         date = None  # default
@@ -415,7 +491,8 @@ class MainHandler(HandlerBase):
         date_str = self.get_argument("date", None)
         self.__log.debug(f"date_str={date_str}")
         if date_str:
-            date = datetime.date.fromisoformat(date_str)
+            # 日付として読めなければ「指定が無かった」のと同じ (TODO-027)
+            date = self.convert_value("date", date_str, self.str2date)
 
         if modified_date:
             date = modified_date
@@ -425,13 +502,42 @@ class MainHandler(HandlerBase):
         day = self.get_argument("day", None)
 
         if year and month and day:
-            date = datetime.date(int(year), int(month), int(day))
+            # 日付にならなければ「指定が無かった」のと同じ (TODO-027)
+            parsed = self.ymd2date(year, month, day)
+            if parsed is not None:
+                date = parsed
 
         if not date:
             date = cur_day
 
         self.__log.debug(f"date={date}")
         return date
+
+    def ymd2date(
+        self, year: str, month: str, day: str
+    ) -> datetime.date | None:
+        """``year``/``month``/``day`` を日付にする (TODO-027)。
+
+        数字にならない値も、``month=13``/``day=32`` のような範囲外も、
+        表示に使えないほど遠い日付も ``None`` を返して、警告を 1 行
+        出す。変換と警告は ``convert_value()`` に任せるので、3 つを
+        ``year/month/day`` の形に繋いでから渡す。
+
+        Parameters
+        ----------
+        year: str
+        month: str
+        day: str
+
+        Returns
+        -------
+        datetime.date | None
+            日付にならなければ ``None``
+
+        """
+        return self.convert_value(
+            "year/month/day", f"{year}/{month}/{day}", self.str2ymd_date
+        )
 
     def get_sde_align(self) -> str:
         """スケジュールの表示位置 (``top``/``bottom``)。"""
@@ -726,6 +832,9 @@ class MainHandler(HandlerBase):
         self.__log.debug("")
 
         # get orig_date
+        # ``get_date_arg()``/``get_time_arg()`` は、空でないのに読めない
+        # 値を 400 で断る。書き込みが 1 つも起きる前に弾くために、
+        # ``cmd_del()``/``cmd_add()`` より先に呼んでおく (TODO-027)
         orig_date = self.get_date_arg("orig_date")
         self.__log.debug(f"orig_date={orig_date}")
 
@@ -806,6 +915,15 @@ class MainHandler(HandlerBase):
     def get_date_arg(self, arg_name: str) -> datetime.date | None:
         """フォームの引数を日付として取り出す（空なら ``None``）。
 
+        書き込む経路 (``exec_update()``) 専用。**空でないのに日付として
+        読めない値**（形式が不正、または ``date_range()`` の外）は
+        400 で断る (TODO-027)。表示の経路のように既定値へ落とすと、
+        利用者が指定していない日へデータが動いてしまうため。
+
+        空のときは今までどおり ``None``。``date`` なら
+        ``SchedDataEnt`` 側で今日になり (TODO-016)、``orig_date`` なら
+        ToDo のファイルを指す。
+
         Parameters
         ----------
         arg_name: str
@@ -814,15 +932,29 @@ class MainHandler(HandlerBase):
         -------
         datetime.date | None
 
+        Raises
+        ------
+        tornado.web.HTTPError
+            空でないのに日付として読めないとき (400)
+
         """
         value = self.get_argument(arg_name, None)
-        if value:
-            return datetime.date.fromisoformat(value)
+        if not value:
+            return None
 
-        return None
+        date = self.convert_value(arg_name, value, self.str2date)
+        if date is None:
+            raise tornado.web.HTTPError(
+                400, "invalid date: %s=%r", arg_name, value
+            )
+
+        return date
 
     def get_time_arg(self, arg_name: str) -> datetime.time | None:
         """フォームの引数を時刻として取り出す（空なら ``None``）。
+
+        ``get_date_arg()`` と同じで、**空でないのに時刻として読めない
+        値**は 400 で断る (TODO-027)。
 
         Parameters
         ----------
@@ -832,12 +964,25 @@ class MainHandler(HandlerBase):
         -------
         datetime.time | None
 
+        Raises
+        ------
+        tornado.web.HTTPError
+            空でないのに時刻として読めないとき (400)
+
         """
         value = self.get_argument(arg_name, None)
-        if value:
-            return datetime.time.fromisoformat(value)
+        if not value:
+            return None
 
-        return None
+        time = self.convert_value(
+            arg_name, value, datetime.time.fromisoformat
+        )
+        if time is None:
+            raise tornado.web.HTTPError(
+                400, "invalid time: %s=%r", arg_name, value
+            )
+
+        return time
 
     def get_deadline_str(self) -> tuple[str, str, str]:
         """締切(``deadline_*``)のフォーム引数を取り出す。
