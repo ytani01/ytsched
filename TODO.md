@@ -15,16 +15,35 @@
 
 ---
 
-## TODO-032. 改良案
+## TODO-032. `Conf.cgi` を JSON 形式にする
 
-今、考えられる改良案をまとめる。
-簡単に修正出来るものはまとめて修正する。
-難しいものは個別の項目として分離する。
+見込み: main = Opus 5 / effort high、担当 = implementer + verifier + reviewer + wording
 
-改良案
-- Conf.cgi を JSON 形式にする。
+- [ ] `handler.py` の `load_conf()` / `save_conf()` を JSON の読み書きにする
+- [ ] 設定ファイル名を `Conf.cgi` から `conf.json` へ変える
+- [ ] `ytsched migrate` に `Conf.cgi` → `conf.json` の変換を足す
+- [ ] テストを直す
+- [ ] 文書を直す（`src/README.md`、`docs/data-format.md`）
 
----
+設定を datadir の `Conf.cgi` にタブ区切りで置いている（`ToDo_Days`、
+`FilterStr`、`SearchStr`、`SearchN` の 4 つ）。自前で 1 行ずつ分解して
+読み書きしているところを、標準ライブラリの `json` に置き換える。
+
+TODO-011 で一度「対応しない」と決めた件。あのときの主題は TOML 化で、
+書き込みに依存が増えることを理由に見送った。JSON なら依存は増えず、
+自前のパーサも消せる。TODO-011 が挙げた蒸し返しの条件（設定の値の型が
+文字列だけで収まらなくなる）は今も満たしていないが、利用者の判断で進める。
+
+決めたこと:
+
+- **移行は `ytsched migrate` に載せる。** JSON Lines への移行と入口を揃える。
+  移行のコードは `migrate.py` に集め、`handler.py` に後方互換を残さない
+- **ファイル名は `conf.json` へ変える。** `.cgi` は Perl CGI 時代の名残で、
+  中身とも合わない。移行と同じタイミングで変えられる
+- **値は文字列のまま保存する。** `main_handler.py` の `get_conf_arg()` /
+  `convert_value()` の変換をそのまま使い、形式の変更だけに範囲を絞る。
+  数値を `int` で持つと、不正な値を保存しない扱い（TODO-027）にも
+  手を入れることになる
 
 ---
 
