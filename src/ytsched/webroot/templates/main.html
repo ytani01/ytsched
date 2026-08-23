@@ -1,115 +1,112 @@
+{# -*- engine: tornado -*- #}
 {% extends "base.html" %}
 {% block content %}
 <header>
   <script>
-    let clickCount = 0;
-    
-    const homeButtonHdr = (event) => {
-      if( !clickCount ) { // single click
-	                       ++clickCount;
-	      setTimeout(function() {clickCount = 0;}, 350 );
-        console.log("single click");
-        
-        const search_str0 = '{{ search_str }}';
-        console.log(`search_str0=${search_str0}`);
-        if ( search_str0 ) {
-          const el_search = document.getElementById("search_str");
-          const search_str = el_search.value;
-          console.log(`search_str=${search_str}`);
-          doPost('{{ url_prefix }}',
-                 {
-                   date: '{{ today }}',
-                   search_str: search_str
-                 } );
-        }
-        scrollToDate('{{ url_prefix }}', '{{ today }}', 'top');
-        
-      } else { // double click
-        //event.preventDefault() ;
-	      clickCount = 0;
-	      console.log( "double click" ) ;
-        
-        doPost('{{ url_prefix }}',
-               {date: '{{ today }}', sde_align: 'top'} );
-      }
-    };
+   let clickCount = 0;
+   
+   const homeButtonHdr = (event) => {
+     if( !clickCount ) { // single click
+	                      ++clickCount;
+	     setTimeout(function() {clickCount = 0;}, 350 );
+       console.log("single click");
+       
+       const search_str0 = '{{ search_str }}';
+       console.log(`search_str0=${search_str0}`);
+       if ( search_str0 ) {
+         const el_search = document.getElementById("search_str");
+         const search_str = el_search.value;
+         console.log(`search_str=${search_str}`);
+         doPost('{{ url_prefix }}',
+                {
+                  date: '{{ today }}',
+                  search_str: search_str
+                } );
+       }
+       scrollToDate('{{ url_prefix }}', '{{ today }}', 'top');
+       
+     } else { // double click
+       //event.preventDefault() ;
+	     clickCount = 0;
+	     console.log( "double click" ) ;
+       
+       doPost('{{ url_prefix }}',
+              {date: '{{ today }}', sde_align: 'top'} );
+     }
+   };
 
-    const onloadHdr = (event) => {
-      console.log(`onloadHdr(${event}`);
-      elLoadingSpinner = document.getElementById("loadingSpinner");
-      loadingSpinner(false);
-      
-      elMain = document.getElementById("main"); // declared in my.js
+   const onloadHdr = (event) => {
+     console.log(`onloadHdr(${event}`);
+     elLoadingSpinner = document.getElementById("loadingSpinner");
+     loadingSpinner(false);
+     
+     elMain = document.getElementById("main"); // declared in my.js
 
-      const elMenuBar = document.getElementById("menu_bar");
-      const menu_bar_height = elMenuBar.offsetHeight;
-      document.body.style.paddingBottom = `${menu_bar_height}px`;
-      
-      const body_h = document.body.clientHeight;
-      const win_h = document.documentElement.clientHeight;
-      const centerY = win_h / 2 + 40;
-      console.log(`centerY=${centerY}`);
+     const elMenuBar = document.getElementById("menu_bar");
+     const menu_bar_height = elMenuBar.offsetHeight;
+     document.body.style.paddingBottom = `${menu_bar_height}px`;
+     
+     const body_h = document.body.clientHeight;
+     const win_h = document.documentElement.clientHeight;
+     const centerY = win_h / 2 + 40;
+     console.log(`centerY=${centerY}`);
 
-      let gage = [
-          {% for i, d in enumerate(gage) %}
-          {
-            id: 'gage_r{{ i }}',
-            label: '{{ d['label'] }}',
-            yOffset: {{ d['y_offset'] }}
-          },
-          {% end %}
-      ];
+     let gage = [
+       {% for i, d in enumerate(gage) %}
+       {
+         id: 'gage_r{{ i }}',
+         label: '{{ d['label'] }}',
+         yOffset: {{ d['y_offset'] }}
+       },
+       {% end %}
+     ];
 
-      for (let g of gage) {
-        // console.log(`g={${g.id},${g.yOffset}},${centerY - g.yOffset}`);
-        const el = document.getElementById(g.id);
-        el.style.bottom = `${centerY - g.yOffset}px`;
-      }
+     for (let g of gage) {
+       // console.log(`g={${g.id},${g.yOffset}},${centerY - g.yOffset}`);
+       const el = document.getElementById(g.id);
+       el.style.bottom = `${centerY - g.yOffset}px`;
+     }
 
-      const elGageRBase = document.getElementById("gage_r_base");
+     const elGageRBase = document.getElementById("gage_r_base");
 
-      elGageR0 = document.getElementById("gage_r"); // declared in my.js
-      elGageRBase.style.bottom = `${centerY}px`;
+     elGageR0 = document.getElementById("gage_r"); // declared in my.js
+     elGageRBase.style.bottom = `${centerY}px`;
 
-      if ( body_h < win_h ) {
-        console.log(`body_h=${body_h} < win_h=${win_h}`);
-        const date_from_str = document.getElementById("date_from").value;
-        dispGage(date_from_str);
-        elMain.style.visibility = "visible";
-        return;
-      }
+     if ( body_h < win_h ) {
+       console.log(`body_h=${body_h} < win_h=${win_h}`);
+       const date_from_str = document.getElementById("date_from").value;
+       dispGage(date_from_str);
+       elMain.style.visibility = "visible";
+       return;
+     }
 
-      const el_sde_align = document.getElementById("sde_align");
-      const el_date = document.getElementById("date");
-      scrollToDate(location.pathname,
-                   el_date.value, el_sde_align.value,
-                   "auto");
-      
-      const el_search = document.getElementById("search_str");
-      console.log(`onload(): search_str="${el_search.value}"`);
-      if (el_search.value == "") {
-        window.addEventListener('scroll', scrollHdr0, {passive:true});
-      } else {
-        const date_from_str = document.getElementById("date_from").value;
-        dispGage(date_from_str);
-      }
-    }; // onloadHdr()
-    
-    const changeSearchN = (val) => {
-      console.log(`changeSearchN: val=${val}`);
-      doPost({{ url_prefix }}, {date: cur_day.value, search_n: val} );
-    };
+     const el_sde_align = document.getElementById("sde_align");
+     const el_date = document.getElementById("date");
+     scrollToDate(location.pathname,
+                  el_date.value, el_sde_align.value,
+                  "auto");
+     
+     const el_search = document.getElementById("search_str");
+     console.log(`onload(): search_str="${el_search.value}"`);
+     if (el_search.value == "") {
+       window.addEventListener('scroll', scrollHdr0, {passive:true});
+     } else {
+       const date_from_str = document.getElementById("date_from").value;
+       dispGage(date_from_str);
+     }
+   }; // onloadHdr()
+   
+   const changeSearchN = (val) => {
+     console.log(`changeSearchN: val=${val}`);
+     doPost('{{ url_prefix }}', {date: cur_day.value, search_n: val} );
+   };
 
-    window.addEventListener('load', onloadHdr);
+   window.addEventListener('load', onloadHdr);
   </script>
 </header>
 <main id="main" style="background-color:#FFF; visibility: hidden;
-                       padding-left:22px">
-  <div id="loadingSpinner"
-       style="position: fixed;
-              left: 50%; bottom: 55%; transform: translate(-50%, 50%);
-              opacity: 0.3;
-              z-index: 1000;">
+          padding-left:22px">
+  <div id="loadingSpinner" class="my-spinner">
     <!-- <i class="fas fa-sync fa-9x fa-spin"></i> -->
     <i class="fas fa-spinner fa-9x fa-spin"></i>
   </div>
@@ -117,8 +114,7 @@
 
     <!-- 不正な正規表現の知らせ (TODO-012) -->
     {% if filter_error or search_error %}
-    <div class="alert alert-danger p-1 m-0 text-center"
-         style="font-size: small;">
+    <div class="alert alert-danger p-1 m-0 text-center my-fs-small">
       <i class="fas fa-exclamation-triangle"></i>
       {% if filter_error %}
       フィルタの正規表現が正しくないので、絞り込みを無視しています
@@ -134,77 +130,72 @@
 
     <!-- hidden params -->
     <input id="sde_align" name="sde_align"
-           type="hidden" value="{{ sde_align }}" />
+      type="hidden" value="{{ sde_align }}" />
     <input id="date_from" name="date_from"
-           type="hidden" value="{{ date_from }}" />
+      type="hidden" value="{{ date_from }}" />
     <input name="cur_day"
-           type="hidden" value="{{ date }}" />
+      type="hidden" value="{{ date }}" />
     <input id="date_to" name="date_to"
-           type="hidden" value="{{ date_to}}" />
+      type="hidden" value="{{ date_to}}" />
     <input id="search_n" name="search_n"
-           type="hidden" value="{{ search_n }}" />
+      type="hidden" value="{{ search_n }}" />
 
     <!-- gages -->
-    <div id="gage_r" class="my-osd-base my-gage"
-         style="left: 1px; opacity: 0.2;">
+    <div id="gage_r" class="my-osd-base my-gage my-gage-r">
       <i class="fas fa-caret-right fa-2x my-gage-text"></i>
     </div>
 
-    <div id="gage_r_base" class="my-osd-base my-gage"
-         style="left: 3px;">
+    <div id="gage_r_base" class="my-osd-base my-gage my-gage-base">
       <i class="fas fa-grip-lines fa-xs my-gage-text"></i>
       <!-- <i class="fas fa-caret-left fa-2x"></i> -->
     </div>
 
     {% for i, d in enumerate(gage) %}
-    <div id="gage_r{{ i }}" class="my-osd-base my-gage my-gage-text"
-         style="font-size:x-small; left:1px;">
+    <div id="gage_r{{ i }}"
+      class="my-osd-base my-gage my-gage-text my-gage-label">
       <span>{{ d['label'] }}</span>
     </div>
     {% end %}
 
     {% if search_mode %}
-        {% set date_from2 = str(date_from).replace('-','/') %}
-        {% set date_to2 = str(date_to).replace('-','/') %}
-        {% set date2 = str(date).replace('-', '/') %}
-        {% set delta_from = (date_from - date) / date.resolution %}
-        {% set delta_to = (date_to - date) / date.resolution %}
+    {% set date_from2 = str(date_from).replace('-','/') %}
+    {% set date_to2 = str(date_to).replace('-','/') %}
+    {% set date2 = str(date).replace('-', '/') %}
+    {% set delta_from = (date_from - date) / date.resolution %}
+    {% set delta_to = (date_to - date) / date.resolution %}
 
     <div class="row m-0 my-bar">
       <!-- backward -->
       <div class="col-2 p-0 text-center my-btn"
-           onmousedown="doPostDate(
-                        '{{ url_prefix }}',
-                        '{{ date }}',
-                        {{ str(date_from - date_to)[:-14] }} );">
-        <i class="fas fa-search fa-lg"
-           style="vertical-align: middle;"></i><br />
-        <i class="fas fa-arrow-alt-circle-up fa-lg"
-           style="vertical-align: middle;"></i>
+        onmousedown="doPostDate(
+                  '{{ url_prefix }}',
+                  '{{ date }}',
+                  {{ str(date_from - date_to)[:-14] }} );">
+        <i class="fas fa-search fa-lg align-middle"></i><br />
+        <i class="fas fa-arrow-alt-circle-up fa-lg align-middle"></i>
       </div><!-- col -->
 
       <!-- 検索期間・件数 -->
       <div class="col-10 p-0 text-left">
-        <span style="font-size: large;">
+        <span class="my-fs-large">
           {{ date_from.strftime('%Y/%m/%d') }}
         </span>
 
         <i class="fas fa-arrows-alt-h"></i>
 
         <input type="date" value="{{ date_to }}"
-               onchange="doPostDate('{{ url_prefix }}',
-                         this.value, 0);" />
+          onchange="doPostDate('{{ url_prefix }}',
+                     this.value, 0);" />
         <br />
-        <span style="font-size: small;">目標件数</span>
+        <span class="my-fs-small">目標件数</span>
         <select id="search_n_in" name="search_n_in"
-                style="vertical-align; middle;"
-                onchange="changeSearchN(this.value);">
+          onchange="changeSearchN(this.value);">
           {% for v in [1, 2, 3, 4, 5, 10, 20, 50, 100] %}
-            {% if v == search_n %}
+          {% if v == search_n %}
           <option value="{{ v }}" selected>{{ v }}件</option>
-            {% else %}
+          {% else %}
           <option value="{{ v }}">{{ v }}件</option>
-            {% end %}
+          {% end %}
           {% end %}
         </select>
         {% set days = date_to - date_from + delta_day1 %}
@@ -222,86 +213,58 @@
 
     <!-- {{ sched_date }} -->
     {% set today_flag = False %}
-    {% set date_border = 'border: 2px solid #888 !important;' %}
+    {% set class_date_block = 'my-date-block' %}
     {% if sched_date == today %}
-      {% set today_flag = True %}
-      {% set date_border = 'border: 4px solid #28F !important;' %}
+    {% set today_flag = True %}
+    {% set class_date_block = 'my-date-block my-date-block-today' %}
     {% end %}
 
     {% if sched_date == date %}
-      {% set class_blink = 'blink' %}
+    {% set class_blink = 'blink' %}
     {% else %}
-      {% set class_blink = '' %}
+    {% set class_blink = '' %}
     {% end %}
 
     {% if search_mode %}
-      {% if int(sched_date.year) != int(year) %}
-        {% set year=sched_date.year %}
-        <strong>{{ year }}</strong>
-      {% end %}
+    {% if int(sched_date.year) != int(year) %}
+    {% set year=sched_date.year %}
+    <strong>{{ year }}</strong>
+    {% end %}
     {% end %}
     <div id="date-{{ sched_date }}"
-         class="row p-0 m-0 border"
-         style="background-color: #EEE;
-                border-radius: 0px 15px 15px 0px;
-                {{ date_border }}">
+      class="row p-0 m-0 border {{ class_date_block }}">
 
       <!-- 日付 -->
       {% set weekday = sched_date.weekday() %}
-      {% set bg_color_wday = [
-      '#30E0FF',
-      '#80E8FF',
-      '#B0F0FF',
-      '#D0F8FF',
-      '#F0FFFF',
-      '#FFEEEE',
-      '#FFCCCC'
-      ] %}
-      {% set bg_color = bg_color_wday[weekday] %}
 
       {% set url = url_prefix %}
       {% set obj = {'date': str(sched_date), 'search_str': '' } %}
-      <div class="col-1 p-0 text-center my-btn
-                  {{ class_blink }}"
-           style="background-color: {{ bg_color }};
-                  border: 1px #888 solid;
-                  border-radius: 0px 10px 10px 0px;"
-           onmousedown="doPost({{ url }}, {{ obj }});">
+      <div class="col-1 p-0 text-center my-btn my-date-col
+                  my-wday-{{ weekday }} {{ class_blink }}"
+        onmousedown="doPost('{{ url }}', {{ obj }});">
 
-        {% set font_size = 'large' %}
-        {% set font_weight = 'unset' %}
+        {% set class_today = '' %}
         {% if today_flag %}
-          {% set font_weight = 'bold' %}
+        {% set class_today = 'font-weight-bold' %}
         {% end %}
 
-        <div style="text-align: left;
-                    font-weight: {{ font_weight }};
-                    line-height: 12px;">
-          <span style="font-size: xx-small;">
+        <div class="text-left my-date-ym {{ class_today }}">
+          <span class="my-date-year">
             {{ sched_date.strftime('%Y') }}
           </span>
           <br />
-          <span style="font-size: small;">
+          <span class="my-date-month">
             {{ sched_date.strftime('%m/') }}
           </span>
         </div>
-        <div style="text-align: center;
-                    font-size: {{ font_size }};
-                    font-weight: {{ font_weight }};
-                    line-height: 16px">
+        <div class="text-center my-date-day {{ class_today }}">
           {{ '%02d' % sched_date.day }}
         </div>
-        <div style="text-align: right;
-                    font-size:x-small;
-                    font-weight:{{ font_weight }};
-                    line-height: 12px">
+        <div class="text-right my-date-wday {{ class_today }}">
           ({{ sched_date.strftime('%a') }})
         </div>
         {% set days = (sched_date - today).days %}
-        <div style="text-align: center;
-                    font-size: x-small;
-                    font-weight:{{ font_weight }};
-                    line-height: 14px">
+        <div class="text-center my-date-diff {{ class_today }}">
           {{ '%+d' % days }}
         </div>
       </div>
@@ -310,17 +273,16 @@
       <div class="col-11 p-0">
         <!-- Schedule -->
         {% for sde in sched_ent['sde'] %}
-          {% include sde.html %}
+        {% include sde.html %}
         {% end %}
         
-         <!-- スケジュール追加ボタン -->                              
-         <div class="text-center my-btn"
-              style="opacity: .4;"
-           onmousedown="doPost(
-                        '{{ url_prefix + 'edit/' }}',
-                        {date: '{{ sched_date }}', sde_id: ''} );">
-           <i class="fas fa-plus-square"></i>
-         </div>                              
+        <!-- スケジュール追加ボタン -->                              
+        <div class="text-center my-btn my-add-btn"
+          onmousedown="doPost(
+                    '{{ url_prefix + 'edit/' }}',
+                    {date: '{{ sched_date }}', sde_id: ''} );">
+          <i class="fas fa-plus-square"></i>
+        </div>                              
       </div><!-- col -->
     </div><!-- row -->
 
@@ -330,16 +292,15 @@
 </main>
 <footer>
   <!-- menu bar -->
-  <div id="menu_bar" class="container-fluid p-2 fixed-bottom my-bar"
-       style="z-index:200;">
+  <div id="menu_bar"
+    class="container-fluid p-2 fixed-bottom my-bar my-menu-bar">
     <div class="row m-0">
 
       <!-- menu_sw -->
       <div class="col-2 p-0 text-center">
         <label for="menu-sw" class="m-0 my-btn">
           &nbsp;
-          <i class="fas fa-bars fa-lg"
-             style="vertical-align: middle;"></i>
+          <i class="fas fa-bars fa-lg align-middle"></i>
           &nbsp;
           &nbsp;
         </label>
@@ -347,95 +308,86 @@
 
       <!-- back -->
       <div id="back_button" class="col-1 p-0 text-center my-btn"
-           onmousedown="moveToMonday(-1, '{{ url_prefix }}');">
+        onmousedown="moveToMonday(-1, '{{ url_prefix }}');">
         <i class="fas fa-chevron-left"></i>
       </div><!-- col -->
 
       <!-- forward -->
       <div id="forward_button" class="col-1 p-0 text-center my-btn"
-           onmousedown="moveToMonday(1, '{{ url_prefix }}');">
+        onmousedown="moveToMonday(1, '{{ url_prefix }}');">
         <i class="fas fa-chevron-right"></i>
       </div><!-- col -->
 
       <!-- home -->
       <div id="home_button"
-           class="col-3 p-0 text-center my-btn"
-           onMouseDown="homeButtonHdr();">
-        <span style="display: inline-block;
-                     font-size: xx-small; font-weight: bold;
-                     line-height: 8px;
-                     text-align: left;
-                     vertical-align: middle;">
+        class="col-3 p-0 text-center my-btn"
+        onMouseDown="homeButtonHdr();">
+        <span class="my-home-date">
           {{ today.year }}<br />
           {{ today.strftime('%m/') }}
-          <span style="font-size: x-small;">
+          <span class="my-fs-x-small">
             {{ today.strftime('%d') }}
           </span><br />
           &nbsp;&nbsp; {{ today.strftime('(%a)') }}
         </span>
-        <i class="fas fa-home fa-lg"
-           style="vertical-align: middle;"></i>
+        <i class="fas fa-home fa-lg align-middle"></i>
       </div><!-- col -->
 
       <!-- search -->
-      <div class="col-5 p-0 text-right" style="font-size: medium;">
+      <div class="col-5 p-0 text-right my-fs-medium">
         <form id="form_search" name="form_search"
-              action="{{ url_prefix }}" method="POST">
+          action="{{ url_prefix }}" method="POST">
 
-          <i class="fas fa-search fa-lg my-btn"
-             style="vertical-align: middle;"
-             onmousedown="doSubmit('form_search');"></i>
+          <i class="fas fa-search fa-lg my-btn align-middle"
+            onmousedown="doSubmit('form_search');"></i>
           <input id="search_str" name="search_str"
-                 type="text" size="6"
-                 style="font-size: small; vertical-align: middle;"
-                 value="{{ search_str }}" />
-          <i class="fas fa-backspace fa-lg my-btn"
-             style="vertical-align: middle;"
-             onmousedown="search_str.value='';"></i>
+            type="text" size="6"
+            class="my-fs-small align-middle"
+            value="{{ search_str }}" />
+          <i class="fas fa-backspace fa-lg my-btn align-middle"
+            onmousedown="search_str.value='';"></i>
 
           <input id="cur_day" name="cur_day"
-                 type="hidden" value="{{ date }}" />
+            type="hidden" value="{{ date }}" />
         </form>
       </div><!-- col -->
 
     </div><!-- row -->
   </div><!-- container -->
 
-  <input id="menu-sw" type="checkbox" style="display: none;">
+  <input id="menu-sw" type="checkbox" class="d-none">
 
-  <div class="container-fluid p-0 fixed-bottom my-bar my-bar-content"
-       style="z-index: 100;">
+  <div class="container-fluid p-0 fixed-bottom my-bar my-bar-content">
 
-    <div id="menu-content" class="row m-1">
-      <div class="col-6" style="font-size: small;">
+    <div class="row m-1">
+      <div class="col-6 my-fs-small">
         Version {{ version }}
-        <span style="font-size: xx-small;">
+        <span class="my-fs-xx-small">
           ({{ sd.get_cache_size() }})</span>
       </div>
-      <div class="col-6 text-right" style="font-size: small">
+      <div class="col-6 text-right my-fs-small">
         (c) 2020 <strong>{{ author }}</strong>
       </div>
       
     </div><!-- row -->
-    <div id="menu-content" class="row m-1">
+    <div class="row m-1">
 
       <!-- date -->
       <div class="col-5 p-0 text-center">
         <input id="date" name="date"
-               type="date" value="{{ date }}"
-               onchange="doPost('{{ url_prefix }}',
-                         {date:this.value});"/>
+          type="date" value="{{ date }}"
+          onchange="doPost('{{ url_prefix }}',
+                   {date:this.value});"/>
       </div><!-- col -->
       
       <!-- ToDo days -->
       <div class="col-3 p-0 text-center">
         <form id="todo_days_form" name="todo_days_form"
-              action="{{ url_prefix }}" method="POST">
-          <i class="fas fa-list-alt fa-lg"
-             style="vertical-align: middle;"></i>
+          action="{{ url_prefix }}" method="POST">
+          <i class="fas fa-list-alt fa-lg align-middle"></i>
           <select id="todo_days" name="todo_days"
-                  style="vertical-align: middle;"
-                  onchange="doSubmit('todo_days_form');">
+            class="align-middle"
+            onchange="doSubmit('todo_days_form');">
             {% for opt in todo_days_list %}
             {% if todo_days_list[opt] == todo_days_value %}
             <option value="{{ todo_days_list[opt] }}" selected>
@@ -452,17 +404,16 @@
       </div><!-- col -->
 
       <!-- filter -->
-      <div class="col-4 p-0 text-center" style="font-size: small;">
+      <div class="col-4 p-0 text-center my-fs-small">
         <form id="form_filter" name="form_filter"
-              action="{{ url_prefix }}" method="POST">
-          <i class="fas fa-filter fa-2x my-btn"
-             style="vertical-align: middle;"
-             onmousedown="doSubmit('form_filter');"></i>
+          action="{{ url_prefix }}" method="POST">
+          <i class="fas fa-filter fa-2x my-btn align-middle"
+            onmousedown="doSubmit('form_filter');"></i>
           <input id="filter_str" name="filter_str" type="text" size="7"
-                 style="vertical-align: middle;"
-                 value="{{ filter_str }}" />
+            class="align-middle"
+            value="{{ filter_str }}" />
           <input name="cur_day"
-                 type="hidden" value="{{ date }}" />
+            type="hidden" value="{{ date }}" />
         </form>
       </div><!-- col -->
     </div><!-- row -->        

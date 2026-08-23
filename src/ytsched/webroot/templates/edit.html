@@ -34,19 +34,11 @@
 
     let busyFlag = false;
 
-    /**
-     * 不要？
-     */
-    const clearBusyFlag = () => {
-        busyFlag = false;
-    };
-
     const submitCmd = (cmd) => {
         if ( busyFlag ) {
             return;
         }
         busyFlag = true;
-        // setTimeout(clearBusyFlag,30000);
         console.log(`cmd=${cmd}`);
         const form = document.forms["input_form"];
         form.appendChild(mkInput(cmd));
@@ -95,7 +87,7 @@
       const id_h = el_id.offsetHeight;
 
       const win_h = document.documentElement.clientHeight
-      const detail_h = win_h - detail_y - id_h - 7 - 150;
+      let detail_h = win_h - detail_y - id_h - 7 - 150;
       if (detail_h < 100) {
             detail_h = 100;
       }
@@ -165,12 +157,8 @@
     </div><!-- row -->
   </div><!-- container -->
 </header>
-<main style="background-color: #FFF; padding-bottom: 45px;">
-  <div id="loadingSpinner"
-       style="position: fixed;
-              left: 50%; bottom: 55%; transform: translate(-50%, 50%);
-              opacity: 0.3;
-              z-index: 1000;">
+<main class="my-edit-main">
+  <div id="loadingSpinner" class="my-spinner">
     <!-- <i class="fas fa-sync fa-9x fa-spin"></i> -->
     <i class="fas fa-spinner fa-9x fa-spin"></i>
   </div>
@@ -205,23 +193,19 @@
            type="hidden" value="top" />
     {% end %}
 
-    <div class="container-fluid"
-         style="background-color: #EEE;">
+    <div class="container-fluid my-edit-body">
       <!-- 日付 -->
-      <div class="row p-1" style="font-size: large">
+      <div class="row p-1 my-edit-row">
         <div class="col-1 p-0 text-center my-btn">
-          <i class="far fa-arrow-alt-circle-up fa-lg"
-             style="vertical-align: bottom;"
+          <i class="far fa-arrow-alt-circle-up fa-lg align-bottom"
              onmousedown="changeElDate(-1);"></i>
         </div>
         <div class="col-1 p-0 text-center my-btn">
-          <i class="far fa-dot-circle fa-lg"
-             style="vertical-align: bottom;"
+          <i class="far fa-dot-circle fa-lg align-bottom"
              onmousedown="setElDate();"></i>
         </div>
         <div class="col-1 p-0 text-center my-btn">
-          <i class="far fa-arrow-alt-circle-down fa-lg"
-             style="vertical-align: bottom;"
+          <i class="far fa-arrow-alt-circle-down fa-lg align-bottom"
              onmousedown="changeElDate(1);"></i>
         </div>
 
@@ -229,7 +213,7 @@
           <input id="date" name="date"
                  type="date" value="{{ sde.date }}"
                  onchange="update_wday();" />
-          (<span id="wday" style="font-size: small;">
+          (<span id="wday" class="my-edit-wday">
             {{ date.strftime('%a') }}</span>)
         </div><!-- col -->
       </div><!-- row -->
@@ -245,57 +229,57 @@
       {% if sde.time_end %}
       {% set time_end_str = str(sde.time_end) %}
       {% end %}
-      <div class="row p-1" style="font-size: large">
+      <div class="row p-1 my-edit-row">
         <div class="col">
           <input id="time_start" name="time_start"
-                 style="width: 100px;"
+                 class="my-input-time"
                  type="time" value="{{ time_start_str }}" />
           ～
           <input id="time_end" name="time_end"
-                 style="width: 100px;"
+                 class="my-input-time"
                  type="time" value="{{ time_end_str }}" />
         </div><!-- col -->
       </div><!-- row -->
 
       <!-- Type -->
-      <div class="row">
-        <div class="col" style="font-size: large;">
-          <span style="font-size: x-large; font-width: bold;">【</span>
+      <div class="row my-edit-row">
+        <div class="col">
+          <span class="my-edit-bracket">【</span>
           <input id="sde_type" name="sde_type"
                  type="text" value="{{ sde.type }}"
-                 style="width:70%;" />
-          <span style="font-size: x-large; font-width: bold">】</span>
+                 class="my-input-type" />
+          <span class="my-edit-bracket">】</span>
         </div><!-- col -->
       </div><!-- row -->
 
       <!-- タイトル -->
-      <div class="row" style="font-size: large;">
+      <div class="row my-edit-row">
         <div class="col">
-          <input id="title" name="title" style="width: 100%;"
+          <input id="title" name="title" class="my-input-full"
                  type="text" value="{{ sde.title }}" />
         </div><!-- col -->
       </div><!-- row -->
 
       <!-- 場所 -->
-      <div class="row" style="font-size: large;">
+      <div class="row my-edit-row">
         <div class="col">
-          <span style="font-size: large">@</span>
-          <input id="place" name="place" style="width: 93.5%;"
+          @
+          <input id="place" name="place" class="my-input-place"
                  type="text" value="{{ sde.place }}" size="30" />
         </div><!-- col -->
       </div><!-- row -->
 
       <!-- 詳細 -->
-      <div id="div_detail" class="row p-0" style="font-size: large;">
+      <div id="div_detail" class="row p-0 my-edit-row">
         <div class="col p-0">
-          <textarea id="detail" name="detail" style="width: 100%;"
+          <textarea id="detail" name="detail" class="my-input-full"
                     onchange="submitCmd('update');">
             {{ sde.detail }}</textarea>
         </div><!-- col -->
       </div><!-- row -->
 
       <!-- ID -->
-      <div id="div_id" class="row text-right" style="font-size: x-small"
+      <div id="div_id" class="row text-right my-edit-id"
            onmousedown="">
         <div class="col p-0">
           <input id="sde_id" name="sde_id" size="15"

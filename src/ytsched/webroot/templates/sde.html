@@ -1,218 +1,157 @@
+{# -*- engine: tornado -*- #}
 <!--
-{% set sde_count = sde_count + 1 %}
-{% set url = url_prefix + 'edit/' %}
+     {% set sde_count = sde_count + 1 %}
+     {% set url = url_prefix + 'edit/' %}
 
-{% set bg_color = '#FFF' %}
-{% if sde.is_holiday() %}
-  {% set bg_color = '#FAA' %}
-{% end %}
+     {% set class_bg = 'my-sde-normal' %}
+     {% if sde.is_holiday() %}
+     {% set class_bg = 'my-sde-holiday' %}
+     {% end %}
 
-{% set sw_id = 'sw%s-%s' % (sde.sde_id, today_flag) %}
+     {% set sw_id = 'sw%s-%s' % (sde.sde_id, today_flag) %}
 
-{% if sde.is_todo() %}
-  {% set bg_color = '#FFE' %}
-  {% if sde.date < today %}
-    {% set bg_color = '#EEB' %}
-  {% elif sde.date <= today + delta_day1 * 7 %}
-    {% set bg_color = '#FFC' %}
-  {% end %}
-{% end %}
+     {% if sde.is_todo() %}
+     {% set class_bg = 'my-sde-todo' %}
+     {% if sde.date < today %}
+     {% set class_bg = 'my-sde-todo-over' %}
+     {% elif sde.date <= today + delta_day1 * 7 %}
+     {% set class_bg = 'my-sde-todo-near' %}
+     {% end %}
+     {% end %}
 
-{% set time_start = '' %}
-{% if sde.time_start %}
-  {% set time_start = sde.time_start.strftime('%H:%M') %}
-{% end %}
+     {% set time_start = '' %}
+     {% if sde.time_start %}
+     {% set time_start = sde.time_start.strftime('%H:%M') %}
+     {% end %}
 
-{% set time_end = '' %}
-{% if sde.time_end %}
-  {% set time_end = '-' + sde.time_end.strftime('%H:%M') %}
-{% end %}
+     {% set time_end = '' %}
+     {% if sde.time_end %}
+     {% set time_end = '-' + sde.time_end.strftime('%H:%M') %}
+     {% end %}
 
-{% set sde_type = '' %}
-{% if sde.type %}
-  {% if sde.is_todo() %}
-    {% if len(sde.type) > 1 %}
-      {% set sde_type = '[' + sde.type[1:] + ']' %}
-    {% end %}
-  {% else %}
-    {% set sde_type = '[' + sde.type + ']' %}
-  {% end %}
-{% end %}
+     {% set sde_type = '' %}
+     {% if sde.type %}
+     {% if sde.is_todo() %}
+     {% if len(sde.type) > 1 %}
+     {% set sde_type = '[' + sde.type[1:] + ']' %}
+     {% end %}
+     {% else %}
+     {% set sde_type = '[' + sde.type + ']' %}
+     {% end %}
+     {% end %}
 
-{% set sde_title = '__' %}
-{% if sde.title %}
-  {% set sde_title = sde.title %}
-{% end %}
+     {% set sde_title = '__' %}
+     {% if sde.title %}
+     {% set sde_title = sde.title %}
+     {% end %}
 
-{% set detail = sde.detail.rstrip('\n') %}
+     {% set detail = sde.detail.rstrip('\n') %}
+
+     取り消し線は、時刻の欄・本文の欄・詳細の欄の 3 か所に付ける。
+     いちばん外側に付けると、ToDo の □ にも線が入ってしまう。
+     {% set class_canceled = '' %}
+     {% set class_canceled_items = '' %}
+     {% if sde.is_canceled() %}
+     {% set class_canceled = 'my-canceled' %}
+     {% set class_canceled_items = 'my-canceled-items' %}
+     {% end %}
 
 -->
-<input id="sde_id" name="sde_id"
-       type="hidden" value="{{ sde.sde_id }}" />
-
 {% set class_blink = '' %}
 {% if sde.sde_id == modified_sde_id %}
-  {% set class_blink = 'blink' %}
+{% set class_blink = 'blink' %}
 {% end %}
 
-<div class="container-fluid p-0 border {{ class_blink }}"
-     style="font-size: 0;
-            background-color: {{ bg_color }};
-            border-radius: 0px 15px 15px 10px;">
-    <div class="row m-0">
-      {% if not sde.is_todo() %}
-      <div class="col-1 p-0 text-left"
-        style="font-size:xx-small;
-                  font-weight:bold;
-                  line-height: 12px">
-
-        {% if sde.is_canceled() %}
-        <span style="text-decoration: line-through !Important;">
-          {% end %}
-
-          {{ time_start }}<br/>{{ time_end }}
-
-          {% if sde.is_canceled() %}
-        </span>
-        {% end %}
-
-      </div>
-      {% else %}
-      <div class="col-1 p-1 text-center">
-        <i class="far fa-square"
-           style="font-size: small;"></i>
-      </div>
-      {% end %}<!-- if not todo -->
-      <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
-           ここからは送らない (TODO-034) -->
-      <div class="col-11 p-0 my-btn"
-           onmousedown="doPost('{{ url }}',
-                    {
-                    date:'{{ sched_date }}',
-                    sde_id: '{{ sde.sde_id }}',
-                    todo_flag: {{ str(sde.is_todo()).lower() }},
-                    cur_date: '{{ date }}',
-                    date_from: '{{ date_from }}',
-                    date_to: '{{ date_to }}',
-                    search_str: '{{ search_str }}',
-                    });">
-        {% if sde.is_todo() %}
-        {% if sde.date != sched_date %}
-        {% set sde_date = str(sde.date).replace('-', '/') %}
-        <span style="font-size:xx-small;
-                     font-weight:bold;
-                     display:inline-flex;
-                     vertical-align:top;
-                     line-height:12px">
-
-          {% if sde.is_canceled() %}
-          <span style="text-decoration: line-through !Important;">
-            {% end %}
-
-            {{ sde_date[0:4] }}<br />{{ sde_date[5:] }}
-            
-            {% if sde.is_canceled() %}
-          </span>
-          {% end %}
-        </span>
-        {% end %}
-
-        <span style="font-size:xx-small;
-                     font-weight:bold;
-                     display:inline-flex;
-                     vertical-align:top;
-                     line-height:12px">
-          
-          {% if sde.is_canceled() %}
-          <span style="text-decoration: line-through !Important;">
-            {% end %}
-
-            {{ time_start }}<br />{{ time_end }}
-
-            {% if sde.is_canceled() %}
-          </span>
-          {% end %}
-
-        </span>
-        {% end %}
-
-        {% set type_font="font-size: x-small; font-weight: normal;" %}
-        {% set title_font="font-size: medium; font-weight: normal;" %}
-        {% if sde.is_important() %}
-        {% set type_font="font-size: x-small; font-weight: bold;" %}
-        {% set title_font="font-size: medium; font-weight: bold;" %}
-        {% end %}
-
-
-        <span style="{{ type_font }}">
-          {% if sde.is_canceled() %}
-          <span style="text-decoration: line-through !Important;">
-            {% end %}
-            {{ sde_type }}
-          {% if sde.is_canceled() %}
-          </span>
-          {% end %}
-        </span>
-
-
-            
-        <span style="{{ title_font }}">
-
-          {% if sde.is_canceled() %}
-          <span style="text-decoration: line-through !Important;">
-            {% end %}
-
-            {{ sde_title }}
-
-            {% if sde.is_canceled() %}
-          </span>
-          {% end %}
-
-        </span>
-
-        {% if sde.place %}
-
-        <span style="font-size: small;">
-          {% if sde.is_canceled() %}
-          <span style="text-decoration: line-through !Important;">
-            {% end %}
-
-            @{{ sde.place }}
-            {% if sde.is_canceled() %}
-          </span>
-          {% end %}
-
-        </span>
-        {% end %}
-       
-      </div>
+<div class="container-fluid p-0 border my-sde {{ class_bg }} {{ class_blink }}">
+  <div class="row m-0">
+    {% if not sde.is_todo() %}
+    <div class="col-1 p-0 text-left my-sde-time {{ class_canceled }}">
+      
+      {{ time_start }}<br/>{{ time_end }}
+      
     </div>
-    {% if detail %}
-    <div class="row m-0">
-      <input id="{{ sw_id }}"
-             type="checkbox"
-             class="longtext-sw"
-             style="display: none;">
-      <div class="col-1 p-0 m-0 text-center my-btn longtext-sw-label"
-           style="font-size: small; line-height: 10px;">
-        <label class="m-1" for="{{ sw_id }}">
-          <i class="fas fa-angle-down fa-lg"></i>
-        </label>
-      </div>
-      <div class="col-11 p-0 longtext" tabindex="0"
-        style="font-size: x-small;">
+    {% else %}
+    <div class="col-1 p-1 text-center">
+      <i class="far fa-square my-sde-check"></i>
+    </div>
+    {% end %}<!-- if not todo -->
+    <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
+         ここからは送らない (TODO-034) -->
+    <div class="col-11 p-0 my-btn {{ class_canceled_items }}"
+      onmousedown="doPost('{{ url }}',
+                {
+                date:'{{ sched_date }}',
+                sde_id: '{{ sde.sde_id }}',
+                todo_flag: {{ str(sde.is_todo()).lower() }},
+                cur_date: '{{ date }}',
+                date_from: '{{ date_from }}',
+                date_to: '{{ date_to }}',
+                search_str: '{{ search_str }}',
+                });">
+      {% if sde.is_todo() %}
+      {% if sde.date != sched_date %}
+      {% set sde_date = str(sde.date).replace('-', '/') %}
+      <span class="my-sde-sub">
+
+        {{ sde_date[0:4] }}<br />{{ sde_date[5:] }}
         
-        {% if sde.is_canceled() %}
-        <span style="text-decoration: line-through !Important;">
-          {% end %}
+      </span>
+      {% end %}
 
-          {{ detail }}
+      <span class="my-sde-sub">
+        
+        {{ time_start }}<br />{{ time_end }}
 
-          {% if sde.is_canceled() %}
-        </span>
-        {% end %}
+      </span>
+      {% end %}
 
-      </div>
+      {% set class_important = '' %}
+      {% if sde.is_important() %}
+      {% set class_important = 'font-weight-bold' %}
+      {% end %}
+
+
+      <span class="my-sde-type {{ class_important }}">
+        {{ sde_type }}
+      </span>
+
+
+      
+      <span class="my-sde-title {{ class_important }}">
+
+        {{ sde_title }}
+
+      </span>
+
+      {% if sde.place %}
+
+      <span class="my-sde-place">
+
+        @{{ sde.place }}
+
+      </span>
+      {% end %}
+      
     </div>
-    {% end %}
+  </div>
+  {% if detail %}
+  <div class="row m-0">
+    <input id="{{ sw_id }}"
+      type="checkbox"
+      class="longtext-sw d-none">
+    <div class="col-1 p-0 m-0 text-center my-btn longtext-sw-label
+                my-sde-detail-sw">
+      <label class="m-1" for="{{ sw_id }}">
+        <i class="fas fa-angle-down fa-lg"></i>
+      </label>
+    </div>
+    <!-- 開いたときの ``.longtext`` は ``white-space: pre-wrap`` なので、
+         詳細の前後の改行がそのまま見える。前後 1 行ずつ空くのは元からの
+         見え方で、式の中の ``\n`` はそれを保つためのもの (TODO-038)。 -->
+    <div class="col-11 p-0 longtext my-sde-detail {{ class_canceled }}"
+      tabindex="0">
+      {{ '\n' + detail + '\n' }}
+    </div>
+  </div>
+  {% end %}
 </div><!-- container -->

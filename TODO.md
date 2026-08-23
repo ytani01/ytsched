@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-038・TODO-039。**
-これまでに 37 件を決着させた。
+**残っている項目: TODO-039, TODO-040。**
+これまでに 38 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-040` から。**
+**番号は `TODO-041` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -16,44 +16,31 @@
 
 ---
 
-## TODO-038. HTML, CSSの リファクタリング
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | implementer + verifier + reviewer + wording |
-
-- [ ] `sde.html` の `{% if sde.is_canceled() %}` の繰り返し 6 か所を
-      class 1 つにまとめる
-- [ ] style 属性を CSS へ寄せる
-- [ ] 重複した id を直す（`sde_id` / `menu-content` / `<title>`）
-- [ ] 使われていない CSS と JS を消す
-      （`.my-osd` `.blinkborder` `.longtext:focus` / `editStr()` `clearBusyFlag()`）
-- [ ] `edit.html:98` の `const detail_h` 再代入を直す（横向きで TypeError）
-- [ ] `main.html:100`・`269` の `doPost({{ url_prefix }}, …)` に引用符を付ける
-- [ ] TODO-037 の画面と見比べて、見た目が変わっていないことを確かめる
-
-Python, JavaScriptコードは主眼ではないが、HTML、CSSの修正に際して
-コードを修正したほうが良い場合は、修正も可。
-
-reviewer を入れるのは、上の 2 件で挙動が変わるため。テストは本文の語と
-`id="date-…"` しか見ておらず、崩れは捕まえない。確かめ方は
-スクリーンショットの比較になる。
-
----
-
 ## TODO-039. スマホ用の設定を追加
 
 - manifest.json, apple-touch-iconなど
 - favicon.ico も追加
 - アイコン画像は、シンプルなものを、独自にデザイン
+- スマホでスケジュール編集時、ソフトキーボードで textareaの下のボタンが隠れてしまう。
+
 
 ---
+
+## TODO-040. bootstrap, fontawesomeのバージョンアップ
+
+- bootstrap, fontawesome を最新版にアップデートする。
+- 基本的に挙動や表示を変えない。
+- どうしても挙動や表示が変化する場合は、相談して決める。
+
+---
+
 
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-038.** HTML・CSS のリファクタリング](archives/todo/TODO-038.%20HTML・CSS%20のリファクタリング.md)
 - [**TODO-037.** CDNに依存しないよう同梱する](archives/todo/TODO-037.%20CDNに依存しないよう同梱する.md)
 - [**TODO-036.** click_utils.py を導入する](archives/todo/TODO-036.%20click_utils.py%20を導入する.md)
 - [**TODO-032.** `Conf.cgi` を JSON 形式にする](archives/todo/TODO-032.%20Conf.cgi%20を%20JSON%20形式にする.md)

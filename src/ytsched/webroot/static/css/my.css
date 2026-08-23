@@ -1,14 +1,3 @@
-@keyframes blinkborder {
-    0% { border: 1px solid #00F !important };
-    50% { border: 1px solid #F00 !important };
-}
-
-
-.blinkborder {
-/*    border: 1px solid #0F0 !important; */
-    animation: blinkborder 1s alternate !important;
-}
-
 @keyframes blink {
     0% {
         opacity: 1;
@@ -34,6 +23,9 @@
     bottom: -60px;
     width: 100%;
     transition: all 0.05s;
+    /* .fixed-bottom (bootstrap) の z-index: 1030 を打ち消す。
+       これが無いと、閉じているメニューがメニューバーの上に出る */
+    z-index: 100;
 }
 
 #menu-sw:checked ~ .my-bar-content {
@@ -43,19 +35,6 @@
 .my-osd-base {
     position: fixed;
     z-index: 10;
-}
-
-.my-osd {
-    text-align: right;
-    font-size: large;
-    font-weight: normal;
-    line-height: 17px;
-    color: #FFF;
-    background-color: #222;
-    border: 1px solid #222;
-    border-radius: 15px 0px 0px 15px;
-    padding: 5px;
-    opacity: 0.6;
 }
 
 .my-gage {
@@ -81,19 +60,6 @@
     text-overflow: ellipsis;
 }
 
-/*
-.longtext:focus {
-    border: 1px solid #888;
-    width: auto;
-    white-space: pre-wrap;
-    overflow: visible;
-    text-overflow: clip;
-}
-*/
-
-.longtext-sw-label {
-}
-
 .longtext-sw:checked ~ .longtext {
     border: 1px solid #CCC;
     border-radius: 0px 0px 10px 0px;
@@ -109,4 +75,279 @@
 
 .my-btn:active {
     background-color: yellow !important;
+}
+
+/*
+ * 以下は、テンプレートの style 属性から移したもの (TODO-038)。
+ * 値は移す前のまま。
+ */
+
+/*
+ * 文字の大きさ。メニューバーと検索欄まわりだけで使う。
+ * ここは 1 か所ずつ役割が違い、名前を付けても使い回せないので、
+ * 値をそのまま名前にしている (TODO-038)
+ */
+.my-fs-xx-small {
+    font-size: xx-small;
+}
+
+.my-fs-x-small {
+    font-size: x-small;
+}
+
+.my-fs-small {
+    font-size: small;
+}
+
+.my-fs-medium {
+    font-size: medium;
+}
+
+.my-fs-large {
+    font-size: large;
+}
+
+/* 読み込み中のしるし (display は JavaScript が書き換える) */
+.my-spinner {
+    position: fixed;
+    left: 50%;
+    bottom: 55%;
+    transform: translate(-50%, 50%);
+    opacity: 0.3;
+    z-index: 1000;
+}
+
+/* ゲージ (bottom と display は JavaScript が書き換える) */
+.my-gage-r {
+    left: 1px;
+    opacity: 0.2;
+}
+
+.my-gage-base {
+    left: 3px;
+}
+
+.my-gage-label {
+    left: 1px;
+    font-size: x-small;
+}
+
+/* 日付ごとのブロック */
+.my-date-block {
+    background-color: #EEE;
+    border-radius: 0px 15px 15px 0px;
+    border: 2px solid #888 !important;
+}
+
+/* ↑ より後に置くこと (同じ詳細度なので、後のほうが勝つ) */
+.my-date-block-today {
+    border: 4px solid #28F !important;
+}
+
+.my-date-col {
+    border: 1px #888 solid;
+    border-radius: 0px 10px 10px 0px;
+}
+
+/* 日付ブロックの中身 (年月・日・曜日・今日からの日数) */
+.my-date-ym {
+    line-height: 12px;
+}
+
+.my-date-year {
+    font-size: xx-small;
+}
+
+.my-date-month {
+    font-size: small;
+}
+
+.my-date-day {
+    font-size: large;
+    line-height: 16px;
+}
+
+.my-date-wday {
+    font-size: x-small;
+    line-height: 12px;
+}
+
+.my-date-diff {
+    font-size: x-small;
+    line-height: 14px;
+}
+
+/* 曜日ごとの背景色 (0:月曜 .. 6:日曜) */
+.my-wday-0 {
+    background-color: #30E0FF;
+}
+
+.my-wday-1 {
+    background-color: #80E8FF;
+}
+
+.my-wday-2 {
+    background-color: #B0F0FF;
+}
+
+.my-wday-3 {
+    background-color: #D0F8FF;
+}
+
+.my-wday-4 {
+    background-color: #F0FFFF;
+}
+
+.my-wday-5 {
+    background-color: #FFEEEE;
+}
+
+.my-wday-6 {
+    background-color: #FFCCCC;
+}
+
+.my-add-btn {
+    opacity: .4;
+}
+
+.my-menu-bar {
+    z-index: 200;
+}
+
+.my-home-date {
+    display: inline-block;
+    font-size: xx-small;
+    font-weight: bold;
+    line-height: 8px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+/* 予定 1 件分の枠。font-size: 0 は inline-flex 同士の隙間を消すためのもの */
+.my-sde {
+    font-size: 0;
+    border-radius: 0px 15px 15px 10px;
+}
+
+.my-sde-normal {
+    background-color: #FFF;
+}
+
+.my-sde-holiday {
+    background-color: #FAA;
+}
+
+/* ToDo は期限で色を変える */
+.my-sde-todo {
+    background-color: #FFE;
+}
+
+.my-sde-todo-near {
+    background-color: #FFC;
+}
+
+.my-sde-todo-over {
+    background-color: #EEB;
+}
+
+/* ToDo の行に出る、日付と時刻の小さい欄 */
+.my-sde-sub {
+    font-size: xx-small;
+    font-weight: bold;
+    display: inline-flex;
+    vertical-align: top;
+    line-height: 12px;
+}
+
+/* 時刻の欄 */
+.my-sde-time {
+    font-size: xx-small;
+    font-weight: bold;
+    line-height: 12px;
+}
+
+/* ToDo の行の左端に出る □ */
+.my-sde-check {
+    font-size: small;
+}
+
+.my-sde-type {
+    font-size: x-small;
+}
+
+.my-sde-title {
+    font-size: small;
+}
+
+.my-sde-place {
+    font-size: small;
+}
+
+/* 詳細の開閉ラベル */
+.my-sde-detail-sw {
+    font-size: small;
+    line-height: 10px;
+}
+
+.my-sde-detail {
+    font-size: x-small;
+}
+
+/* 取り消し線。この要素の文字に引く */
+.my-canceled {
+    text-decoration: line-through !important;
+}
+
+/*
+ * 取り消し線。子要素ごとに引く。
+ * 子要素の間の空白に線が入らないようにするため、
+ * また inline-flex の子要素には親からの線が伝わらないため、
+ * まとめてではなく子要素ごとに指定する。
+ */
+.my-canceled-items > * {
+    text-decoration: line-through !important;
+}
+
+/* 編集画面 */
+.my-edit-main {
+    background-color: #FFF;
+    padding-bottom: 45px;
+}
+
+.my-edit-body {
+    background-color: #EEE;
+}
+
+/* 編集フォームの 1 行 */
+.my-edit-row {
+    font-size: large;
+}
+
+/* 種別を囲む 【 】 */
+.my-edit-bracket {
+    font-size: x-large;
+}
+
+.my-edit-wday {
+    font-size: small;
+}
+
+.my-edit-id {
+    font-size: x-small;
+}
+
+.my-input-time {
+    width: 100px;
+}
+
+.my-input-type {
+    width: 70%;
+}
+
+.my-input-place {
+    width: 93.5%;
+}
+
+.my-input-full {
+    width: 100%;
 }

@@ -145,26 +145,6 @@ const getTopDateString = () => {
 };
 
 /**
- * 画面の一番下に表示されている日付を取得
- *
- * @return {String} date_str: "YYYY-MM-DD"
- */
-const getBottomDateString = () => {
-    const el_date_to = document.getElementById("date_to");
-    const win_bottom = window.pageYOffset
-          + document.documentElement.clientHeight;
-
-    let el_date = document.getElementById(`date-${el_date_to.value}`);
-    // console.log(`getBottomDate: el_date.id=${el_date.id}`);
-    while ( el_date.offsetTop + el_date.offsetHeight > win_bottom ) {
-        const d1 = new Date(el_date.id.replace('date-',''));
-        const d1_str = getLocaltimeDateString(shiftDays(d1, -1));
-        el_date = document.getElementById(`date-${d1_str}`);
-    }
-    return el_date.id.replace('date-', '');
-};
-
-/**
  * 日数計算
  *
  * @param {Date} d_from
@@ -260,20 +240,6 @@ const doPostDate = (path, date, days = 0, sde_align = undefined) => {
         data_obj.sde_align = sde_align;
     }
     doPost(path, data_obj);
-};
-
-/**
- *
- */
-const doGet = (path, data) => {
-    let url = `${location.protocol}//${location.host}${path}?`;
-
-    for (let param in data) {
-        url += `${param}=${data[param]}&`;
-    }
-    url = url.replace(/&$/, '');
-    console.log(`url=${url}`);
-    window.location.href=url;
 };
 
 let scrollFlag = false;
@@ -455,23 +421,4 @@ const moveToMonday = (direction=1, path, behavior="smooth") => {
     el_cur_day.value = d1_str;
     scrollFlag = false;
     scrollToId(`date-${d1_str}`);
-};
-
-/**
- * TBD
- */
-const editStr = (el0) => {
-    console.log(`el0=${el0}`);
-    let value = el0.innerHTML;
-    console.log(`value=${value}`);
-    const el_input = document.createElement("input");
-    el_input.type="text";
-    el_input.value = value;
-    console.log(`el_input=${el_input.type}`);
-
-    el0.replaceChildren(el_input);
-    el0.onclick="";
-    el0.onchange= () => {
-        console.log(`value=${el_input.value}`);
-    };
 };
