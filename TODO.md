@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: 無し。**
+**残っている項目: TODO-047。**
 これまでに 46 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-047` から。**
+**番号は `TODO-048` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -13,6 +13,59 @@
 `ytsched migrate` で一度に変換する。
 
 着手する項目は利用者が指定する。
+
+---
+
+## TODO-047. Bootstrap をやめて、素の CSS にする
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] いま使っている Bootstrap のクラスの代わりを `my.css` に書く
+- [ ] `base.html` から `bootstrap.min.css` の読み込みを外す
+- [ ] `static/vendor/bootstrap/` を消す
+- [ ] 見た目が変わっていないことを、変更の前後のキャプチャで確かめる
+
+### いま使っているもの
+
+`base.html` が読み込んでいるのは `bootstrap.min.css`（v5.3.8、236KB）だけで、
+Bootstrap の JavaScript は入っていない。テンプレート 4 つで使っている
+Bootstrap のクラスは、次の 3 種類にとどまる。
+
+- グリッド: `container-fluid` `row` `col` `col-1`〜`col-11`
+- 余白: `p-0` `p-1` `m-0` `m-1`
+- 配置ほか: `text-center` `text-start` `text-end` `align-middle`
+  `align-bottom` `d-none` `border` `fixed-bottom` `alert` `alert-danger`
+
+ドロップダウン・モーダル・折りたたみは使っていない。メニューの開閉は
+`#menu-sw:checked ~ .my-bar-content` という CSS で書いてある（`my.css`）。
+
+### なぜやるか
+
+- 236KB のうち、使っているのは上の 3 種類だけ
+- フレームワーク側の変更に振り回される。既定のフォントが変わって行の高さが
+  ずれた件（TODO-040）のせいで、`--bs-body-font-family` を固定している
+- `my.css` にある 5 か所の `!important` は、Bootstrap の詳細度
+  （specificity）に勝つためのもの。外せば要らなくなる
+
+### 気をつけること
+
+- `row` / `col-N` は Bootstrap では flexbox だが、CSS Grid に置き換える。
+  flex の子が既定の `min-width: auto` で縮まない件（TODO-045、`.longtext`）
+  も、そのときに見直す
+- `align-middle` は `vertical-align: middle` で、Grid の `align-self: center`
+  とは別物。どちらの意味で使っている箇所なのかを、テンプレートごとに見る
+- `alert` / `alert-danger` は `main.html` の 1 か所だけ
+- Font Awesome（288KB）も、使っているアイコンは 25 種類ほどしかないが、
+  今回は触らない。減らすなら別の項目にする
+
+### 確かめ方
+
+見た目を変えないための項目なので、テストでは確かめられない。
+`tools/screenshot.py`（TODO-046）で変更の前と後のキャプチャを撮り、
+突き合わせる。幅は既定の 412px と 800px。一覧（`main.html`）と
+編集画面（`edit.html`）の両方を撮ること。
 
 ---
 
