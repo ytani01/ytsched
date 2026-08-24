@@ -63,6 +63,9 @@
 .my-gage-text {
     display: inline-block;
     transform: translate(0%, 50%);
+    /* Font Awesome 7 はアイコンの幅を 1.25em に固定して中央へ寄せる。
+       ゲージは left で位置を決めているので、もとの幅に戻す (TODO-042) */
+    --fa-width: auto;
 }
 
 .longtext {
@@ -133,8 +136,15 @@
 
 /* ゲージ (bottom と display は JavaScript が書き換える) */
 .my-gage-r {
-    left: 1px;
+    left: 0px;
     opacity: 0.2;
+}
+
+/* fa-caret-right の字面は、幅 0.5em のうち左から 65/512em のところから
+   始まる。針の左端を画面の左端 (x = 0) に合わせるため、その分を戻す
+   (TODO-042) */
+.my-gage-r .my-gage-text {
+    transform: translate(-0.127em, 50%);
 }
 
 .my-gage-base {

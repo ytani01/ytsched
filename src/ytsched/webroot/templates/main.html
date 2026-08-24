@@ -69,8 +69,9 @@
 
      const elGageRBase = document.getElementById("gage_r_base");
 
+
      elGageR0 = document.getElementById("gage_r"); // declared in my.js
-     elGageRBase.style.bottom = `${centerY}px`;
+     elGageRBase.style.bottom = `${centerY - 9}px`;
 
      if ( body_h < win_h ) {
        console.log(`body_h=${body_h} < win_h=${win_h}`);
