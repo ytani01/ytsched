@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-041。**
-これまでに 40 件を決着させた。
+**残っている項目: 無し。**
+これまでに 41 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-042` から。**
 
@@ -16,43 +16,12 @@
 
 ---
 
-## TODO-041. 追加読み込みのたびに自動スクロールが起きるのを直す
-
-|        | main                     | 担当                |
-|--------|--------------------------|---------------------|
-| 見込み | Opus 5 / effort high     | verifier + wording  |
-
-- [ ] `main.html` の `scrollToDate(..., "auto")` を `"instant"` にする
-- [ ] 追加読み込みの直後に、狙った位置へ一度で移ることを確かめる
-
-スクロールで追加読み込みが起きると、そのたびに画面が下から上へ流れる。
-
-追加読み込みは、POST でページごと読み直してから位置を合わせ直す作りで、
-その位置合わせが `main.html` の `scrollToDate(..., "auto")` にあたる。
-`scrollTo()` の `"auto"` は「即座に」ではなく「CSS の `scroll-behavior`
-に従う」なので、TODO-040 で入れた Bootstrap 5.3.8 の
-`@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}`
-が効いて、一瞬で飛んでいたところがアニメーションになった。4.5.0 には
-この指定が無く、`"auto"` は瞬時だった。
-
-`"instant"` は CSS に関係なく常に瞬時なので、これに変える。ボタン操作で
-使っている `"smooth"`（`scrollToDate` / `moveToMonday` の既定）は残す。
-
-Bootstrap の指定そのものを `my.css` で打ち消す案もあるが、まずは意図が
-読み取れる `"instant"` だけにする。
-
-確かめ方は Playwright（headless）で見つけた形をそのまま使う。headless の
-Chromium は smooth スクロールを実行しないので、追加読み込みの直後に
-`scrollY` が `0` のままなら直っていない。狙いの位置（実測 2611）へ
-移っていれば直っている。
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-041.** 追加読み込みのたびに自動スクロールが起きるのを直す](archives/todo/TODO-041.%20追加読み込みのたびに自動スクロールが起きるのを直す.md)
 - [**TODO-039.** スマホ用の設定を追加](archives/todo/TODO-039.%20スマホ用の設定を追加.md)
 - [**TODO-040.** bootstrap, fontawesome のバージョンアップ](archives/todo/TODO-040.%20bootstrap,%20fontawesomeのバージョンアップ.md)
 - [**TODO-038.** HTML・CSS のリファクタリング](archives/todo/TODO-038.%20HTML・CSS%20のリファクタリング.md)

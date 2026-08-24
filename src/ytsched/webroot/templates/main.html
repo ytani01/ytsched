@@ -82,9 +82,12 @@
 
      const el_sde_align = document.getElementById("sde_align");
      const el_date = document.getElementById("date");
+     // 読み直したあとの位置合わせは一度で移す。"auto" は CSS の
+     // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
+     // アニメーションになってしまう (TODO-041)
      scrollToDate(location.pathname,
                   el_date.value, el_sde_align.value,
-                  "auto");
+                  "instant");
      
      const el_search = document.getElementById("search_str");
      console.log(`onload(): search_str="${el_search.value}"`);
