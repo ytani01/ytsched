@@ -69,8 +69,9 @@
 
      const elGageRBase = document.getElementById("gage_r_base");
 
-
      elGageR0 = document.getElementById("gage_r"); // declared in my.js
+     // FA 7 でグリフの実寸が変わり、同じ bottom では針と基準線の
+     // 重なり方がずれる。9px は実機で見て合わせた値 (TODO-042)
      elGageRBase.style.bottom = `${centerY - 9}px`;
 
      if ( body_h < win_h ) {

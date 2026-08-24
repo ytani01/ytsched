@@ -16,12 +16,18 @@
   指定どおりに効いているはず」で済ませてしまう
 - **`.md` が入るので wording を立てた。** 項目を立てるコミットで 1 回、
   済ませるコミットでもう 1 回
+- **後始末で `main.html` にコメントを足したので、runner に lint と
+  テストを走らせた。** 足したのはコメント 2 行だけだが、テンプレートの
+  中の JavaScript なので、構文が壊れていないことは別の担当に確かめさせた
 
 ## 報告
 
-- [wording の報告](wording-report.md) — 項目を立てるコミット
-- [verifier への依頼](verifier-request.md)
-- [verifier の報告](verifier-report.md)
+| 担当 | 何を任せたか | 依頼書 / 報告 |
+|---|---|---|
+| main | 原因の特定、`my.css`・`main.html` の修正 | — |
+| verifier | 針と基準線の位置が直ったことの確認（3 回） | [依頼](verifier-request.md) / [報告](verifier-report.md) |
+| wording | コミットに入る `.md` から前例の無い語を挙げる（2 回。1 回目は口頭で依頼） | [2 回目の依頼](wording-request2.md) / [報告](wording-report.md) |
+| runner | 後始末のコメント追加のあとの lint・テスト | [報告](runner-report.md) |
 
 TODO 項目そのものは
 [archives/todo/TODO-042. 左端のゲージの針の位置がずれているのを直す.md](../../todo/TODO-042.%20左端のゲージの針の位置がずれているのを直す.md)。
