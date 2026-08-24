@@ -47,7 +47,7 @@ python_version = "3.14"
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = "click,loguru,loguru.*,tornado,tornado.*,pytest,pytest.*"
+module = "click,loguru,loguru.*,tornado,tornado.*,pytest,pytest.*,playwright,playwright.*"
 ignore_missing_imports = true
 follow_untyped_imports = true
 

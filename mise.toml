@@ -71,6 +71,14 @@ description = "token usage of a TODO item (TODO-035)"
 # （mise が引数を行の末尾へ足す）。`-- --list` で一覧。
 run = "uv run python tools/token-usage.py"
 
+[tasks.shot]
+description = "screenshot of the webapp (TODO-046)"
+# 先に `mise run webapp` などでアプリを起動しておくこと。
+# `mise run shot -- --open -p todo047` のように渡す
+# （mise が引数を行の末尾へ足す）。
+# playwright は dev 依存に入れず、`--with` でそのつど用意する。
+run = "uv run --with playwright python tools/screenshot.py"
+
 [tasks.migrate]
 description = "migrate old data (.cgi) to JSON Lines"
 # `mise run migrate -- --dry-run` で確認できる。

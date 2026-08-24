@@ -54,6 +54,8 @@ mise run build      # uv build（test に依存）
 mise run webapp                            # ~/ytsched/data・port 10085
 mise run webapp -- --datadir /tmp/x --port 10099
 mise run migrate -- --dry-run
+mise run tokens -- TODO-046                # TODO 項目ごとのトークン消費量
+mise run shot -- --open                    # 画面を撮る
 ```
 
 `upgradeproject`（`uppj`）は依存を上げ直すタスクで、`lint` などからは
@@ -83,6 +85,29 @@ uv run ytsched webapp --datadir ~/ytsched/data --port 10085
 ```sh
 uv run ytsched migrate --datadir ~/ytsched/data
 ```
+
+## 画面を撮る
+
+見た目を変えたときは、テストだけでは確かめられない。`tools/screenshot.py`
+で画面を撮る（TODO-046）。**先にアプリを起動しておくこと。実データを
+汚さないよう、確かめるときは `--datadir` に一時ディレクトリを指定する。**
+
+```sh
+uv run ytsched webapp --datadir /tmp/x --port 10085 &
+mise run shot -- --open -p todo046
+```
+
+保存先は既定で `~/tmp/playwright-mcp/`、ファイル名は
+`{prefix}_{closed|open}_{幅}.png`。幅は既定で 412px（スマホ）と 800px の
+2 つで、`-w` を複数回渡せば変えられる。`--open` を付けると、詳細（detail）
+のような開閉するものを開いた状態も撮る（開くものは `--toggle` で指定。
+既定は `input.longtext-sw`）。
+
+- playwright は dev 依存に入れていない。`mise run shot` は
+  `uv run --with playwright` でそのつど用意する
+- ブラウザはシステムの `/usr/bin/chromium` を使う。
+  `~/.cache/ms-playwright` にあるビルドは playwright-mcp が入れたもので、
+  `--with playwright` が取ってくる版とは合わず起動しない（TODO-045）
 
 ## テストの走らせ方
 
