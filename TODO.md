@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-047。**
+**残っている項目: TODO-047・TODO-048。**
 これまでに 46 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-048` から。**
+**番号は `TODO-049` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -66,6 +66,93 @@ Bootstrap のクラスは、次の 3 種類にとどまる。
 `tools/screenshot.py`（TODO-046）で変更の前と後のキャプチャを撮り、
 突き合わせる。幅は既定の 412px と 800px。一覧（`main.html`）と
 編集画面（`edit.html`）の両方を撮ること。
+
+---
+
+## TODO-048. Font Awesome をやめて、アイコンを SVG にする
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier |
+
+- [ ] 使っている 23 個のアイコンの SVG を用意する
+- [ ] それをまとめた `icons.svg` を作り、`static/icons/` に置く
+- [ ] テンプレートの `<i class="fas fa-...">` を `<svg><use></svg>` に
+      置き換える
+- [ ] 大きさ（`fa-lg` / `fa-2x` / `fa-9x`）と回転（`fa-spin`）の代わりを
+      `my.css` に書く（`.my-spinner` の隣に置く）
+- [ ] `base.html` から `all.css` の読み込みを外し、
+      `static/vendor/fontawesome/` を消す
+- [ ] 見た目が変わっていないことを、変更の前後のキャプチャで確かめる
+
+TODO-047（Bootstrap をやめる）とは独立していて、どちらを先にやってもよい。
+触るファイルは重なるので、同時には進めないこと。
+
+### いま使っているもの
+
+`static/vendor/fontawesome/` は 288KB（`all.css` 130KB、`fa-solid-900.woff2`
+119KB、`fa-regular-400.woff2` 20KB）。読み込んでいるのは `base.html` の
+1 行だけで、Python・JavaScript・CSS からは参照していない
+（`my.css` のコメントに 2 か所出てくるだけ）。
+
+使っているアイコンは 23 個。
+
+| 種類 | アイコン |
+|------|---------|
+| solid（`fas`）19 個 | `angle-down` `arrow-alt-circle-up` `arrows-alt-h` `backspace` `bars` `check-square` `chevron-left` `chevron-right` `clone` `exclamation-triangle` `filter` `home` `list-alt` `plus-square` `reply` `search` `spinner` `sync` `trash-alt` |
+| regular（`far`）4 個 | `arrow-alt-circle-up` `arrow-alt-circle-down` `dot-circle` `square` |
+
+`arrow-alt-circle-up` は solid と regular の両方を使っていて、
+字形が違うので SVG も別々に要る（名前としては 22 種類）。
+大きさは `fa-lg`（1.25em）・`fa-2x`（2em）・`fa-9x`（9em）で指定して
+いて、読み込み中のしるしは `fa-spin`（2 秒・linear・無限）で回している。
+
+### なぜやるか
+
+- 288KB のうち、使っているのは 22 個だけ。SVG にすれば数 KB で足りる
+- **アイコンフォントは、フォント側の既定値が変わると位置がずれる。**
+  ゲージの針と基準線がずれた件（TODO-042）がそれで、TODO-043 で SVG に
+  描き直して直した。今回は残りのアイコンに同じことをする
+- フォントの読み込みが終わるまでアイコンが出ない
+
+### やり方
+
+TODO-043 は SVG をテンプレートに直接書いたが、今回は 22 個あり、
+同じアイコンを 2 か所で使うものもある。`<symbol>` を並べた 1 つの
+`icons.svg` を置き、各所からは `<use>` で参照する形にする。
+
+```html
+<svg class="my-icon my-icon-lg">
+  <use href="{{ static_url('icons/icons.svg') }}#home"></use>
+</svg>
+```
+
+色は `fill: currentColor` にすれば、いまと同じく親の文字色に従う。
+
+SVG の元をどこから持ってくるかは、着手するときに決める。
+
+- **woff2 から取り出す。** いま入っている 7.3.1 の字形と必ず一致する。
+  `all.css` が `--fa: "\f015"` の形でコードポイントを持っているので、
+  そこから引ける。`uv run --with fonttools` で変換できるが、フォントの
+  座標系は y 軸が上向きなので、反転が要る
+- **配布物から取る。** Font Awesome Free の zip に `svgs/` がある。
+  単純だが、ネットワークが要る
+
+### ライセンス
+
+Font Awesome Free は、**フォントが SIL OFL 1.1、アイコン（SVG）は
+CC BY 4.0** と、部分ごとに違う。SVG を持つ形に変えると CC BY 4.0 の
+ほうになり、帰属表示が要る。`vendor/fontawesome/LICENSE.txt` を消さずに
+`static/icons/` へ移し、出典を書き添えること。
+
+### 確かめ方
+
+見た目を変えないための項目なので、テストでは確かめられない。
+`tools/screenshot.py`（TODO-046）で変更の前と後のキャプチャを撮り、
+突き合わせる。アイコンは一覧・編集画面・メニューバーに散っているので、
+一覧（`main.html`）と編集画面（`edit.html`）の両方を、開いた状態も
+含めて撮ること。読み込み中のしるし（`fa-spinner` + `fa-spin`）は
+キャプチャに写らないので、別に見ること。
 
 ---
 
