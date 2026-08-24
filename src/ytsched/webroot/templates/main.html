@@ -176,7 +176,7 @@
       </div><!-- col -->
 
       <!-- 検索期間・件数 -->
-      <div class="col-10 p-0 text-left">
+      <div class="col-10 p-0 text-start">
         <span class="my-fs-large">
           {{ date_from.strftime('%Y/%m/%d') }}
         </span>
@@ -245,10 +245,10 @@
 
         {% set class_today = '' %}
         {% if today_flag %}
-        {% set class_today = 'font-weight-bold' %}
+        {% set class_today = 'fw-bold' %}
         {% end %}
 
-        <div class="text-left my-date-ym {{ class_today }}">
+        <div class="text-start my-date-ym {{ class_today }}">
           <span class="my-date-year">
             {{ sched_date.strftime('%Y') }}
           </span>
@@ -260,7 +260,7 @@
         <div class="text-center my-date-day {{ class_today }}">
           {{ '%02d' % sched_date.day }}
         </div>
-        <div class="text-right my-date-wday {{ class_today }}">
+        <div class="text-end my-date-wday {{ class_today }}">
           ({{ sched_date.strftime('%a') }})
         </div>
         {% set days = (sched_date - today).days %}
@@ -334,7 +334,7 @@
       </div><!-- col -->
 
       <!-- search -->
-      <div class="col-5 p-0 text-right my-fs-medium">
+      <div class="col-5 p-0 text-end my-fs-medium">
         <form id="form_search" name="form_search"
           action="{{ url_prefix }}" method="POST">
 
@@ -365,7 +365,7 @@
         <span class="my-fs-xx-small">
           ({{ sd.get_cache_size() }})</span>
       </div>
-      <div class="col-6 text-right my-fs-small">
+      <div class="col-6 text-end my-fs-small">
         (c) 2020 <strong>{{ author }}</strong>
       </div>
       

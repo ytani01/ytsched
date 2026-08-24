@@ -65,7 +65,7 @@
 <div class="container-fluid p-0 border my-sde {{ class_bg }} {{ class_blink }}">
   <div class="row m-0">
     {% if not sde.is_todo() %}
-    <div class="col-1 p-0 text-left my-sde-time {{ class_canceled }}">
+    <div class="col-1 p-0 text-start my-sde-time {{ class_canceled }}">
       
       {{ time_start }}<br/>{{ time_end }}
       
@@ -107,7 +107,7 @@
 
       {% set class_important = '' %}
       {% if sde.is_important() %}
-      {% set class_important = 'font-weight-bold' %}
+      {% set class_important = 'fw-bold' %}
       {% end %}
 
 

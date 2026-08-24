@@ -1,3 +1,17 @@
+/*
+ * Bootstrap 5 の既定のフォント (system-ui, ...) は 4.5 のもの
+ * (-apple-system, ...) と、実際に使われるフォントが違って行の高さが
+ * 変わる。固定しないと日付ブロックが 1 個あたり 2px 高くなり、一覧が
+ * 176px 伸びる (TODO-040)。値は 4.5 の bootstrap.min.css と同じ。
+ */
+:root {
+    --bs-body-font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+}
+
 @keyframes blink {
     0% {
         opacity: 1;

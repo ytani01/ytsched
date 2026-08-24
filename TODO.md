@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-039, TODO-040。**
-これまでに 38 件を決着させた。
+**残っている項目: TODO-039。**
+これまでに 39 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-041` から。**
 
@@ -23,46 +23,6 @@
 - アイコン画像は、シンプルなものを、独自にデザイン
 - スマホでスケジュール編集時、ソフトキーボードで textareaの下のボタンが隠れてしまう。
 
-
----
-
-## TODO-040. bootstrap, fontawesomeのバージョンアップ
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | implementer + verifier + wording |
-
-- [ ] Bootstrap を 4.5.0 から 5.3.8 に差し替える（`LICENSE` も）
-- [ ] Font Awesome を 5.6.1 から 7.3.1 に差し替える（`LICENSE.txt` も）。
-      webfont は `.woff2` の 2 つだけになる（7 は `.woff` を配らない）
-- [ ] Bootstrap 5 で消えたクラスを書き換える。`text-left` → `text-start`
-      が 4 か所、`text-right` → `text-end` が 4 か所、
-      `font-weight-bold` → `fw-bold` が 2 か所
-- [ ] `my.css` で `--bs-body-font-family` を Bootstrap 4.5 と同じ値に固定する
-- [ ] `README.md` の「同梱しているライブラリ」の表を書き直す
-- [ ] `HEAD`（`1a6a4fd`）と画素単位で比べる
-
-bootstrap, fontawesome を最新版にアップデートする。基本的に挙動や表示を
-変えない。どうしても挙動や表示が変化する場合は、相談して決める。
-
-着手前に調べて決めたこと。
-
-- **Bootstrap の既定のフォントは 4.5 と同じ値に固定する。** 5 は
-  `system-ui, …`、4.5 は `-apple-system, …` で、解決先が違って行の高さが
-  変わる。固定しないと日付ブロック 1 個が 75px → 77px になり、90 日分
-  積み上がって一覧が 176px 伸びる。固定すると高さが完全に一致し、
-  画素の差は 26% から 1.0% に落ちる（残りの大半は読み込み中のしるしの
-  回転位置で、実装の差ではない）
-- **Font Awesome の絵柄が変わるのは受け入れる。** 5 → 6 でアイコンが
-  描き直されていて、家（`fa-home`）が輪郭線から塗りつぶしになるのが
-  いちばん目立つ。リスト・虫眼鏡・`fa-backspace` の × も少し違う。
-  6 と 7 の差は小さい。**アイコン名の書き換えは要らない**（使っている
-  25 個の名前も `fas` / `far` も、7.3.1 に旧名のまま残っている）
-- **JavaScript と Python は触らない。** Bootstrap の JS は TODO-037 で
-  外してあり、`my.js` は `classList` を一度も使っていない
-- reviewer は入れない。クラス名の置換だけで分岐も挙動も変わらず、
-  崩れは verifier の画素比較で捕まる
-
 ---
 
 
@@ -71,6 +31,7 @@ bootstrap, fontawesome を最新版にアップデートする。基本的に挙
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-040.** bootstrap, fontawesome のバージョンアップ](archives/todo/TODO-040.%20bootstrap,%20fontawesomeのバージョンアップ.md)
 - [**TODO-038.** HTML・CSS のリファクタリング](archives/todo/TODO-038.%20HTML・CSS%20のリファクタリング.md)
 - [**TODO-037.** CDNに依存しないよう同梱する](archives/todo/TODO-037.%20CDNに依存しないよう同梱する.md)
 - [**TODO-036.** click_utils.py を導入する](archives/todo/TODO-036.%20click_utils.py%20を導入する.md)
