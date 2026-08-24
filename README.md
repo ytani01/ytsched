@@ -215,6 +215,17 @@ Font Awesome のフォントは、`woff2` のみ（7 は `woff` を配りませ�
 使用している `solid` と `regular` のみを同梱しています。
 
 
+## スマホのホーム画面に追加する
+
+アイコンは独自のデザインで、元は 1 つの SVG
+（`src/ytsched/webroot/static/icons/icon.svg`）です。ImageMagick が
+入っていれば、`tools/make-icons.sh` で PNG と ICO を作り直せます。
+
+`manifest.json` も同梱しているので、スマホのブラウザで開いてホーム画面に
+追加すると、単体のアプリのように開きます。`start_url` は相対パスなので、
+`--urlprefix` を変えても付いてきます。
+
+
 ## 開発者向け
 
 コードの構成や開発ツールの使い方は [docs/Developer.md](docs/Developer.md)

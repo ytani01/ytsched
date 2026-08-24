@@ -422,3 +422,38 @@ const moveToMonday = (direction=1, path, behavior="smooth") => {
     scrollFlag = false;
     scrollToId(`date-${d1_str}`);
 };
+
+/**
+ * 画面下に固定したバーを、ソフトキーボードの上に出す (TODO-039)
+ *
+ * `.my-follow-keyboard` が付いた要素を、キーボードの高さだけ持ち上げる。
+ *
+ * Android Chrome は viewport の `interactive-widget=resizes-content` で
+ * 本文が縮むので、ここで計算するずれは 0 になる。iOS Safari は縮まない
+ * ので、この関数が効く。
+ *
+ * ピンチで拡大している間 (`scale > 1`) は、ずらす量を 0 に戻す。
+ * 拡大中も `visualViewport` は小さくなるが、それはキーボードのせいでは
+ * ないので、その分を持ち上げると位置が狂う。
+ */
+const followKeyboard = () => {
+    const vv = window.visualViewport;
+    if ( ! vv ) {
+        return;
+    }
+    let offset = 0;
+    if ( vv.scale <= 1.01 ) {
+        const gap = window.innerHeight - vv.height - vv.offsetTop;
+        offset = Math.max(0, Math.round(gap));
+    }
+    const els = document.getElementsByClassName("my-follow-keyboard");
+    for ( const el of els ) {
+        el.style.transform = `translateY(${-offset}px)`;
+    }
+};
+
+if ( window.visualViewport ) {
+    window.visualViewport.addEventListener("resize", followKeyboard);
+    window.visualViewport.addEventListener("scroll", followKeyboard);
+    window.addEventListener("load", followKeyboard);
+}

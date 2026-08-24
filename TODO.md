@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-039。**
-これまでに 39 件を決着させた。
+**残っている項目: 無し。**
+これまでに 40 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-041` から。**
 
@@ -16,21 +16,12 @@
 
 ---
 
-## TODO-039. スマホ用の設定を追加
-
-- manifest.json, apple-touch-iconなど
-- favicon.ico も追加
-- アイコン画像は、シンプルなものを、独自にデザイン
-- スマホでスケジュール編集時、ソフトキーボードで textareaの下のボタンが隠れてしまう。
-
----
-
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-039.** スマホ用の設定を追加](archives/todo/TODO-039.%20スマホ用の設定を追加.md)
 - [**TODO-040.** bootstrap, fontawesome のバージョンアップ](archives/todo/TODO-040.%20bootstrap,%20fontawesomeのバージョンアップ.md)
 - [**TODO-038.** HTML・CSS のリファクタリング](archives/todo/TODO-038.%20HTML・CSS%20のリファクタリング.md)
 - [**TODO-037.** CDNに依存しないよう同梱する](archives/todo/TODO-037.%20CDNに依存しないよう同梱する.md)

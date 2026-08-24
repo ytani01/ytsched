@@ -3,6 +3,7 @@
 #
 """WebServer が組み立てる Application の設定のテスト"""
 
+import json
 import os
 
 import pytest
@@ -45,6 +46,39 @@ def test_webroot_is_bundled(svr):
     assert os.path.isfile(
         os.path.join(settings["static_path"], "favicon.ico")
     )
+
+
+def test_manifest_and_icons_are_bundled(svr):
+    """manifest.json とアイコンがパッケージに同梱されている（TODO-039）。"""
+    static_path = svr._app.settings["static_path"]
+
+    for name in [
+        "manifest.json",
+        "favicon.ico",
+        "icons/icon.svg",
+        "icons/icon-192.png",
+        "icons/icon-512.png",
+        "icons/icon-maskable-512.png",
+        "icons/apple-touch-icon.png",
+    ]:
+        assert os.path.isfile(os.path.join(static_path, name)), name
+
+
+def test_manifest_content(svr):
+    """manifest.json の中身（TODO-039）。"""
+    static_path = svr._app.settings["static_path"]
+
+    with open(
+        os.path.join(static_path, "manifest.json"), encoding="utf-8"
+    ) as f:
+        manifest = json.load(f)
+
+    # ``--urlprefix`` を変えても付いてくるよう、相対で書いている
+    assert manifest["start_url"] == "../"
+    assert manifest["scope"] == "../"
+
+    for icon in manifest["icons"]:
+        assert os.path.isfile(os.path.join(static_path, icon["src"]))
 
 
 def test_datadir_is_expanded(tmp_path, monkeypatch):

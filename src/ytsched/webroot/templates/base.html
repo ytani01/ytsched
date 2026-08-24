@@ -2,11 +2,25 @@
 {% set now = datetime.datetime.now().strftime('%FT%T') %}
 <html>
   <head lang="jp">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- content の値は折り返さない（改行を挟むと、読めない
+         ブラウザがあったときに viewport の指定が丸ごと効かなくなる） -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
     <meta charset="UTF-8">
     <title>{{ title }}: {{ version }}</title>
 
-    <link rel="icon" href="{{ static_url('favicon.ico') }}">
+    <meta name="theme-color" content="#4488CC">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="{{ title }}">
+
+    <link rel="icon" href="{{ static_url('favicon.ico') }}" sizes="32x32">
+    <link rel="icon" type="image/svg+xml"
+          href="{{ static_url('icons/icon.svg') }}">
+    <link rel="apple-touch-icon"
+          href="{{ static_url('icons/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ static_url('manifest.json') }}">
 
     <link rel="stylesheet"
           href="{{ static_url('vendor/bootstrap/bootstrap.min.css') }}">

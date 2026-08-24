@@ -498,6 +498,31 @@ class TestMainHandler(WebTestBase):
         assert "ノートを買う" not in body
 
 
+class TestManifestAndIcons(WebTestBase):
+    """manifest.json とアイコンが HTTP で引ける（TODO-039）"""
+
+    def test_manifest(self):
+        res = self.fetch(URL_PREFIX + "/static/manifest.json")
+
+        assert res.code == 200
+        assert "json" in res.headers["Content-Type"]
+
+    def test_apple_touch_icon(self):
+        assert (
+            self.fetch(URL_PREFIX + "/static/icons/apple-touch-icon.png").code
+            == 200
+        )
+
+    def test_favicon(self):
+        assert self.fetch(URL_PREFIX + "/static/favicon.ico").code == 200
+
+    def test_links_in_html(self):
+        body = self.get_body(URL_PREFIX + "/")
+
+        assert 'rel="manifest"' in body
+        assert 'rel="apple-touch-icon"' in body
+
+
 class TestInvalidArgs(WebTestBase):
     """数字・日付として読めない引数の扱い（TODO-027）
 
