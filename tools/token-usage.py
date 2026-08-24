@@ -54,6 +54,25 @@ MAIN_AGENT = "main"
 #: 担当名: ``agent-*.meta.json`` が無いとき
 UNKNOWN_AGENT = "unknown"
 
+#: 単価 ($/1M トークン)。``message.model`` の前方一致で引く
+#: (``claude-haiku-4-5-20251001`` のように日付が付くことがあるため)。
+#: **Sonnet 5 の $2/$10 は 2026-08-31 までの導入価格。そのあとは
+#: $3/$15 になるので書き換えが要る。**
+PRICING: dict[str, tuple[float, float]] = {
+    "claude-opus-5": (5.00, 25.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-haiku-4-5": (1.00, 5.00),
+}
+
+#: 表に無いモデルを数えるときの既定 (多めに見積もる側に倒す)
+DEFAULT_PRICING_MODEL = "claude-opus-5"
+
+#: cache write (``cache_creation``) は input の何倍で概算するか
+CACHE_WRITE_MULTIPLIER = 1.25
+
+#: cache read (``cache_read``) は input の何倍で概算するか
+CACHE_READ_MULTIPLIER = 0.1
+
 #: ``git log --pretty=format:`` の区切り (本文に現れない制御文字)
 SEP_FIELD = "\x1f"
 SEP_RECORD = "\x1e"
@@ -251,18 +270,16 @@ class Usage:
     """キャッシュ書き込み (主指標)"""
 
     cache_read: int = 0
-    """キャッシュ読み出し (参考)"""
+    """キャッシュ読み出し (表には出すが、消費の行には書かない)"""
 
     input: int = 0
-    """キャッシュに載らなかった入力 (参考)"""
+    """キャッシュに載らなかった入力 (表には出さない)"""
 
     messages: int = 0
     """数えたメッセージ数"""
 
-    @property
-    def main_total(self) -> int:
-        """主指標の合計 (割合はこれで出す)"""
-        return self.output + self.cache_creation
+    cost: float = 0.0
+    """概算料金 (ドル)"""
 
     def add(self, other: Usage) -> None:
         """足し込む。"""
@@ -271,6 +288,7 @@ class Usage:
         self.cache_read += other.cache_read
         self.input += other.input
         self.messages += other.messages
+        self.cost += other.cost
 
 
 @dataclasses.dataclass
@@ -284,6 +302,46 @@ class Record:
     """重複を除くための ``(requestId, message.id)``"""
 
     usage: Usage
+
+
+#: 単価表に無いモデル名を、警告済みとして覚えておく (何度も出さないため)
+_warned_models: set[str] = set()
+
+
+def price_for(model: str) -> tuple[float, float]:
+    """``(input, output)`` の単価 ($/1M トークン) を前方一致で引く。
+
+    **いちばん長く一致したものを採る。** ``claude-opus-4`` と
+    ``claude-opus-4-5`` のように前方が重なる名前を ``PRICING`` に足した
+    とき、書いた順で先に当たったほうが勝つのを避けるため。
+
+    表に無いモデル名に当たったら警告を出し、``DEFAULT_PRICING_MODEL``
+    (Opus 5) の単価で数える (多めに見積もる側に倒す)。
+    """
+    matched = [name for name in PRICING if model.startswith(name)]
+    if matched:
+        return PRICING[max(matched, key=len)]
+
+    if model not in _warned_models:
+        _warned_models.add(model)
+        _log.warning(
+            f"{model}: 単価表に無いモデル .. {DEFAULT_PRICING_MODEL} の単価で概算"
+        )
+
+    return PRICING[DEFAULT_PRICING_MODEL]
+
+
+def record_cost(record: Record) -> float:
+    """1 件の usage から概算料金 (ドル) を出す。"""
+    input_price, output_price = price_for(record.model)
+    usage = record.usage
+
+    return (
+        usage.output * output_price
+        + usage.input * input_price
+        + usage.cache_creation * input_price * CACHE_WRITE_MULTIPLIER
+        + usage.cache_read * input_price * CACHE_READ_MULTIPLIER
+    ) / 1_000_000
 
 
 def agent_name(path: pathlib.Path) -> str:
@@ -356,10 +414,13 @@ def collect(
     """範囲内の ``Record`` を集める。
 
     **同じ usage が複数の行に現れる。**``(requestId, message.id)`` の
-    組で一度だけ数える (実測で 117 行のうちユニークは 61 件だった)。
+    組ごとに、各項目 (``output`` / ``cache_creation`` / ``cache_read`` /
+    ``input``) の最大値を採る。サブエージェントの transcript には
+    途中経過と最終値の両方が記録されていて、行の並びが最終値を後に
+    置くとは限らないため、上書きではなく最大値で数える。``messages``
+    は 1 のまま (リクエスト 1 件として数える)。
     """
-    records: list[Record] = []
-    seen: set[tuple[str, str]] = set()
+    merged: dict[tuple[str, str], Record] = {}
     n_line = 0
 
     for agent, path in iter_transcripts(base):
@@ -372,18 +433,34 @@ def collect(
                     continue
 
                 n_line += 1
-                if record.key in seen:
+                existing = merged.get(record.key)
+                if existing is None:
+                    merged[record.key] = record
                     continue
 
-                seen.add(record.key)
-                records.append(record)
+                existing.usage.output = max(
+                    existing.usage.output, record.usage.output
+                )
+                existing.usage.cache_creation = max(
+                    existing.usage.cache_creation, record.usage.cache_creation
+                )
+                existing.usage.cache_read = max(
+                    existing.usage.cache_read, record.usage.cache_read
+                )
+                existing.usage.input = max(
+                    existing.usage.input, record.usage.input
+                )
+
+    records = list(merged.values())
+    for record in records:
+        record.usage.cost = record_cost(record)
 
     _log.debug(f"lines={n_line}, uniq={len(records)}")
     return records
 
 
 def sum_by(records: list[Record], key: str) -> dict[str, Usage]:
-    """``agent`` か ``model`` ごとに合計する (多い順)。"""
+    """``agent`` か ``model`` ごとに合計する (料金の多い順)。"""
     total: dict[str, Usage] = {}
 
     for record in records:
@@ -391,7 +468,7 @@ def sum_by(records: list[Record], key: str) -> dict[str, Usage]:
         total.setdefault(name, Usage()).add(record.usage)
 
     return dict(
-        sorted(total.items(), key=lambda kv: kv[1].main_total, reverse=True)
+        sorted(total.items(), key=lambda kv: kv[1].cost, reverse=True)
     )
 
 
@@ -429,23 +506,23 @@ def print_table(title: str, table: dict[str, Usage], total: Usage) -> None:
     print()
     print(
         f"{pad(title, width)} {'output':>10} {'cache_creation':>15}"
-        f" {'(cache_read)':>15} {'msgs':>6}"
+        f" {'(cache_read)':>15} {'msgs':>6} {'$':>10}"
     )
     for name, usage in [*table.items(), ("合計", total)]:
         print(
             f"{pad(name, width)} {usage.output:>10,}"
             f" {usage.cache_creation:>15,} {usage.cache_read:>15,}"
-            f" {usage.messages:>6,}"
+            f" {usage.messages:>6,} {'$' + format(usage.cost, ',.1f'):>10}"
         )
 
 
 def fmt_shares(by_agent: dict[str, Usage], total: Usage) -> str:
-    """``main 40% + implementer 35%`` の形にする。"""
-    if total.main_total <= 0:
+    """``main 40% + implementer 35%`` の形にする (料金の割合)。"""
+    if total.cost <= 0:
         return ""
 
     return " + ".join(
-        f"{name} {round(usage.main_total * 100 / total.main_total)}%"
+        f"{name} {round(usage.cost * 100 / total.cost)}%"
         for name, usage in by_agent.items()
     )
 
@@ -456,8 +533,9 @@ def print_summary(by_agent: dict[str, Usage], total: Usage) -> None:
     print(
         f"消費: output {total.output:,}"
         f" / cache_creation {total.cache_creation:,}"
-        f"（{fmt_shares(by_agent, total)}）"
+        f" / 概算 ${total.cost:,.1f}"
     )
+    print(f"      {fmt_shares(by_agent, total)}（料金の割合）")
     print(
         f"（参考: cache_read {total.cache_read:,}"
         f"、メッセージ {total.messages:,} 件）"
