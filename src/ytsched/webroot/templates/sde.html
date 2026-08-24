@@ -146,12 +146,11 @@
       </label>
     </div>
     <!-- 開いたときの ``.longtext`` は ``white-space: pre-wrap`` なので、
-         詳細の前後の改行がそのまま見える。前後 1 行ずつ空くのは元からの
-         見え方で、式の中の ``\n`` はそれを保つためのもの (TODO-038)。 -->
+         タグとの間の改行やインデントもそのまま見える。前後に空行を
+         作らないよう、``{{ detail }}`` を開始タグ・終了タグに詰めて
+         置いている (TODO-045)。 -->
     <div class="col-11 p-0 longtext my-sde-detail {{ class_canceled }}"
-      tabindex="0">
-      {{ '\n' + detail + '\n' }}
-    </div>
+      tabindex="0">{{ detail }}</div>
   </div>
   {% end %}
 </div><!-- container -->
