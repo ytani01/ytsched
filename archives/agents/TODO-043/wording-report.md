@@ -128,3 +128,139 @@ main が TODO-043 の節を 2 か所直した後の差分を見た。増えた�
 
 今回の追記対象（`rect`・`流儀`・`見当`・`寸法`）はいずれも前例があり、
 前例なしの語は無し。
+
+---
+
+## 済ませるコミット
+
+## 対象
+
+済ませるコミットに入る `.md` 6 つ。基準は `HEAD`（`5c7d18f`）。
+
+- `archives/todo/TODO-043. ゲージの針と基準線を、アイコンフォントでなく図形で描く.md`（新規）
+- `TODO.md`（節を archives へ移し、目次に足した差分のみ）
+- `archives/agents/TODO-043/README.md`（新規）
+- `archives/agents/TODO-043/verifier-request.md`（新規）
+- `archives/agents/TODO-043/verifier-report.md`（新規）
+- `archives/agents/TODO-043/runner-report.md`（新規）
+
+`TODO.md` の差分は、追加された「完了済み」の目次 1 行以外は、立てるコミットで
+既に確認した節をそのまま archives へ移しただけ（削除側のみ）だったので、
+新しく出てきた語は無い。`runner-report.md` はツールの出力（lint・テストの
+ログ）のみで、地の文はほぼ無かった。
+
+## 前例の無い語・少ない語（前例の件数が少ない順）
+
+### 前例なし（0 件）
+
+- **`unitsPerEm`**
+  - 箇所: `TODO-043.md`「fontTools で輪郭を取り出した（`unitsPerEm = 512`）」、
+    `README.md`・`verifier-request.md` にも同様の記述
+  - `git grep`: 0 件
+  - 見立て: OpenType/TrueType 仕様上の正式な用語（フォントの座標系の基準値）。
+    一般に通用する専門用語で、造語ではない
+
+- **`curveTo`**
+  - 箇所: `TODO-043.md`「グリフに `curveTo` が入っている」
+  - `git grep`: 0 件
+  - 見立て: フォントの輪郭をベジェ曲線で表す際によく使われる操作名
+    （fontTools 等の API にも実在する）。識別子に近く、造語ではない
+
+- **`stroke-linejoin`**
+  - 箇所: `TODO-043.md`「`stroke-linejoin: round` で近似する案も比べた
+    うえで見送っている」
+  - `git grep`: 0 件
+  - 見立て: SVG/CSS の標準プロパティ名。造語ではない
+
+- **`鋭角`**
+  - 箇所: `TODO-043.md`「今回の `<polygon>` は鋭角なので」「鋭角のまま
+    にした」
+  - `git grep`: 0 件
+  - 見立て: 普通の日本語（数学用語）。問題なし
+
+- **`逆算`**
+  - 箇所: `TODO-043.md` 申し送り「スクリーンショットの画素位置を逆算する
+    ときはずれる」、`verifier-report.md` の同趣旨の記述
+  - `git grep`: 0 件
+  - 見立て: 普通の日本語。問題なし
+
+- **`拠り所`**
+  - 箇所: `TODO-043.md`「『見た目を変えない』の拠り所が要るので」、
+    `README.md` にも同様
+  - `git grep`: 0 件
+  - 見立て: 普通の日本語（根拠、よりどころ）。問題なし
+
+- **`近似する`**
+  - 箇所: `TODO-043.md`「`stroke-linejoin: round` で近似する案も比べた」
+  - `git grep`: 0 件
+  - 見立て: 普通の日本語。問題なし
+
+- **`アンチエイリアスの閾値`**
+  - 箇所: `TODO-043.md`・`verifier-report.md`「（1px の差はアンチエイリアス
+    の閾値程度）」
+  - `git grep`: 0 件（フレーズとして。「アンチエイリアス」「閾値」は
+    それぞれ一般的な IT/画像処理用語）
+  - 見立て: 一般的な用語の組み合わせ。造語ではない
+
+### 前例が少ない（1〜6 件）
+
+- **`fontTools`**
+  - 箇所: `TODO-043.md`・`README.md`・`verifier-request.md`
+    「`fa-solid-900.woff2` から fontTools で輪郭を取り出した」ほか
+  - `git grep`: 1 件
+  - 見立て: 実在する Python のライブラリ名（固有名詞）。造語ではない
+
+- **`clientHeight`**
+  - 箇所: `TODO-043.md` 申し送り「`document.documentElement.clientHeight`
+    は一致しない」
+  - `git grep`: 1 件
+  - 見立て: DOM の標準プロパティ名。造語ではない
+
+- **`documentElement`**
+  - 箇所: 同上
+  - `git grep`: 1 件
+  - 見立て: DOM の標準プロパティ名（`document.documentElement`）。
+    造語ではない
+
+- **`差分画素`**
+  - 箇所: `verifier-report.md`「4. ゲージ以外への影響」
+    「差分画素の bbox は両方とも `x: 0〜14, y: 2020〜2043`
+    （ゲージの領域そのもの）のみ」
+  - `git grep`: 2 件
+  - 見立て: 「差分」＋「画素」の自然な組み合わせで、画像比較（AE 指標）の
+    文脈でよく使われる言い方。造語というより説明的な言い回し。問題なさそう
+
+- **`再帰的に発火`**
+  - 箇所: `verifier-request.md`「スクロールを走らせると再帰的に発火して
+    タイムアウトする」
+  - `git grep`: 2 件
+  - 見立て: 「再帰的」「発火」（イベントが起きる意）とも IT 分野で
+    よく使われる語の組み合わせ。造語ではない
+
+- **`罠`**
+  - 箇所: `verifier-report.md`「2. 針と基準線の重なり方」
+    「これは TODO-042 で見た現象と同じ罠だった」
+  - `git grep`: 6 件
+  - 見立て: 「落とし穴」の意味で使う普通の比喩表現。問題なし
+
+## 見なかったもの
+
+依頼書の指示どおり、`字面`・`グリフ`・`left side bearing`（TODO-042 で
+「そのまま使う」と決めた語）は候補から外した。`viewBox`・`polygon`・
+`rect`・`clip-path`・`unitsPerEm` 以外の SVG/CSS 識別子、`bbox`・
+`アンチエイリアス`・`compare -metric AE` は立てるコミットの報告で既に
+前例扱いになっている（`git grep` の件数も 1 件以上）ため再掲していない。
+
+## 読んだファイル
+
+- `archives/todo/TODO-043. ゲージの針と基準線を、アイコンフォントでなく図形で描く.md`
+- `TODO.md`（差分のみ）
+- `archives/agents/TODO-043/README.md`
+- `archives/agents/TODO-043/verifier-request.md`
+- `archives/agents/TODO-043/verifier-report.md`
+- `archives/agents/TODO-043/runner-report.md`
+
+## 前例の無い語数
+
+8 語（unitsPerEm、curveTo、stroke-linejoin、鋭角、逆算、拠り所、近似する、
+アンチエイリアスの閾値）。前例が少ない語（1〜6 件）を含めると 14 語。

@@ -51,6 +51,8 @@
     z-index: 10;
 }
 
+/* 目盛りのラベル (TODO-043 で針と基準線が SVG になり、文字で描いて
+   いるのはラベルだけになった) */
 .my-gage {
     vertical-align: middle;
     font-size: large;
@@ -63,9 +65,6 @@
 .my-gage-text {
     display: inline-block;
     transform: translate(0%, 50%);
-    /* Font Awesome 7 はアイコンの幅を 1.25em に固定して中央へ寄せる。
-       ゲージは left で位置を決めているので、もとの幅に戻す (TODO-042) */
-    --fa-width: auto;
 }
 
 .longtext {
@@ -134,21 +133,28 @@
     z-index: 1000;
 }
 
-/* ゲージ (bottom と display は JavaScript が書き換える) */
+/* ゲージ (bottom と display は JavaScript が書き換える)
+
+   針と基準線は SVG で描いている (TODO-043)。大きさは、以前使っていた
+   Font Awesome のアイコンの字面に合わせた:
+   fa-caret-right が 194x298 units (fa-2x = 36px で 13.6x21.0px)、
+   fa-grip-lines が 448x192 units (fa-xs = 13.5px で 11.8x5.1px)。
+   translateY(50%) で、JavaScript が渡す bottom が図形の中心に来る */
 .my-gage-r {
     left: 0px;
+    width: 14px;
+    height: 21px;
+    fill: #000;
     opacity: 0.2;
-}
-
-/* fa-caret-right の字面は、幅 0.5em のうち左から 65/512em のところから
-   始まる。針の左端を画面の左端 (x = 0) に合わせるため、その分を戻す
-   (TODO-042) */
-.my-gage-r .my-gage-text {
-    transform: translate(-0.127em, 50%);
+    transform: translateY(50%);
 }
 
 .my-gage-base {
     left: 3px;
+    width: 12px;
+    height: 5px;
+    fill: #000;
+    transform: translateY(50%);
 }
 
 .my-gage-label {

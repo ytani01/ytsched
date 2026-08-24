@@ -70,9 +70,7 @@
      const elGageRBase = document.getElementById("gage_r_base");
 
      elGageR0 = document.getElementById("gage_r"); // declared in my.js
-     // FA 7 でグリフの実寸が変わり、同じ bottom では針と基準線の
-     // 重なり方がずれる。9px は実機で見て合わせた値 (TODO-042)
-     elGageRBase.style.bottom = `${centerY - 9}px`;
+     elGageRBase.style.bottom = `${centerY}px`;
 
      if ( body_h < win_h ) {
        console.log(`body_h=${body_h} < win_h=${win_h}`);
@@ -145,15 +143,21 @@
     <input id="search_n" name="search_n"
       type="hidden" value="{{ search_n }}" />
 
-    <!-- gages -->
-    <div id="gage_r" class="my-osd-base my-gage my-gage-r">
-      <i class="fas fa-caret-right fa-2x my-gage-text"></i>
-    </div>
+    <!-- gages
+         針と基準線は図形なので SVG で描く。Font Awesome のアイコン
+         (fa-caret-right / fa-grip-lines) で描いていたときは、フォント側の
+         既定値が変わるたびに位置がずれた (TODO-042・TODO-043)。
+         大きさは、そのときの字面の実寸に合わせてある -->
+    <svg id="gage_r" class="my-osd-base my-gage-r"
+      viewBox="0 0 14 21">
+      <polygon points="0,0 14,10.5 0,21" />
+    </svg>
 
-    <div id="gage_r_base" class="my-osd-base my-gage my-gage-base">
-      <i class="fas fa-grip-lines fa-xs my-gage-text"></i>
-      <!-- <i class="fas fa-caret-left fa-2x"></i> -->
-    </div>
+    <svg id="gage_r_base" class="my-osd-base my-gage-base"
+      viewBox="0 0 12 5">
+      <rect x="0" y="0" width="12" height="1.7" rx="0.85" />
+      <rect x="0" y="3.3" width="12" height="1.7" rx="0.85" />
+    </svg>
 
     {% for i, d in enumerate(gage) %}
     <div id="gage_r{{ i }}"
