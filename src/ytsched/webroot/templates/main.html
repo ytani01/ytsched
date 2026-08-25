@@ -75,9 +75,11 @@
 
      if ( body_h < win_h ) {
        console.log(`body_h=${body_h} < win_h=${win_h}`);
+       // ゲージの都合で画面が出ないのはおかしいので、dispGage() より
+       // 先に visible にする (TODO-049 reviewer 指摘 1)
+       elMain.style.visibility = "visible";
        const date_from_str = document.getElementById("date_from").value;
        dispGage(date_from_str);
-       elMain.style.visibility = "visible";
        return;
      }
 
@@ -91,14 +93,10 @@
                   el_date.value, el_sde_align.value,
                   "instant", false);
      
-     const el_search = document.getElementById("search_str");
-     console.log(`onload(): search_str="${el_search.value}"`);
-     if (el_search.value == "") {
-       window.addEventListener('scroll', scrollHdr0, {passive:true});
-     } else {
-       const date_from_str = document.getElementById("date_from").value;
-       dispGage(date_from_str);
-     }
+     // 週表示になり、スクロールでの追加読み込みが無くなったので、
+     // 検索の有無によらず一度だけゲージを合わせる (TODO-049)
+     const date_from_str = document.getElementById("date_from").value;
+     dispGage(date_from_str);
    }; // onloadHdr()
    
    const changeSearchN = (val) => {
@@ -148,8 +146,6 @@
       type="hidden" value="{{ date_from }}" />
     <input name="cur_day"
       type="hidden" value="{{ date }}" />
-    <input id="date_to" name="date_to"
-      type="hidden" value="{{ date_to}}" />
     <input id="search_n" name="search_n"
       type="hidden" value="{{ search_n }}" />
 

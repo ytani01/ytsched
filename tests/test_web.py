@@ -59,6 +59,21 @@ def date_id(date):
     return f'id="date-{date}"'
 
 
+def day_block(body, date):
+    """``date`` の日付ブロックだけを取り出す（``main.html``。TODO-049）。
+
+    週表示になり、期限が先の ToDo でもその日が週の範囲に入っていれば
+    欄に出るようになったので、「今日の欄にだけ出ない」ことを見るには
+    本文全体でなく、この欄だけを見る必要がある。
+    """
+    marker = date_id(date)
+    start = body.index(marker)
+    next_start = body.find('id="date-', start + len(marker))
+    if next_start == -1:
+        next_start = len(body)
+    return body[start:next_start]
+
+
 CONF_FNAME = "conf.json"
 
 
@@ -105,15 +120,13 @@ class WebTestBase(tornado.testing.AsyncHTTPTestCase):
     は autouse の fixture 経由で受け取る（引数では受け取れない）。
     """
 
-    DAYS = 1
-
     @pytest.fixture(autouse=True)
     def _datadir(self, tmp_path):
         self.datadir = tmp_path / "data"
         self.datadir.mkdir()
 
     def get_app(self):
-        return make_app(self.datadir, days=self.DAYS)
+        return make_app(self.datadir)
 
     def write_data(self, date, lines):
         """データファイルを書く。"""
@@ -171,9 +184,13 @@ class TestMainHandler(WebTestBase):
         assert "{{" not in body
 
     def test_date_argument(self):
+        """``date`` を含む週（月曜〜日曜）が表示される（TODO-049）。
+
+        ``DATE1`` は月曜。
+        """
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
-        assert 'id="date-2021-03-01"' in body
-        assert 'id="date-2021-02-28"' in body
+        assert 'id="date-2021-03-01"' in body  # 月曜 (DATE1)
+        assert 'id="date-2021-03-07"' in body  # 日曜
 
     def test_sde_is_displayed(self):
         self.write_data(DATE1, [DATALINE1, DATALINE2])

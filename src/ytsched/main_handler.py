@@ -77,7 +77,6 @@ class MainHandler(HandlerBase):
 
     __log = getLogger(__qualname__)
 
-    DEF_DAYS = 45
     # SEARCH_MODE_MAX_DAYS は HandlerBase にある (TODO-027)
     SEARCH_MODE_DAYS = 365
     DEF_SEARCH_N = 5
@@ -818,8 +817,10 @@ class MainHandler(HandlerBase):
         -------
         sched: list[dict]
         date_from: datetime.date
+            通常モードでは ``date`` を含む週の月曜 (TODO-049)。
             検索モードでは、打ち切った日まで縮む
         date_to: datetime.date
+            通常モードでは ``date_from`` の 6 日後 (日曜)
 
         Notes
         -----
@@ -839,8 +840,9 @@ class MainHandler(HandlerBase):
         )
 
         sched = []
-        date_from = date - datetime.timedelta(self._days)
-        date_to = date + datetime.timedelta(self._days - 1)
+        monday = date - datetime.timedelta(date.weekday())
+        date_from = monday
+        date_to = monday + datetime.timedelta(6)
 
         if search_mode:
             date_from = date - datetime.timedelta(self.SEARCH_MODE_MAX_DAYS)

@@ -48,7 +48,6 @@ class WebServer:
         webroot: str = DEF_WEBROOT,
         datadir: str = DEF_DATADIR,
         url_prefix: str = DEF_URL_PREFIX,
-        days: int = MainHandler.DEF_DAYS,
         size_limit: int = DEF_SIZE_LIMIT,
         debug: bool = False,
     ):
@@ -64,15 +63,11 @@ class WebServer:
 
         url_prefix: str
 
-        days: int
-
         size_limit: int
             max upload size
         """
         self._dbg = debug
-        self.__log.debug(
-            f"port={port}, webroot={webroot}, datadir={datadir}, days={days}"
-        )
+        self.__log.debug(f"port={port}, webroot={webroot}, datadir={datadir}")
         self.__log.debug(f"size_limit={size_limit}")
 
         self._port = port
@@ -80,7 +75,6 @@ class WebServer:
         self._datadir = os.path.expanduser(datadir)
         self._url_prefix = url_prefix
         self._sd = SchedData(self._datadir)
-        self._days = days
         self._size_limit = size_limit
 
         os.makedirs(self._datadir, exist_ok=True)
@@ -102,7 +96,6 @@ class WebServer:
             version=VERSION,
             url_prefix=self._url_prefix + "/",
             datadir=self._datadir,
-            days=self._days,
             sd=self._sd,
             debug=self._dbg,
         )

@@ -23,7 +23,7 @@ from ytsched.ytsched import SchedData
 URL_PREFIX = WebServer.DEF_URL_PREFIX
 
 
-def make_app(datadir, days=MainHandler.DEF_DAYS):
+def make_app(datadir):
     """テスト用の ``tornado.web.Application`` を作る。
 
     ``autoreload`` は付けない（テストでは邪魔になるため。
@@ -48,7 +48,6 @@ def make_app(datadir, days=MainHandler.DEF_DAYS):
         version="0.0.0",
         url_prefix=URL_PREFIX + "/",
         datadir=datadir,
-        days=days,
         sd=SchedData(datadir),
         debug=False,
     )

@@ -5,7 +5,6 @@
 let elLoadingSpinner;
 let elMain;
 let elGageR0;
-let scrollHdrTimer = 0;
 
 /**
  *
@@ -41,7 +40,101 @@ const days2yOffset = (days) => {
 };
 
 /**
+ * ``date_str`` を含む週の月曜 (Localtime) を返す (TODO-049)。
+ *
+ * @param {String} date_str   'YYYY-mm-dd' or 'YYYY/mm/dd'
+ *
+ * @return {Date} monday
+ */
+const mondayOf = (date_str) => {
+    const d = new Date(date_str.split('/').join('-'));
+    let wday = d.getDay(); // 0:Sun, 1:Mon, ..
+    if (wday == 0) {
+        wday = 7; // Sun: 0 --> 7
+    }
+    return shiftDays(d, 1 - wday);
+};
+
+/**
+ * 針の位置 (``bottom``) を計算してセットする。``transition`` は
+ * 掛けたまま (TODO-049)。
+ *
+ * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい。
+ *   月曜へ丸めてから、今週の月曜との差を見る)
+ */
+const setGagePosition = (date_str) => {
+    const monday = mondayOf(date_str);
+    const this_monday = mondayOf(getLocaltimeDateString(new Date()));
+    const top_rel_days = calcDays(this_monday, monday);
+
+    const centerY = document.documentElement.clientHeight / 2 + 40;
+    const yOffset = days2yOffset(top_rel_days);
+    const gageBottom = centerY - yOffset;
+
+    elGageR0.style.bottom = `${gageBottom}px`;
+};
+
+// 直前に見ていた週の月曜 (TODO-049)。ページを読み直したあと、
+// この位置からいまの週へ針を動かして見せるために使う
+const GAGE_MONDAY_KEY = "ytsched_gage_monday";
+
+/**
+ * ``sessionStorage`` から直前の週の月曜を読む。
+ *
+ * Safari の「すべての Cookie をブロック」設定や、``allow-same-origin``
+ * の無い ``<iframe>`` では ``sessionStorage`` へのアクセスが
+ * ``SecurityError`` を投げる。読めなければ「前の週は不明」として
+ * ``null`` を返すだけにする (TODO-049)。
+ *
+ * @return {String | null}
+ */
+const getGageMonday = () => {
+    try {
+        return sessionStorage.getItem(GAGE_MONDAY_KEY);
+    } catch (e) {
+        console.log(`getGageMonday: ${e}`);
+        return null;
+    }
+};
+
+/**
+ * ``sessionStorage`` へ今の週の月曜を書く。書けなくても黙って諦める
+ * (TODO-049。理由は ``getGageMonday()`` を参照)。
+ *
+ * @param {String} monday_str   'YYYY-mm-dd'
+ */
+const setGageMonday = (monday_str) => {
+    try {
+        sessionStorage.setItem(GAGE_MONDAY_KEY, monday_str);
+    } catch (e) {
+        console.log(`setGageMonday: ${e}`);
+    }
+};
+
+/**
+ * ``transition`` を効かせずに、いったんその位置へ針を置く。
+ *
  * @param {String} date_str   'YYYY-mm-dd'
+ */
+const placeGageWithoutTransition = (date_str) => {
+    elGageR0.classList.add("my-gage-r-no-transition");
+    setGagePosition(date_str);
+    void elGageR0.offsetHeight; // 強制的にレイアウトを確定させる
+    elGageR0.classList.remove("my-gage-r-no-transition");
+};
+
+/**
+ * ゲージの針を動かす。
+ *
+ * ``sessionStorage`` に前回表示していた週の月曜を持っていれば、まず
+ * ``transition`` を効かせずにその位置へ針を置き、次のフレームで
+ * 今の週へ動かす (TODO-049)。ページを読み直すたびに呼ばれるので、
+ * ``transition`` だけでは針の初期値が "auto" のままで補間が起きず、
+ * 動いて見えない。``sessionStorage`` が使えない環境でも、針の位置を
+ * 合わせること自体は続ける (``getGageMonday()``/``setGageMonday()``
+ * が例外を握りつぶす)。
+ *
+ * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
  */
 const dispGage = (date_str) => {
     if ( ! date_str ) {
@@ -49,19 +142,19 @@ const dispGage = (date_str) => {
         return;
     }
 
-    // console.log(`date_str=${date_str}`);
-    const top_rel_days = getDaysFromToday(date_str);
+    const monday_str = getLocaltimeDateString(mondayOf(date_str));
+    const prev_monday_str = getGageMonday();
+    setGageMonday(monday_str);
 
-    //
-    // gage
-    //
-    const centerY = document.documentElement.clientHeight / 2 + 40;
-    const yOffset = days2yOffset(top_rel_days);
-    // console.log(`centerY=${centerY}, yOffset=${yOffset}`);
-    const gageBottom = centerY - yOffset;
+    if (prev_monday_str && prev_monday_str !== monday_str) {
+        placeGageWithoutTransition(prev_monday_str);
+        requestAnimationFrame(() => {
+            setGagePosition(monday_str);
+        });
+        return;
+    }
 
-    // console.log(`dispGage: gageBottom=${gageBottom}`);
-    elGageR0.style.bottom = `${gageBottom}px`;
+    setGagePosition(monday_str);
 };
 
 /**
@@ -126,25 +219,6 @@ const getLocaltimeDateString = (d) => {
 };
 
 /**
- * 画面の一番上に表示されている日付を取得
- *
- * @return {String} date_str: "YYYY-MM-DD"
- */
-const getTopDateString = () => {
-    const el_date_from = document.getElementById("date_from");
-    const win_top = window.pageYOffset;
-
-    let el_date = document.getElementById(`date-${el_date_from.value}`);
-    while ( el_date.offsetTop < win_top ) {
-        const d1 = new Date(el_date.id.replace('date-',''));
-        const d1_str = getLocaltimeDateString(shiftDays(d1, 1));
-        el_date = document.getElementById(`date-${d1_str}`);
-    }
-    // console.log(`getTopDateString: el_date.id=${el_date.id}`);
-    return el_date.id.replace('date-', '');
-};
-
-/**
  * 日数計算
  *
  * @param {Date} d_from
@@ -154,31 +228,6 @@ const getTopDateString = () => {
  */
 const calcDays = (d_from, d_to) => {
     const days = (d_to - d_from) / (24 * 60 * 60* 1000);
-    return days;
-};
-
-/**
- * 今日からの日数
- *
- * !! Important !!
- *
- * new Date()の日付の区切り文字は、
- * '/' だとJST, '-'だとUTCと見なされるが、
- *
- * ここでは、どちらもLocaltimeと見なす。
- *
- * (ex.)
- * new Date('2021/01/01') - new Date('2021-01-01T00:00:00.000Z')
- * 2021/01/01,00:00:00(JST) - 2021/01/01,00:00:00(UTC) = -9h
- *
- * @param {String} date_str  ex. "2021-01-01" or "2021/01/01"
- *
- * @return {number} days
- */
-const getDaysFromToday = (date_str) => {
-    const d_date = new Date(date_str.split('/').join('-'));
-    const d_today = new Date(getLocaltimeDateString(new Date()));
-    const days = calcDays(d_today, d_date);
     return days;
 };
 
@@ -320,13 +369,11 @@ const popstateHdr = (event) => {
     }
 
     // 画面内にあればスクロールで済ませる。無ければ読み直す
-    scrollFlag = false;
     if ( scrollToId(`date-${date}`, "top", "auto") ) {
         const el_cur_day = document.getElementById("cur_day");
         if ( el_cur_day ) {
             el_cur_day.value = date;
         }
-        scrollFlag = true;
         return;
     }
 
@@ -355,77 +402,21 @@ const doGetDate = (path, date, days = 0, sde_align = undefined) => {
     doGet(path, data_obj);
 };
 
-let scrollFlag = false;
-
-/**
- *
- */
-const scrollHdr = (event) => {
-    if ( ! scrollFlag ) {
-        console.log(`scrollHdr:event=${event}, scrollFlag=${scrollFlag}`);
-        return;
-    }
-
-    const top_date_str = getTopDateString();
-    const rel_days = getDaysFromToday(top_date_str);
-
-    const el_search = document.getElementById("search_str");
-    if (el_search.value != "") {
-        return;
-    }
-
-    const win_h = document.documentElement.clientHeight;
-    const body_h = document.body.clientHeight;
-    const d_top = window.pageYOffset;
-    const d_bottom = body_h - d_top - win_h;
-    console.log(`scrollHdr:d_top=${d_top}, d_bottom=${d_bottom}`);
-    
-    if (d_top < 50) {
-      scrollFlag = false;
-      el = document.getElementById("date_from");
-      date = el.value;
-      console.log(`date=${date}`);
-      doGet(`${url_prefix}`, {date: date, sde_align: "top"});
-    }
-    if (d_bottom < 80) {
-      scrollFlag = false;
-      el = document.getElementById("date_to");
-      date = el.value;
-      console.log(`date=${date}`);
-      doGet(`${url_prefix}`, {date: date, sde_align: "bottom"});
-    }
-};
-
-/**
- *
- */
-const scrollHdr0 = (event) => {
-    const top_date_str = getTopDateString();
-    dispGage(top_date_str);
-    
-    if (scrollHdrTimer > 0) {
-        clearTimeout(scrollHdrTimer);
-    }
-    scrollHdrTimer = setTimeout(scrollHdr, 100);
-};
-
 /**
  *
  */
 const scrollToId = (id, sde_align = "top", behavior = "smooth") => {
-    scrollFlag = false;
     console.log(`scrollToId:id=${id}`);
-    
-
-    const body_h = document.body.clientHeight;
-    const win_h = document.documentElement.clientHeight;
 
     elMain.style.visibility = "visible";
-    if (body_h <= win_h) {
-        console.log(`body_h=${body_h} < win_h=${win_h}`);
-        return true;
-    }
 
+    // 目的の要素が DOM にあるかどうかを、「1 画面に収まっているか」
+    // より先に見る (TODO-049)。週表示になり、予定の少ない週では
+    // 1 画面に収まる (body_h <= win_h) ことが増えた。それだけで
+    // 「スクロールで用が足りた」= true を返すと、DOM に無い日
+    // (表示中の週の外) を指されたときも true になり、呼び出し元の
+    // scrollToDate() が doGet() での読み直しを飛ばしてしまう
+    // (URL だけ書き換わって画面が変わらない不具合になった)。
     const el = document.getElementById(id);
     const el_search = document.getElementById('search_str');
     const search_str = el_search.value;
@@ -437,6 +428,14 @@ const scrollToId = (id, sde_align = "top", behavior = "smooth") => {
             return true;
         }
         return false;
+    }
+
+    const body_h = document.body.clientHeight;
+    const win_h = document.documentElement.clientHeight;
+
+    if (body_h <= win_h) {
+        console.log(`body_h=${body_h} < win_h=${win_h}`);
+        return true;
     }
 
     const top_of_el = el.offsetTop;
@@ -458,7 +457,6 @@ const scrollToId = (id, sde_align = "top", behavior = "smooth") => {
                   behavior: behavior});
     }
 
-    scrollFlag = true;
     return true;
 };
 
@@ -466,9 +464,8 @@ const scrollToId = (id, sde_align = "top", behavior = "smooth") => {
  *
  */
 const scrollToDate = (path, date, sde_align="top", behavior="smooth", push_flag=true) => {
-    scrollFlag = false;
     console.log(`scrollToDate:date=${date}, sde_align=${sde_align}`);
-    
+
     const el_cur_day = document.getElementById("cur_day");
 
     if (scrollToId(`date-${date}`, sde_align, behavior)) {
@@ -480,7 +477,6 @@ const scrollToDate = (path, date, sde_align="top", behavior="smooth", push_flag=
         } else {
             replaceDateInUrl(date);
         }
-        scrollFlag = true;
         return true;
     }
 
@@ -490,14 +486,14 @@ const scrollToDate = (path, date, sde_align="top", behavior="smooth", push_flag=
 };
 
 /**
- * [Important!]
- * スクロールによる自動読み込みより先に、自動読み込みをトリガー
+ * 週を送る (次/前の月曜へ移る)。
+ *
+ * 週表示では前後の週は DOM に無いので、常に読み直す (TODO-049)。
  *
  * @param {number} direction
  * @param {String} path
- * @param {String} behavior
  */
-const moveToMonday = (direction=1, path, behavior="smooth") => {
+const moveToMonday = (direction=1, path) => {
     const el_cur_day = document.getElementById("cur_day");
     let cur_day = new Date(el_cur_day.value);
     console.log(`moveToMonday:path=${path}`);
@@ -509,39 +505,22 @@ const moveToMonday = (direction=1, path, behavior="smooth") => {
     }
 
     let days;
-    let days2;
     if ( direction > 0 ) {
         days = 8 - wday;
-        days2 = days + 21;
     } else {
         days = 1 - wday;
         if (days == 0) {
             days = -7; // Mon
         }
-        days2 = days - 14;
     }
-    console.log(`moveToMonday:days=${days}, days2=${days2}`);
-    
+    console.log(`moveToMonday:days=${days}`);
+
     let d1 = new Date(el_cur_day.value);
     d1 = shiftDays(d1, days);
     d1_str = getLocaltimeDateString(d1);
     console.log(`moveToMonday:d1_str=${d1_str}`);
 
-    let d2 = new Date(el_cur_day.value);
-    d2 = shiftDays(d2, days2);
-    d2_str = getLocaltimeDateString(d2);
-    console.log(`moveToMonday:d2_str=${d2_str}`);
-
-    el_d2 = document.getElementById(`date-${d2_str}`);
-    if ( ! el_d2 ) {
-        doGet(path, {date: d1_str, sde_align: "top"});
-        return;
-    }
-
-    el_cur_day.value = d1_str;
-    pushDateInUrl(d1_str);
-    scrollFlag = false;
-    scrollToId(`date-${d1_str}`);
+    doGet(path, {date: d1_str, sde_align: "top"});
 };
 
 /**

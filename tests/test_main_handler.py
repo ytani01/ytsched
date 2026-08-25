@@ -38,6 +38,7 @@ from test_web import (
     DATE1_STR,
     WebTestBase,
     date_id,
+    day_block,
     mk_dataline,
 )
 
@@ -215,11 +216,9 @@ class TestConfArgs(WebTestBase):
 class TestSearchModeRange(WebTestBase):
     """検索モードで、どこまでさかのぼるか。
 
-    ``self._days``（45）と ``SEARCH_MODE_DAYS``（365）の境界を
-    またぐ位置にデータを置いて確かめる。
+    ``SEARCH_MODE_DAYS``（365）の境界をまたぐ位置にデータを置いて
+    確かめる。``BASE`` は月曜（TODO-049）。
     """
-
-    DAYS = MainHandler.DEF_DAYS  # 45
 
     BASE = datetime.date(2021, 3, 15)
     KEYWORD = "けんさく"
@@ -245,18 +244,48 @@ class TestSearchModeRange(WebTestBase):
             search_n=str(search_n),
         )
 
-    def test_normal_mode_range_is_days_before_and_after(self):
-        """検索しないときの範囲は ``[date - days, date + days - 1]``。
+    def test_normal_mode_range_is_the_week_of_date(self):
+        """検索しないときの範囲は、``date`` を含む週の月曜〜日曜
+        （TODO-049）。
 
-        検索モードでないので、予定が無い日も欄が出る。
+        検索モードでないので、予定が無い日も欄が出る。``BASE`` は月曜。
         """
         body = self.get_body(URL_PREFIX + "/", date=self.BASE.isoformat())
 
         day = datetime.timedelta(1)
-        assert date_id(self.BASE - day * self.DAYS) in body
-        assert date_id(self.BASE - day * (self.DAYS + 1)) not in body
-        assert date_id(self.BASE + day * (self.DAYS - 1)) in body
-        assert date_id(self.BASE + day * self.DAYS) not in body
+        assert date_id(self.BASE - day) not in body
+        assert date_id(self.BASE) in body
+        assert date_id(self.BASE + day * 6) in body
+        assert date_id(self.BASE + day * 7) not in body
+
+    def test_normal_mode_range_starts_at_monday_when_date_is_monday(self):
+        """月曜を指定したとき、その日が ``date_from`` になる（TODO-049）。"""
+        body = self.get_body(URL_PREFIX + "/", date=self.BASE.isoformat())
+
+        assert f'value="{self.BASE}"' in body
+
+    def test_normal_mode_range_goes_back_to_monday_when_date_is_sunday(self):
+        """日曜を指定したとき、その週の月曜まで戻る
+        （``date_from`` が 6 日前。TODO-049）。
+        """
+        sunday = self.BASE + datetime.timedelta(6)
+        body = self.get_body(URL_PREFIX + "/", date=sunday.isoformat())
+
+        assert f'value="{self.BASE}"' in body
+
+    def test_normal_mode_range_is_seven_days_across_year_boundary(self):
+        """年をまたぐ週でも 7 日ちょうど（TODO-049）。"""
+        monday = datetime.date(2025, 12, 29)
+        sunday = datetime.date(2026, 1, 4)
+
+        body = self.get_body(URL_PREFIX + "/", date=monday.isoformat())
+
+        assert f'value="{monday}"' in body
+        assert date_id(monday) in body
+        assert date_id(sunday) in body
+        assert date_id(sunday - datetime.timedelta(1)) in body
+        assert date_id(monday - datetime.timedelta(1)) not in body
+        assert date_id(sunday + datetime.timedelta(1)) not in body
 
     def test_search_mode_stops_365_days_after_first_hit(self):
         """1 件目が見つかったあとは、365 日前まででやめる。
@@ -673,20 +702,36 @@ class TestTodoDisplay(WebTestBase):
         assert self.TITLE in body
 
     def test_todo_days_boundary_is_inclusive(self):
-        """期限が ``today + todo_days`` ちょうどなら、今日の欄に出る。"""
+        """期限が ``today + todo_days`` ちょうどなら、今日の欄に出る。
+
+        期限の日そのものが週表示の範囲に入っていると、今日の欄への
+        合流が壊れていても「その日の欄」に出て通ってしまうので、
+        ``test_todo_one_day_over_the_boundary_is_not_shown`` と対に
+        なるよう、``day_block()`` で今日の欄だけを見る (TODO-049)。
+        """
         self.write_todo(datetime.date.today() + datetime.timedelta(3))
 
         body = self.get_body(URL_PREFIX + "/", todo_days="3")
 
-        assert self.TITLE in body
+        assert self.TITLE in day_block(body, datetime.date.today())
 
     def test_todo_one_day_over_the_boundary_is_not_shown(self):
-        """1 日でも先なら、今日の欄には出ない。"""
+        """1 日でも先なら、今日の欄には出ない。
+
+        期限の日が週表示の範囲に入っていれば、その日の欄には出る
+        （``todo_days`` を見ずに期限の日へ置く。TODO-049）ので、
+        今日の欄だけを見て確かめる。曜日によって期限の日が週の外へ
+        出ても（``day_block()`` に何も無ければ）真になり得るので、
+        単独では「週の外だから出ない」との区別が付かない。
+        ``test_todo_days_boundary_is_inclusive``（``today + 3``。
+        今日の欄に出る）と対にして、``todo_days`` の境目ちょうどで
+        今日の欄への合流が切り替わることを見る (TODO-049)。
+        """
         self.write_todo(datetime.date.today() + datetime.timedelta(4))
 
         body = self.get_body(URL_PREFIX + "/", todo_days="3")
 
-        assert self.TITLE not in body
+        assert self.TITLE not in day_block(body, datetime.date.today())
 
     def test_todo_due_today_is_shown_once(self):
         """期限が今日の ToDo は、1 回だけ出る。
@@ -703,13 +748,14 @@ class TestTodoDisplay(WebTestBase):
     def test_overdue_todo_is_shown_on_today(self):
         """期限が過ぎた ToDo は、今日の欄に出る。
 
-        ``DAYS`` は 1 なので、期限の日（3 日前）の欄は出ていない。
+        期限の日が週表示の範囲に入っていれば、その日の欄にも出る
+        （TODO-049）。ここでは「今日の欄に出る」ことだけを見る。
         """
         self.write_todo(datetime.date.today() - datetime.timedelta(3))
 
         body = self.get_body(URL_PREFIX + "/", todo_days="0")
 
-        assert body.count(self.TITLE) == 1
+        assert self.TITLE in day_block(body, datetime.date.today())
 
     def test_todo_today_is_not_merged_in_search_mode(self):
         """検索モードでは、今日の欄に ToDo を混ぜない。
@@ -740,9 +786,7 @@ class TestLoadSchedScan(WebTestBase):
     ときの結果と突き合わせて確かめる。
     """
 
-    DAYS = 3
-
-    BASE = datetime.date(2021, 3, 15)
+    BASE = datetime.date(2021, 3, 15)  # 月曜
     KEYWORD = "けんさく"
     TODO_TITLE = "ノートを買う"
 
@@ -754,6 +798,10 @@ class TestLoadSchedScan(WebTestBase):
         - ``BASE - 2``: ファイル無し。期限がその日の ToDo だけがある
         - ``BASE - 300``: 当たる予定（検索モードでしか見えない日）
         - それ以外: ファイル無し
+
+        ``BASE - 1``/``BASE - 2`` は、通常モードでは前の週になる
+        （``BASE`` は月曜）。それらを見るテストは、``call_load_sched()``
+        に ``date=BASE - 1`` を渡して、その週を表示させる (TODO-049)。
         """
         self.write_data(
             self.BASE,
@@ -802,14 +850,19 @@ class TestLoadSchedScan(WebTestBase):
             encoding="utf-8",
         )
 
-    def call_load_sched(self, handler, search_str="", todo_days_value=365):
-        """``load_todo()`` → ``load_sched()`` を、``get()`` と同じ順で。"""
+    def call_load_sched(
+        self, handler, search_str="", todo_days_value=365, date=None
+    ):
+        """``load_todo()`` → ``load_sched()`` を、``get()`` と同じ順で。
+
+        ``date`` を省くと ``BASE``（TODO-049）。
+        """
         search_re = re.compile(search_str) if search_str else None
         todo_sde, todo_today_sde = handler.load_todo(
             None, False, search_re, todo_days_value
         )
         return handler.load_sched(
-            self.BASE,
+            date or self.BASE,
             None,
             False,
             search_re,
@@ -857,33 +910,47 @@ class TestLoadSchedScan(WebTestBase):
         assert date_to == self.BASE
 
     def test_normal_mode_sched_is_same_as_opening_every_day(self):
-        """検索しないときも同じ。ファイルが無い日の欄も出る。"""
+        """検索しないときも同じ。ファイルが無い日の欄も出る。
+
+        範囲は ``BASE`` を含む週（月曜〜日曜。TODO-049）。
+        """
         self.write_mixed_data()
 
         sched, date_from, date_to = self.assert_same_as_opening_every_day()
 
         day = datetime.timedelta(1)
         assert [s["date"] for s in sched] == [
-            self.BASE - day * self.DAYS + day * i
-            for i in range(self.DAYS * 2)
+            self.BASE + day * i for i in range(7)
         ]
-        assert date_from == self.BASE - day * self.DAYS
-        assert date_to == self.BASE + day * (self.DAYS - 1)
+        assert date_from == self.BASE
+        assert date_to == self.BASE + day * 6
 
     def test_is_holiday_is_kept(self):
-        """休日の印は、ファイルがある日だけに付く。"""
+        """休日の印は、ファイルがある日だけに付く。
+
+        ``BASE - 1`` は前の週になるので、その週を表示させる
+        （``date=BASE - 1``。TODO-049）。
+        """
         self.write_mixed_data()
 
-        sched, _date_from, _date_to = self.assert_same_as_opening_every_day()
+        sched, _date_from, _date_to = self.assert_same_as_opening_every_day(
+            date=self.BASE - datetime.timedelta(1)
+        )
 
         holiday = {s["date"] for s in sched if s["is_holiday"]}
         assert holiday == {self.BASE - datetime.timedelta(1)}
 
     def test_todo_is_shown_on_a_day_without_data_file(self):
-        """ファイルが無い日でも、期限が来ている ToDo は出る。"""
+        """ファイルが無い日でも、期限が来ている ToDo は出る。
+
+        ``BASE - 2`` は前の週になるので、その週を表示させる
+        （``date=BASE - 1``。TODO-049）。
+        """
         self.write_mixed_data()
 
-        sched, _date_from, _date_to = self.assert_same_as_opening_every_day()
+        sched, _date_from, _date_to = self.assert_same_as_opening_every_day(
+            date=self.BASE - datetime.timedelta(1)
+        )
 
         todo_date = self.BASE - datetime.timedelta(2)
         assert not self.data_path(todo_date).exists()

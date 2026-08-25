@@ -27,9 +27,10 @@ def datadir(tmp_path):
 def test_settings_are_read(datadir):
     """``app.settings`` から読む値（TODO-021 のゴールデンマスターテスト）。
 
-    ``HandlerBase.__init__`` を整理しても、この 8 つは変わらない。
+    ``HandlerBase.__init__`` を整理しても、この 7 つは変わらない。
+    ``_days`` は TODO-049 で ``--days`` を消したときに落ちた。
     """
-    app = make_app(datadir, days=45)
+    app = make_app(datadir)
 
     handler = make_handler(app, HandlerBase)
 
@@ -38,7 +39,6 @@ def test_settings_are_read(datadir):
     assert handler._version == "0.0.0"
     assert handler._url_prefix == URL_PREFIX + "/"
     assert handler._datadir == str(datadir)
-    assert handler._days == 45
     assert handler._sd is app.settings["sd"]
     assert handler._conf_file == os.path.join(str(datadir), CONF_FNAME)
 

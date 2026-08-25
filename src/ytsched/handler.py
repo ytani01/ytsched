@@ -53,7 +53,6 @@ class HandlerBase(tornado.web.RequestHandler):
         self._version = app.settings.get("version")
         self._url_prefix = app.settings.get("url_prefix")
         self._datadir = app.settings.get("datadir")
-        self._days = app.settings.get("days")
         self._sd = app.settings.get("sd")
 
         self._conf_file = os.path.join(self._datadir, self.CONF_FNAME)
@@ -61,7 +60,7 @@ class HandlerBase(tornado.web.RequestHandler):
         self.__log.debug(
             f"title={self._title}, author={self._author},"
             f" version={self._version}, url_prefix={self._url_prefix},"
-            f" datadir={self._datadir}, days={self._days},"
+            f" datadir={self._datadir},"
             f" sd={self._sd}, conf_file={self._conf_file}"
         )
 
@@ -178,8 +177,7 @@ class HandlerBase(tornado.web.RequestHandler):
 
         ``load_sched()`` は、指定された日付から前後へ日をずらしながら
         スケジュールを集める。ずらす幅は最大で ``SEARCH_MODE_MAX_DAYS``
-        日 (``--days`` がそれより大きければ、その日数)。
-        ``datetime.date.min``/``datetime.date.max`` ぎりぎりの日付を
+        日。``datetime.date.min``/``datetime.date.max`` ぎりぎりの日付を
         受け取ると、この足し引きが ``OverflowError`` になるので、
         ずらす幅のぶんだけ内側を「使える範囲」とする。
 
@@ -189,9 +187,7 @@ class HandlerBase(tornado.web.RequestHandler):
             使える日付の、最小と最大
 
         """
-        margin = datetime.timedelta(
-            max(self._days, self.SEARCH_MODE_MAX_DAYS)
-        )
+        margin = datetime.timedelta(self.SEARCH_MODE_MAX_DAYS)
         return datetime.date.min + margin, datetime.date.max - margin
 
     def check_date(self, date: datetime.date) -> datetime.date:

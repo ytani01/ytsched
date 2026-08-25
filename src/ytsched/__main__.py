@@ -10,7 +10,6 @@ import datetime
 import click
 
 from . import (
-    MainHandler,
     SchedDataFile,
     WebServer,
     __prog_name__,
@@ -188,13 +187,6 @@ Web server"""
     help=f"URL prefix, default='{WebServer.DEF_URL_PREFIX}'",
 )
 @click.option(
-    "--days",
-    "days",
-    type=int,
-    default=MainHandler.DEF_DAYS,
-    help=f"+/- days, default={MainHandler.DEF_DAYS}",
-)
-@click.option(
     "--size_limit",
     "-l",
     "size_limit",
@@ -203,7 +195,7 @@ Web server"""
     help=f"upload size limit, default={WebServer.DEF_SIZE_LIMIT}",
 )
 @click_common_opts(__version__)
-def webapp(ctx, port, webroot, datadir, urlprefix, days, size_limit, debug):
+def webapp(ctx, port, webroot, datadir, urlprefix, size_limit, debug):
     """webapp"""
     debug = _is_debug(ctx, debug)
     loggerInit(debug=debug)
@@ -214,7 +206,6 @@ def webapp(ctx, port, webroot, datadir, urlprefix, days, size_limit, debug):
         webroot,
         datadir,
         urlprefix,
-        days,
         size_limit,
         debug=debug,
     )

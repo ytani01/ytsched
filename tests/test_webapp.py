@@ -8,7 +8,6 @@ import os
 
 import pytest
 
-from ytsched.main_handler import MainHandler
 from ytsched.webapp import WebServer
 
 
@@ -29,7 +28,6 @@ def test_app_settings(svr, tmp_path):
 
     assert settings["datadir"] == str(tmp_path / "data")
     assert settings["url_prefix"] == WebServer.DEF_URL_PREFIX + "/"
-    assert settings["days"] == MainHandler.DEF_DAYS
     assert settings["debug"] is False
     assert settings["static_url_prefix"] == (
         WebServer.DEF_URL_PREFIX + "/static/"

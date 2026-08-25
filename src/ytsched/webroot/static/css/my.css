@@ -477,6 +477,19 @@ textarea {
     fill: #000;
     opacity: 0.2;
     transform: translateY(50%);
+    /* 週を切り替えたときに、針が動くのが見えるようにする (TODO-049)。
+       ページを読み直した直後は、前の週の位置へ ``.my-gage-r-no-transition``
+       で一度置いてから、この transition を効かせて今の週へ動かす
+       (JavaScript 側は ``dispGage()``) */
+    transition: bottom 0.3s ease-out;
+}
+
+/* ``.my-gage-r`` と同じ詳細度 (クラス 1 つ) だと、ソース順でしか
+   勝てず、``my.css`` を並べ替えたときに無言で効かなくなる。
+   ``.my-gage-r`` を重ねてクラス 2 つぶんの詳細度にし、順序に
+   依らず打ち消せるようにする (TODO-049 reviewer 指摘 2) */
+.my-gage-r.my-gage-r-no-transition {
+    transition: none;
 }
 
 .my-gage-base {
