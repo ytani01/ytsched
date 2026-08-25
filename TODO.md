@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-047・TODO-048・TODO-049・TODO-050。**
+**残っている項目: TODO-047・TODO-048・TODO-049・TODO-050・TODO-051。**
 これまでに 46 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-051` から。**
+**番号は `TODO-052` から。**
 
 昔（2021 年）に作ったスケジュール管理ソフトを、Python 3.14 / uv / pytest の
 環境へ移行する。データディレクトリ `~/ytsched/data` は変えない。
@@ -394,6 +394,72 @@ CC BY 4.0** と、部分ごとに違う。SVG を持つ形に変えると CC BY 
 - **実際にブラウザで、戻る/進む・リロード・ブックマークを試す。**
   テストでは見られない
 - キーボードは、一覧・編集画面・検索欄にフォーカスがある状態の 3 つで試す
+
+## TODO-051. `DISPLAY` があると画面のキャプチャが撮れないのを直す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | main のみ + verifier |
+
+- [ ] `tools/screenshot.py` が `DISPLAY` を外して chromium を起動するようにする
+- [ ] `DISPLAY` がある状態と無い状態の両方で撮れることを確かめる
+- [ ] `docs/Developer.md` の「画面を撮る」に、この事情を書き足す
+
+### 症状
+
+TODO-047 で変更前のキャプチャを撮ろうとして分かった。`DISPLAY` が
+設定されていると、`Page.screenshot()` が 30 秒待って必ずタイムアウトする。
+
+```
+TimeoutError: Page.screenshot: Timeout 30000ms exceeded.
+Call log:
+  - taking page screenshot
+  - waiting for fonts to load...
+  - fonts loaded
+```
+
+`env -u DISPLAY` を付けて走らせると通る。TODO-047 はそれで撮った。
+
+### 調べたこと
+
+- **playwright の版は関係ない。** 1.55.0・1.58.0・1.61.0・1.62.0 の
+  4 つで同じように止まった
+- **chromium の起動オプションでは避けられない。** `--disable-gpu`、
+  `--disable-gpu --disable-dev-shm-usage`、`--use-gl=swiftshader`、
+  `--headless=old` の 4 通りを試して、どれも同じ
+- **ページの中身は関係ない。** `<h1>hello</h1>` だけのページでも同じ。
+  ytsched の作りのせいではない
+- **ページの高さも関係ない。** `--days 7` にして短くしても同じ
+- 環境は `DISPLAY=localhost:11.0`（ssh の X11 転送）、
+  chromium 151.0.7922.137
+
+TODO-046 で作ったときは撮れていたので、そのときのシェルには `DISPLAY` が
+無かったのだと思われる。
+
+### 決めること
+
+**`DISPLAY` をいつ外すか。**
+
+- 常に外す。headless で動かすので `DISPLAY` は要らない
+- オプションを足して選べるようにする
+
+いま撮れているのは「常に外す」と同じ状態なので、それでよさそう。
+着手するときに決める。
+
+### ついでに決めること
+
+`DEF_URL` が `http://localhost:10085/` で、`--urlprefix` の既定
+（`/ytsched`）が入っていない。一覧は `MainHandler` が `/` にも
+割り当ててあるので今までは困らなかったが、編集画面は
+`/ytsched/edit/` でないと 404 になる。既定を `http://localhost:10085/ytsched/`
+にするかどうかを、このときに決める。
+
+### 確かめ方
+
+- `DISPLAY` を設定した状態で `mise run shot` が通ること。
+  **これが今できないことなので、いちばん大事**
+- `env -u DISPLAY` を付けた状態でも今までどおり通ること
+- 保存された PNG が壊れていないこと（`file` で見る）
 
 ---
 
