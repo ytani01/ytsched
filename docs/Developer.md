@@ -112,6 +112,17 @@ mise run shot -- --open -p todo046
 - ブラウザはシステムの `/usr/bin/chromium` を使う。
   `~/.cache/ms-playwright` にあるビルドは playwright-mcp が入れたもので、
   `--with playwright` が取ってくる版とは合わず起動しない（TODO-045）
+- **HTTP のステータスが 200 以外なら、撮らずに終了コード 1 で終える**
+  （TODO-053）。URL を間違えて 404 のページを撮ってしまい、変更の前後の
+  突き合わせで見分けが付かなくなるのを防ぐため。
+
+  ```sh
+  $ mise run shot -- http://localhost:10085/edit/
+  404: http://localhost:10085/edit/
+  URL を確かめる。
+  $ echo $?
+  1
+  ```
 
 ## テストの走らせ方
 

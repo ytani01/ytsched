@@ -42,6 +42,14 @@ from ytsched.mylog import exmsg, getLogger, loggerInit
 
 _log = getLogger("screenshot")
 
+
+class HttpError(Exception):
+    """``page.goto()`` の応答が 200 以外だったときに投げる (TODO-053)。"""
+
+    def __init__(self, status: int | str, url: str) -> None:
+        super().__init__(f"{status}: {url}")
+
+
 #: 既定の URL (``mise run webapp`` の待ち受け先)。
 #: ``--urlprefix`` の既定 (``/ytsched``) に合わせてある。一覧は ``/`` にも
 #: 割り当ててあるが、編集画面は前置きが無いと 404 になる (TODO-051)
@@ -91,7 +99,11 @@ def shoot(
                 page = browser.new_page(
                     viewport={"width": width, "height": height}
                 )
-                page.goto(url, wait_until="networkidle")
+                response = page.goto(url, wait_until="networkidle")
+                status = response.status if response is not None else "?"
+                if status != 200:
+                    page.close()
+                    raise HttpError(status, url)
 
                 path = outdir / f"{prefix}_closed_{width}.png"
                 page.screenshot(path=str(path), full_page=full_page)
@@ -222,6 +234,9 @@ def main(argv: list[str] | None = None) -> int:
             "で走らせる。",
             file=sys.stderr,
         )
+        return 1
+    except HttpError as ex:
+        print(f"{ex}\nURL を確かめる。", file=sys.stderr)
         return 1
     except Exception as ex:  # noqa: BLE001
         print(exmsg(ex), file=sys.stderr)
