@@ -1,8 +1,7 @@
 # TODO
 
-**残っている項目: TODO-047・TODO-048・TODO-049・TODO-050・TODO-051・
-TODO-052。**
-これまでに 46 件を決着させた。
+**残っている項目: TODO-048・TODO-049・TODO-050・TODO-051・TODO-052。**
+これまでに 47 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-053` から。**
 
@@ -14,59 +13,6 @@ TODO-052。**
 `ytsched migrate` で一度に変換する。
 
 着手する項目は利用者が指定する。
-
----
-
-## TODO-047. Bootstrap をやめて、素の CSS にする
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
-
-- [ ] いま使っている Bootstrap のクラスの代わりを `my.css` に書く
-- [ ] `base.html` から `bootstrap.min.css` の読み込みを外す
-- [ ] `static/vendor/bootstrap/` を消す
-- [ ] 見た目が変わっていないことを、変更の前後のキャプチャで確かめる
-
-### いま使っているもの
-
-`base.html` が読み込んでいるのは `bootstrap.min.css`（v5.3.8、236KB）だけで、
-Bootstrap の JavaScript は入っていない。テンプレート 4 つで使っている
-Bootstrap のクラスは、次の 3 種類にとどまる。
-
-- グリッド: `container-fluid` `row` `col` `col-1`〜`col-11`
-- 余白: `p-0` `p-1` `m-0` `m-1`
-- 配置ほか: `text-center` `text-start` `text-end` `align-middle`
-  `align-bottom` `d-none` `border` `fixed-bottom` `alert` `alert-danger`
-
-ドロップダウン・モーダル・折りたたみは使っていない。メニューの開閉は
-`#menu-sw:checked ~ .my-bar-content` という CSS で書いてある（`my.css`）。
-
-### なぜやるか
-
-- 236KB のうち、使っているのは上の 3 種類だけ
-- フレームワーク側の変更に振り回される。既定のフォントが変わって行の高さが
-  ずれた件（TODO-040）のせいで、`--bs-body-font-family` を固定している
-- `my.css` にある 5 か所の `!important` は、Bootstrap の詳細度
-  （specificity）に勝つためのもの。外せば要らなくなる
-
-### 気をつけること
-
-- `row` / `col-N` は Bootstrap では flexbox だが、CSS Grid に置き換える。
-  flex の子が既定の `min-width: auto` で縮まない件（TODO-045、`.longtext`）
-  も、そのときに見直す
-- `align-middle` は `vertical-align: middle` で、Grid の `align-self: center`
-  とは別物。どちらの意味で使っている箇所なのかを、テンプレートごとに見る
-- `alert` / `alert-danger` は `main.html` の 1 か所だけ
-- Font Awesome（288KB）も、使っているアイコンは 25 種類ほどしかないが、
-  今回は触らない。減らすなら別の項目にする
-
-### 確かめ方
-
-見た目を変えないための項目なので、テストでは確かめられない。
-`tools/screenshot.py`（TODO-046）で変更の前と後のキャプチャを撮り、
-突き合わせる。幅は既定の 412px と 800px。一覧（`main.html`）と
-編集画面（`edit.html`）の両方を撮ること。
 
 ---
 
@@ -86,8 +32,9 @@ Bootstrap のクラスは、次の 3 種類にとどまる。
       `static/vendor/fontawesome/` を消す
 - [ ] 見た目が変わっていないことを、変更の前後のキャプチャで確かめる
 
-TODO-047（Bootstrap をやめる）とは独立していて、どちらを先にやってもよい。
-触るファイルは重なるので、同時には進めないこと。
+TODO-047（Bootstrap をやめる）は済んでいる。`base.html` の `<link>` の
+順に注意すること。**`my.css` は `all.css` より後に読む**必要があるが、
+Font Awesome が無くなればその依存も消える（TODO-047）。
 
 ### いま使っているもの
 
@@ -299,12 +246,17 @@ CC BY 4.0** と、部分ごとに違う。SVG を持つ形に変えると CC BY 
 
 - **TODO-050（週を URL に持たせて GET にする）を先にやる。**スワイプと
   戻る/進むの土台になる
-- **TODO-047（Bootstrap をやめる）・TODO-048（Font Awesome をやめる）と、
-  触るファイルが重なる。**同時には進めないこと
+- **TODO-048（Font Awesome をやめる）と、触るファイルが重なる。**
+  同時には進めないこと
 - **iOS Safari の画面端スワイプ（戻る）と競合する。**画面の左端から始まる
   横スワイプは OS に取られる
 - **縦スクロールと横スワイプの切り分けが要る。**1 週間分が画面に収まらない
   ときは上下にスクロールするので、縦の動きが優勢なら横スワイプを無視する
+- **`.longtext`（詳細の欄）を `row` の孫にしないこと。**中身に押し
+  広げられないための `min-width: 0` は `my.css` の `.row > *` にまとめて
+  かけてあり（TODO-047）、直接の子にしか当たらない。入れ子を深くすると
+  `text-overflow: ellipsis` が黙って効かなくなり、TODO-045 と同じ症状
+  （閉じているのに 2 行になる）に戻る
 
 ### 確かめ方
 
@@ -384,10 +336,15 @@ CC BY 4.0** と、部分ごとに違う。SVG を持つ形に変えると CC BY 
 
 - **TODO-049 より先にやる。**あとからでは、スワイプの作りを組み直すことに
   なる
-- **TODO-047（Bootstrap をやめる）・TODO-048（Font Awesome をやめる）と、
-  触るファイルが重なる。**同時には進めないこと
+- **TODO-048（Font Awesome をやめる）と、触るファイルが重なる。**
+  同時には進めないこと
 - **`tests/test_web.py` は `AsyncHTTPTestCase` で POST を投げている。**
   移動が GET になれば、そちらも直すことになる
+- **`.longtext`（詳細の欄）を `row` の孫にしないこと。**中身に押し
+  広げられないための `min-width: 0` は `my.css` の `.row > *` にまとめて
+  かけてあり（TODO-047）、直接の子にしか当たらない。入れ子を深くすると
+  `text-overflow: ellipsis` が黙って効かなくなり、TODO-045 と同じ症状
+  （閉じているのに 2 行になる）に戻る
 
 ### 確かめ方
 
@@ -486,6 +443,7 @@ TODO-046 で作ったときは撮れていたので、そのときのシェル�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-047.** Bootstrap をやめて、素の CSS にする](archives/todo/TODO-047.%20Bootstrap%20をやめて、素の%20CSS%20にする.md)
 - [**TODO-046.** 画面のキャプチャを撮るスクリプトを置く](archives/todo/TODO-046.%20画面のキャプチャを撮るスクリプトを置く.md)
 - [**TODO-045.** 詳細（detail）の見え方を直す](archives/todo/TODO-045.%20詳細（detail）の見え方を直す.md)
 - [**TODO-044.** トークン消費の測り方と、担当の走らせ方を見直す](archives/todo/TODO-044.%20トークン消費の測り方と、担当の走らせ方を見直す.md)

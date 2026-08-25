@@ -207,12 +207,20 @@ sudo loginctl enable-linger $USER
 `src/ytsched/webroot/static/vendor/` へ同梱しています。ライセンス文書は
 それぞれのディレクトリにあります。
 
-* [Bootstrap](https://getbootstrap.com/) 5.3.8 (CSS のみ) — MIT License
 * [Font Awesome Free](https://fontawesome.com/) 7.3.1 — アイコンが
   CC BY 4.0、フォントが SIL OFL 1.1、コードが MIT License
 
 Font Awesome のフォントは、`woff2` のみ（7 は `woff` を配りません）、
 使用している `solid` と `regular` のみを同梱しています。
+
+Bootstrap は同梱をやめました（TODO-047）。使っていたのはグリッドと
+余白まわりのクラスだけだったので、その値と、これまで Bootstrap に
+任せていた土台の指定（reboot。`body` のフォント・文字色・行の高さ、
+`box-sizing`、入力欄がフォントを継ぐ指定など）を Bootstrap 5.3.8
+（MIT License）から写して `static/css/my.css` に持たせています。
+写した旨は、そのファイルの先頭のコメントに書いてあります。ライセンス
+文書は [docs/licenses/bootstrap-LICENSE](docs/licenses/bootstrap-LICENSE)
+に残してあります。
 
 
 ## スマホのホーム画面に追加する

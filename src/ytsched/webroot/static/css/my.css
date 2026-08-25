@@ -1,16 +1,309 @@
 /*
- * Bootstrap 5 の既定のフォント (system-ui, ...) は 4.5 のもの
- * (-apple-system, ...) と、実際に使われるフォントが違って行の高さが
- * 変わる。固定しないと日付ブロックが 1 個あたり 2px 高くなり、一覧が
- * 176px 伸びる (TODO-040)。値は 4.5 の bootstrap.min.css と同じ。
+ * ytsched のスタイルシート。
+ *
+ * Bootstrap をやめた (TODO-047) ので、これまで Bootstrap に任せていた
+ * 土台の指定 (reboot) と、テンプレートで使っているユーティリティの
+ * クラスは、このファイルが持っている。それらの値は
+ * Bootstrap 5.3.8 (MIT License, Copyright (c) 2011-2025 The Bootstrap
+ * Authors) から写した。ライセンス文書は
+ * ``docs/licenses/bootstrap-LICENSE`` にある。
+ *
+ * 並び順に意味がある。Bootstrap から写したクラスを前に、``my-`` で
+ * 始まるこのアプリ固有のクラスを後ろに置く。詳細度が同じなので後ろが
+ * 勝ち、``!important`` を書かずに済む (TODO-047)。
  */
+
 :root {
-    --bs-body-font-family:
+    /*
+     * Bootstrap 5 の既定のフォント (system-ui, ...) は 4.5 のもの
+     * (-apple-system, ...) と、実際に使われるフォントが違って行の高さが
+     * 変わる。この値でないと日付ブロックが 1 個あたり 2px 高くなり、
+     * 一覧が 176px 伸びる (TODO-040)。値は 4.5 の bootstrap.min.css と
+     * 同じ。
+     */
+    --my-body-font-family:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         "Helvetica Neue", Arial, "Noto Sans", sans-serif,
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
         "Noto Color Emoji";
+
+    /*
+     * グリッドのガター (溝)。Bootstrap の ``--bs-gutter-x`` と同じ値で、
+     * その半分を ``.row`` の負のマージンと ``.row > *`` ・
+     * ``.container-fluid`` のパディングに使う。``p-*`` ``m-*`` は
+     * これを打ち消すためのもの。
+     */
+    --my-gutter-x: 1.5rem;
 }
+
+/* ===================================================================
+ * 土台 (Bootstrap の reboot から写したもの)
+ *
+ * テンプレートに出てくる要素にかかるものだけ。``<button>`` は
+ * 使っていないので、ボタン向けの指定は写していない。
+ * =================================================================== */
+
+*,
+::after,
+::before {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: var(--my-body-font-family);
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+b,
+strong {
+    font-weight: bolder;
+}
+
+/* ゲージの SVG に効いている */
+img,
+svg {
+    vertical-align: middle;
+}
+
+/* メニューの開閉ラベルに効いている */
+label {
+    display: inline-block;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+select {
+    text-transform: none;
+    word-wrap: normal;
+}
+
+textarea {
+    resize: vertical;
+}
+
+/* 日付・時刻の入力欄の中身 */
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-fields-wrapper,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute,
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-text,
+::-webkit-datetime-edit-year-field {
+    padding: 0;
+}
+
+::-webkit-inner-spin-button {
+    height: auto;
+}
+
+/* ===================================================================
+ * ユーティリティ (Bootstrap から写したもの)
+ *
+ * この中でも順番に意味がある。``.container-fluid`` ``.row`` ``.alert``
+ * が付けた余白を ``p-*`` ``m-*`` が打ち消すので、余白の指定はそれらの
+ * 後ろに置くこと。
+ * =================================================================== */
+
+.container-fluid {
+    width: 100%;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+/*
+ * ``row`` / ``col-N`` は 12 列の CSS Grid。Bootstrap では flexbox
+ * (``display: flex`` と ``width: N/12``) だったが、どの ``row`` も子の
+ * 合計がちょうど 12 列で折り返しは起きていないので、Grid にしても
+ * 見た目は変わらない (TODO-047)。
+ *
+ * トラックを ``minmax(0, 1fr)`` にし、``.row > *`` に ``min-width: 0``
+ * を付けているのは、Grid の子も flex の子と同じで既定が
+ * ``min-width: auto`` で、中身の長さに押し広げられてしまうため
+ * (TODO-045)。``.longtext`` の ``text-overflow`` はこれが無いと効かない。
+ */
+.row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin-top: 0;
+    margin-right: calc(-.5 * var(--my-gutter-x));
+    margin-left: calc(-.5 * var(--my-gutter-x));
+}
+
+.row > * {
+    grid-column: span 12;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+}
+
+/* 数字なしの ``col`` は 12 列ぶん。1 行に 1 つだけ置いて使っている。
+   使っていない番号もあるが、途中が抜けているほうが分かりにくいので
+   12 列ぶんそろえてある */
+.col {
+    grid-column: span 12;
+}
+
+.col-1 {
+    grid-column: span 1;
+}
+
+.col-2 {
+    grid-column: span 2;
+}
+
+.col-3 {
+    grid-column: span 3;
+}
+
+.col-4 {
+    grid-column: span 4;
+}
+
+.col-5 {
+    grid-column: span 5;
+}
+
+.col-6 {
+    grid-column: span 6;
+}
+
+.col-7 {
+    grid-column: span 7;
+}
+
+.col-8 {
+    grid-column: span 8;
+}
+
+.col-9 {
+    grid-column: span 9;
+}
+
+.col-10 {
+    grid-column: span 10;
+}
+
+.col-11 {
+    grid-column: span 11;
+}
+
+.col-12 {
+    grid-column: span 12;
+}
+
+/* 知らせの枠 (不正な正規表現の知らせで使っている) */
+.alert {
+    position: relative;
+    padding: 1rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: .375rem;
+}
+
+.alert-danger {
+    color: #58151c;
+    background-color: #f8d7da;
+    border-color: #f1aeb5;
+}
+
+/* 余白。↑ の余白を打ち消すので、↑ より後に置くこと */
+.p-0 {
+    padding: 0;
+}
+
+.p-1 {
+    padding: .25rem;
+}
+
+.p-2 {
+    padding: .5rem;
+}
+
+.m-0 {
+    margin: 0;
+}
+
+.m-1 {
+    margin: .25rem;
+}
+
+/* 文字 */
+.text-start {
+    text-align: left;
+}
+
+.text-end {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.fw-bold {
+    font-weight: 700;
+}
+
+/* 縦位置。inline 要素 (アイコン・入力欄) に付けるもので、
+   Grid の ``align-self`` とは別物。
+
+   **``base.html`` で Font Awesome の ``all.css`` より後に読むこと。**
+   ``all.css`` の ``.fa-lg`` が ``vertical-align: -0.075em`` を
+   詳細度 (0,1,0) で持っていて、こちらと同じ。Bootstrap の
+   ``!important`` を外した (TODO-047) ので、勝てる根拠は読み込む順だけ。
+   並べ替えると ``fa-lg align-middle`` を付けた 10 か所のアイコンの
+   縦位置が黙ってずれる。TODO-048 で Font Awesome が無くなれば、この
+   注意も要らなくなる */
+.align-middle {
+    vertical-align: middle;
+}
+
+.align-bottom {
+    vertical-align: bottom;
+}
+
+/* 隠す指定。後ろの ``my-*`` に負けると困るので、ここだけ
+   ``!important`` を残してある (TODO-047) */
+.d-none {
+    display: none !important;
+}
+
+.border {
+    border: 1px solid #dee2e6;
+}
+
+.fixed-bottom {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1030;
+}
+
+/* ===================================================================
+ * ここから下が、このアプリ固有のクラス。
+ * 上のユーティリティと詳細度が同じなので、こちらが勝つ。
+ * =================================================================== */
 
 @keyframes blink {
     0% {
@@ -37,7 +330,7 @@
     bottom: -60px;
     width: 100%;
     transition: all 0.05s;
-    /* .fixed-bottom (bootstrap) の z-index: 1030 を打ち消す。
+    /* ``.fixed-bottom`` の z-index: 1030 を打ち消す。
        これが無いと、閉じているメニューがメニューバーの上に出る */
     z-index: 100;
 }
@@ -68,16 +361,19 @@
 }
 
 /*
- * 幅は Bootstrap の ``col-11`` に任せる。``width: auto`` にすると
- * 中身の長さまで伸びて ``row`` が折り返し、閉じているときに 2 行に
- * なってしまう (TODO-045)。``min-width: 0`` は、flex の子が既定の
- * ``min-width: auto`` で縮まず、``text-overflow`` が効かなくなるのを
- * 避けるため。
+ * 幅は ``col-11`` (Grid の 11 列ぶん) に任せる。``width: auto`` に
+ * すると中身の長さまで伸びて ``row`` が折り返し、閉じているときに
+ * 2 行になってしまう (TODO-045)。中身に押し広げられないための
+ * ``min-width: 0`` は、``.row > *`` にまとめてかけてある (TODO-047)。
+ *
+ * **``.row`` の直接の子であること**が前提。``.row > *`` は孫には
+ * 当たらないので、テンプレートの入れ子を深くすると
+ * ``text-overflow: ellipsis`` が黙って効かなくなり、TODO-045 と
+ * 同じ症状 (閉じているのに 2 行になる) に戻る。
  */
 .longtext {
     border: 1px solid #CCC;
     border-radius: 0px 0px 10px 0px;
-    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -86,7 +382,6 @@
 .longtext-sw:checked ~ .longtext {
     border: 1px solid #CCC;
     border-radius: 0px 0px 10px 0px;
-    min-width: 0;
     white-space: pre-wrap;
     overflow: visible;
     text-overflow: clip;
@@ -97,7 +392,7 @@
 }
 
 .my-btn:active {
-    background-color: yellow !important;
+    background-color: yellow;
 }
 
 /*
@@ -169,16 +464,16 @@
     font-size: x-small;
 }
 
-/* 日付ごとのブロック */
+/* 日付ごとのブロック (``.border`` より後なので、こちらが勝つ) */
 .my-date-block {
     background-color: #EEE;
     border-radius: 0px 15px 15px 0px;
-    border: 2px solid #888 !important;
+    border: 2px solid #888;
 }
 
 /* ↑ より後に置くこと (同じ詳細度なので、後のほうが勝つ) */
 .my-date-block-today {
-    border: 4px solid #28F !important;
+    border: 4px solid #28F;
 }
 
 .my-date-col {
@@ -332,7 +627,7 @@
 
 /* 取り消し線。この要素の文字に引く */
 .my-canceled {
-    text-decoration: line-through !important;
+    text-decoration: line-through;
 }
 
 /*
@@ -342,7 +637,7 @@
  * まとめてではなく子要素ごとに指定する。
  */
 .my-canceled-items > * {
-    text-decoration: line-through !important;
+    text-decoration: line-through;
 }
 
 /* 編集画面 */
