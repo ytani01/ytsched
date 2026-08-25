@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-048・TODO-049・TODO-051。**
-これまでに 50 件を決着させた。
+**残っている項目: TODO-049・TODO-051。**
+これまでに 51 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-054` から。**
 
@@ -13,151 +13,6 @@
 `ytsched migrate` で一度に変換する。
 
 着手する項目は利用者が指定する。
-
----
-
-## TODO-048. Font Awesome をやめて、自作の SVG アイコンにする
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | implementer + verifier |
-| 実施 | Opus 5 / effort high | implementer + verifier（2 回） |
-| 消費 | output 130,507 / cache_creation 580,585 / 概算 $16.4 |
-|      | main 87% + implementer 6% + verifier 5% + wording 2%（料金の割合） |
-
-- [x] 使っている 22 種類のアイコンを、線画で描き起こす
-- [x] 22 個を並べた確認用のページを作り、キャプチャを見せて承認を取る
-- [x] `<symbol>` をまとめた `icons.svg` を作り、`static/icons/` に置く
-- [x] テンプレートの `<i class="fas fa-...">` を `<svg><use></svg>` に
-      置き換える
-- [x] 大きさ（`fa-lg` / `fa-2x` / `fa-9x`）と回転（`fa-spin`）の代わりを
-      `my.css` に書く（`.my-spinner` の隣に置く）
-- [x] `base.html` から `all.css` の読み込みを外し、
-      `static/vendor/fontawesome/` を消す
-- [x] 大きさ・縦位置・行の詰まり具合が崩れていないことを、変更の前後の
-      キャプチャで確かめる
-
-**済んだ。アーカイブは `/clear` してから**（TODO-052）。材料は
-`archives/agents/TODO-048/` の報告 5 つと、下の「見つけた崩れ」にある。
-
-消費は `mise run tokens -- TODO-048 --since '2026-08-25 16:42:16'` で
-数えた。**`--since` が要る。** 立てたのは 06:39 で、着手までの間に
-TODO-050・052・053 を挟んでいるため、指定しないとその分（reviewer を
-含む）まで数に入る（$73.5 になった）。
-
-TODO-047（Bootstrap をやめる）は済んでいる。`base.html` の `<link>` の
-順に注意すること。**`my.css` は `all.css` より後に読む**必要があるが、
-Font Awesome が無くなればその依存も消える（TODO-047）。
-
-### いま使っているもの
-
-`static/vendor/fontawesome/` は 288KB（`all.css` 130KB、`fa-solid-900.woff2`
-119KB、`fa-regular-400.woff2` 20KB）。読み込んでいるのは `base.html` の
-1 行だけで、Python・JavaScript・CSS からは参照していない
-（`my.css` のコメントに 2 か所出てくるだけ）。`my.js` もアイコンの
-クラスを触っていないので、JavaScript 側の書き換えは要らない。
-
-使っているアイコンは 23 個。
-
-| 種類 | アイコン |
-|------|---------|
-| solid（`fas`）19 個 | `angle-down` `arrow-alt-circle-up` `arrows-alt-h` `backspace` `bars` `check-square` `chevron-left` `chevron-right` `clone` `exclamation-triangle` `filter` `home` `list-alt` `plus-square` `reply` `search` `spinner` `sync` `trash-alt` |
-| regular（`far`）4 個 | `arrow-alt-circle-up` `arrow-alt-circle-down` `dot-circle` `square` |
-
-`arrow-alt-circle-up` は solid と regular の両方を使っていて、
-字形が違うので SVG も別々に要る（名前としては 22 種類）。
-大きさは `fa-lg`（1.25em）・`fa-2x`（2em）・`fa-9x`（9em）で指定して
-いて、読み込み中のしるしは `fa-spin`（2 秒・linear・無限）で回している。
-
-### なぜやるか
-
-- 288KB のうち、使っているのは 22 個だけ。SVG にすれば数 KB で足りる
-- **アイコンフォントは、フォント側の既定値が変わると位置がずれる。**
-  ゲージの針と基準線がずれた件（TODO-042）がそれで、TODO-043 で SVG に
-  描き直して直した。今回は残りのアイコンに同じことをする
-- フォントの読み込みが終わるまでアイコンが出ない
-- **自作にすれば、ライセンスの扱いが要らなくなる。** Font Awesome Free は
-  フォントが SIL OFL 1.1、アイコン（SVG）は CC BY 4.0 で、SVG を持つ形に
-  すると帰属表示が要る。自分で描けばその手間ごと無くなる
-
-### やり方
-
-**22 個すべてを自分で描く**（2026-08-25 に決めた）。Font Awesome の
-SVG は使わず、図案も写さない。家・虫めがね・ゴミ箱といったありふれた
-図案そのものは構わないが、パスをなぞると派生物になるので、円と直線の
-組み合わせとして引き直す。
-
-- **線画にする。** 24x24 の座標（`viewBox="0 0 24 24"`）に、太さ 2 の
-  線で描く。`stroke: currentColor` / `fill: none` にすれば、いまと同じく親の
-  文字色に従う。塗りつぶしは使わない
-- **solid と regular を使い分けている 2 組**（`square` と
-  `check-square`、`arrow-alt-circle-up` の solid と regular）は、
-  **外形を同じにして、輪郭だけ描くか中を塗るかで分ける**。
-  未選択と選択中が一目で分かる
-- **`<symbol>` を並べた `icons.svg` を `static/icons/` に置き、
-  各所からは `<use>` で参照する。** 同じアイコンを 2 か所で使うものが
-  あるため
-
-```html
-<svg class="my-icon my-icon-lg">
-  <use href="{{ static_url('icons/icons.svg') }}#home"></use>
-</svg>
-```
-
-- **アイコンの数は減らせるかもしれない。** 自作なら `sync`（更新）と
-  `spinner`（読み込み中）を 1 つの図案にまとめられる。一覧を作る段階で
-  見て、減らせるものは減らす
-- クラス名は `my-icon` / `my-icon-lg` / `my-icon-2x` / `my-icon-9x` /
-  `my-icon-spin`。**`my-icon-9x`（9em）では線が太くなりすぎる**ので、
-  そこだけ線の太さを下げる。既存の `align-middle` / `align-bottom` は
-  そのまま使う
-
-### 進め方
-
-**先に確認用のページを作って承認を取ってから、テンプレートを差し替える**
-（2026-08-25 に決めた）。22 個を並べたページのキャプチャを見せ、
-図案が通れば差し替えに進む。描き直しが安く済む。
-
-図案は 2026-08-25 に承認された。キャプチャは
-[archives/todo/images/TODO-048-icons_800.png](archives/todo/images/TODO-048-icons_800.png)
-（スマホ幅は `_412.png`）。`symbol` は 23 個ある（`arrow-alt-circle-up` の
-solid と regular で 2 つ要るため）。`sync` と `spinner` は、まとめずに
-別のままにした。
-
-**外部ファイルを `<use href="icons.svg#...">` で参照する形は、Chromium で
-効くことを確認用ページで確かめた。** スプライトを `base.html` へ埋め込む
-必要は無い。
-
-### 確かめ方
-
-**字形が別物になるので、変更の前後のキャプチャが一致するかは見られない。**
-見るのは次の 2 つ。
-
-- 大きさ・縦位置・行の詰まり具合が崩れていないか
-- 各アイコンが、何のボタンか分かるか
-
-`tools/screenshot.py`（TODO-046）で変更の前と後のキャプチャを撮り、
-突き合わせる。アイコンは一覧・編集画面・メニューバーに散っているので、
-一覧（`main.html`）と編集画面（`edit.html`）の両方を、開いた状態も
-含めて撮ること。読み込み中のしるし（`fa-spinner` + `fa-spin`）は
-キャプチャに写らないので、別に見ること。
-
-### 見つけた崩れ（直した）
-
-**詳細（detail）のある行が 44.00px → 50.25px に太っていた。**
-原因は開閉スイッチ（`sde.html` の `.my-sde-detail-sw` の中の
-`<label class="m-1">`）。Font Awesome の `.fa-lg` は `line-height: .05em`
-を持っていて、**`<i>` 自体の高さがほぼ 0 になっていた**（実測で 0.81px）。
-字面はその枠からはみ出して描かれるので、行の高さには響かない。SVG は
-16.25px の場所をそのまま取るので、`label` の余白 `m-1`（4px）が
-効いてしまった。
-
-`m-1` を外して `my.css` に `.my-sde-detail-sw label { margin: 1px; }` を
-足し、44.25px に戻した。
-
-**キャプチャを目で見比べただけでは気づけなかった。** verifier は
-「崩れなし」と報告してきていて、`getBoundingClientRect()` で数えて
-初めて出てきた。見た目を変えない類いの確認では、**数えるほうを先にする**。
 
 ---
 
@@ -418,6 +273,7 @@ X サーバーは、もう同じものを用意できない。**
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-048.** Font Awesome をやめて、自作の SVG アイコンにする](archives/todo/TODO-048.%20Font%20Awesome%20をやめて、自作の%20SVG%20アイコンにする.md)
 - [**TODO-052.** 項目を立てる・アーカイブする作業のトークンを減らす](archives/todo/TODO-052.%20項目を立てる・アーカイブする作業のトークンを減らす.md)
 - [**TODO-053.** キャプチャで、404 のページを黙って撮ってしまうのを直す](archives/todo/TODO-053.%20キャプチャで、404%20のページを黙って撮ってしまうのを直す.md)
 - [**TODO-050.** 週を URL に持たせて GET にする](archives/todo/TODO-050.%20週を%20URL%20に持たせて%20GET%20にする.md)
