@@ -122,18 +122,24 @@
       <!--
       <div class="col-2 text-center my-btn"
            onmousedown="history.back();">
-        <i class="fas fa-reply fa-2x" ></i>
+        <svg class="my-icon my-icon-2x">
+          <use href="{{ static_url('icons/icons.svg') }}#reply"></use>
+        </svg>
       </div>
       -->
 
       <div class="col-2 text-center my-btn"
            onmousedown="submitCmd('update');">
-        <i class="fas fa-sync fa-2x"></i>
+        <svg class="my-icon my-icon-2x">
+          <use href="{{ static_url('icons/icons.svg') }}#sync"></use>
+        </svg>
       </div><!-- col -->
 
       <div class="col-2 text-center my-btn"
            onmousedown="submitCmd('fix');">
-        <i class="fas fa-check-square fa-2x"></i>
+        <svg class="my-icon my-icon-2x">
+          <use href="{{ static_url('icons/icons.svg') }}#check-square"></use>
+        </svg>
       </div><!-- col -->
 
       {% if new_flag %}
@@ -142,7 +148,9 @@
       {% else %}
       <div class="col-2 text-center my-btn"
            onmousedown="submitCmd('add');">
-        <i class="fas fa-clone fa-2x"></i>
+        <svg class="my-icon my-icon-2x">
+          <use href="{{ static_url('icons/icons.svg') }}#clone"></use>
+        </svg>
       </div><!-- col -->
       {% end %}
 
@@ -151,7 +159,9 @@
       
       <div class="col-2 text-center my-btn"
            onmousedown="submitCmd('del');">
-        <i class="fas fa-trash-alt fa-2x"></i>
+        <svg class="my-icon my-icon-2x">
+          <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
+        </svg>
       </div><!-- col -->
 
     </div><!-- row -->
@@ -159,8 +169,9 @@
 </header>
 <main class="my-edit-main">
   <div id="loadingSpinner" class="my-spinner">
-    <!-- <i class="fas fa-sync fa-9x fa-spin"></i> -->
-    <i class="fas fa-spinner fa-9x fa-spin"></i>
+    <svg class="my-icon my-icon-9x my-icon-spin">
+      <use href="{{ static_url('icons/icons.svg') }}#spinner"></use>
+    </svg>
   </div>
   <form id="input_form" name="input_form"
         action="{{ post_url }}" method="POST">
@@ -197,16 +208,22 @@
       <!-- 日付 -->
       <div class="row p-1 my-edit-row">
         <div class="col-1 p-0 text-center my-btn">
-          <i class="far fa-arrow-alt-circle-up fa-lg align-bottom"
-             onmousedown="changeElDate(-1);"></i>
+          <svg class="my-icon my-icon-lg align-bottom"
+             onmousedown="changeElDate(-1);">
+            <use href="{{ static_url('icons/icons.svg') }}#circle-up"></use>
+          </svg>
         </div>
         <div class="col-1 p-0 text-center my-btn">
-          <i class="far fa-dot-circle fa-lg align-bottom"
-             onmousedown="setElDate();"></i>
+          <svg class="my-icon my-icon-lg align-bottom"
+             onmousedown="setElDate();">
+            <use href="{{ static_url('icons/icons.svg') }}#dot-circle"></use>
+          </svg>
         </div>
         <div class="col-1 p-0 text-center my-btn">
-          <i class="far fa-arrow-alt-circle-down fa-lg align-bottom"
-             onmousedown="changeElDate(1);"></i>
+          <svg class="my-icon my-icon-lg align-bottom"
+             onmousedown="changeElDate(1);">
+            <use href="{{ static_url('icons/icons.svg') }}#circle-down"></use>
+          </svg>
         </div>
 
         <div class="col-9 p-1 text-start">

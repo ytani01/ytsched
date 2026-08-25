@@ -137,7 +137,9 @@ def icon(icon_id: str, cls: str = "my-icon-2x", label: str = "") -> str:
 
 def cell(icon_id: str, use: str) -> str:
     """一覧の 1 枠。実寸・lg・2x の 3 つを並べる。"""
-    sizes = "".join(icon(icon_id, cls) for cls in ("", "my-icon-lg", "my-icon-2x"))
+    sizes = "".join(
+        icon(icon_id, cls) for cls in ("", "my-icon-lg", "my-icon-2x")
+    )
     return (
         '  <div class="cell">\n'
         f'    <div class="icons">{sizes}</div>\n'
@@ -175,7 +177,8 @@ def build(sprite: str) -> str:
         )
     )
     bar2 = "".join(
-        icon(i, "my-icon-2x") for i in ("sync", "check-square", "clone", "trash")
+        icon(i, "my-icon-2x")
+        for i in ("sync", "check-square", "clone", "trash")
     )
 
     return f"""<!DOCTYPE html>
@@ -264,9 +267,14 @@ def parse_args(argv: list[str] | None = None) -> Any:
         "-s", "--src", default=None, help=f"icons.svg (既定: {DEF_SRC})"
     )
     _ = parser.add_argument(
-        "-o", "--outdir", default=DEF_OUTDIR, help=f"吐き先 (既定: {DEF_OUTDIR})"
+        "-o",
+        "--outdir",
+        default=DEF_OUTDIR,
+        help=f"吐き先 (既定: {DEF_OUTDIR})",
     )
-    _ = parser.add_argument("-d", "--debug", action="store_true", help="debug ログ")
+    _ = parser.add_argument(
+        "-d", "--debug", action="store_true", help="debug ログ"
+    )
     return parser.parse_args(argv)
 
 

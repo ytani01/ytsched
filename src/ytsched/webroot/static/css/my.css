@@ -265,15 +265,7 @@ textarea {
 }
 
 /* 縦位置。inline 要素 (アイコン・入力欄) に付けるもので、
-   Grid の ``align-self`` とは別物。
-
-   **``base.html`` で Font Awesome の ``all.css`` より後に読むこと。**
-   ``all.css`` の ``.fa-lg`` が ``vertical-align: -0.075em`` を
-   詳細度 (0,1,0) で持っていて、こちらと同じ。Bootstrap の
-   ``!important`` を外した (TODO-047) ので、勝てる根拠は読み込む順だけ。
-   並べ替えると ``fa-lg align-middle`` を付けた 10 か所のアイコンの
-   縦位置が黙ってずれる。TODO-048 で Font Awesome が無くなれば、この
-   注意も要らなくなる */
+   Grid の ``align-self`` とは別物 */
 .align-middle {
     vertical-align: middle;
 }
@@ -433,6 +425,42 @@ textarea {
     transform: translate(-50%, 50%);
     opacity: 0.3;
     z-index: 1000;
+}
+
+/* 自作アイコン (``icons/icons.svg`` の ``<symbol>`` を ``<use>`` で
+   参照する。TODO-048 で Font Awesome から差し替えた)。
+   ``my-icon`` が土台 (1em)、大きさ違いと回転はそれぞれ別クラスで足す */
+.my-icon {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    overflow: visible;
+}
+
+.my-icon-lg {
+    width: 1.25em;
+    height: 1.25em;
+}
+
+.my-icon-2x {
+    width: 2em;
+    height: 2em;
+}
+
+/* 9em では線が太くなりすぎるので、太さを 1 に落とす */
+.my-icon-9x {
+    width: 9em;
+    height: 9em;
+    stroke-width: 1;
+}
+
+.my-icon-spin {
+    animation: my-icon-spin 2s linear infinite;
+}
+
+@keyframes my-icon-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
 
 /* ゲージ (bottom と display は JavaScript が書き換える)
@@ -619,6 +647,14 @@ textarea {
 .my-sde-detail-sw {
     font-size: small;
     line-height: 10px;
+}
+
+/* 開閉スイッチの余白 (TODO-048)。アイコンフォントのときは ``<i>``
+   自体の高さがほぼ 0 で、字面が枠からはみ出して描かれていたため、
+   行の高さに響かなかった。SVG は場所をそのまま取るので、``label`` の
+   余白 (以前は ``m-1``) を詰めて、以前と同じ行の高さに戻している */
+.my-sde-detail-sw label {
+    margin: 1px;
 }
 
 .my-sde-detail {

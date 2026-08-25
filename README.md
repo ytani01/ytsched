@@ -201,19 +201,16 @@ sudo loginctl enable-linger $USER
 ```
 
 
-## 同梱しているライブラリ
+## 外部のライブラリ
 
-外部の CDN が届かない環境でも表示が崩れないように、以下を
-`src/ytsched/webroot/static/vendor/` へ同梱しています。ライセンス文書は
-それぞれのディレクトリにあります。
+**使っていません。** 外部の CDN も読まないので、ネットワークが届かない
+環境でも表示は崩れません。
 
-* [Font Awesome Free](https://fontawesome.com/) 7.3.1 — アイコンが
-  CC BY 4.0、フォントが SIL OFL 1.1、コードが MIT License
+以前は Bootstrap と Font Awesome を
+`src/ytsched/webroot/static/vendor/` へ同梱していましたが、どちらも
+やめました。
 
-Font Awesome のフォントは、`woff2` のみ（7 は `woff` を配りません）、
-使用している `solid` と `regular` のみを同梱しています。
-
-Bootstrap は同梱をやめました（TODO-047）。使っていたのはグリッドと
+Bootstrap をやめたのは TODO-047 です。使っていたのはグリッドと
 余白まわりのクラスだけだったので、その値と、これまで Bootstrap に
 任せていた土台の指定（reboot。`body` のフォント・文字色・行の高さ、
 `box-sizing`、入力欄がフォントを継ぐ指定など）を Bootstrap 5.3.8
@@ -221,6 +218,12 @@ Bootstrap は同梱をやめました（TODO-047）。使っていたのはグ�
 写した旨は、そのファイルの先頭のコメントに書いてあります。ライセンス
 文書は [docs/licenses/bootstrap-LICENSE](docs/licenses/bootstrap-LICENSE)
 に残してあります。
+
+Font Awesome をやめたのは TODO-048 です。使っていたアイコンを自分で
+描き起こし、`src/ytsched/webroot/static/icons/icons.svg` に `<symbol>`
+23 個としてまとめました。画面からは `<use>` で参照しています。24x24 の
+座標に太さ 2 の線で描いた線画で、`stroke` は `currentColor` なので
+親の文字色に従います。**自作なので、帰属表示は要りません。**
 
 
 ## スマホのホーム画面に追加する

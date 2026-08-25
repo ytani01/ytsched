@@ -21,18 +21,29 @@
 |      | main | 担当 |
 |------|------|------|
 | 見込み | Opus 5 / effort high | implementer + verifier |
+| 実施 | Opus 5 / effort high | implementer + verifier（2 回） |
+| 消費 | output 130,507 / cache_creation 580,585 / 概算 $16.4 |
+|      | main 87% + implementer 6% + verifier 5% + wording 2%（料金の割合） |
 
 - [x] 使っている 22 種類のアイコンを、線画で描き起こす
 - [x] 22 個を並べた確認用のページを作り、キャプチャを見せて承認を取る
 - [x] `<symbol>` をまとめた `icons.svg` を作り、`static/icons/` に置く
-- [ ] テンプレートの `<i class="fas fa-...">` を `<svg><use></svg>` に
+- [x] テンプレートの `<i class="fas fa-...">` を `<svg><use></svg>` に
       置き換える
-- [ ] 大きさ（`fa-lg` / `fa-2x` / `fa-9x`）と回転（`fa-spin`）の代わりを
+- [x] 大きさ（`fa-lg` / `fa-2x` / `fa-9x`）と回転（`fa-spin`）の代わりを
       `my.css` に書く（`.my-spinner` の隣に置く）
-- [ ] `base.html` から `all.css` の読み込みを外し、
+- [x] `base.html` から `all.css` の読み込みを外し、
       `static/vendor/fontawesome/` を消す
-- [ ] 大きさ・縦位置・行の詰まり具合が崩れていないことを、変更の前後の
+- [x] 大きさ・縦位置・行の詰まり具合が崩れていないことを、変更の前後の
       キャプチャで確かめる
+
+**済んだ。アーカイブは `/clear` してから**（TODO-052）。材料は
+`archives/agents/TODO-048/` の報告 5 つと、下の「見つけた崩れ」にある。
+
+消費は `mise run tokens -- TODO-048 --since '2026-08-25 16:42:16'` で
+数えた。**`--since` が要る。** 立てたのは 06:39 で、着手までの間に
+TODO-050・052・053 を挟んでいるため、指定しないとその分（reviewer を
+含む）まで数に入る（$73.5 になった）。
 
 TODO-047（Bootstrap をやめる）は済んでいる。`base.html` の `<link>` の
 順に注意すること。**`my.css` は `all.css` より後に読む**必要があるが、
@@ -130,6 +141,23 @@ solid と regular で 2 つ要るため）。`sync` と `spinner` は、まと�
 一覧（`main.html`）と編集画面（`edit.html`）の両方を、開いた状態も
 含めて撮ること。読み込み中のしるし（`fa-spinner` + `fa-spin`）は
 キャプチャに写らないので、別に見ること。
+
+### 見つけた崩れ（直した）
+
+**詳細（detail）のある行が 44.00px → 50.25px に太っていた。**
+原因は開閉スイッチ（`sde.html` の `.my-sde-detail-sw` の中の
+`<label class="m-1">`）。Font Awesome の `.fa-lg` は `line-height: .05em`
+を持っていて、**`<i>` 自体の高さがほぼ 0 になっていた**（実測で 0.81px）。
+字面はその枠からはみ出して描かれるので、行の高さには響かない。SVG は
+16.25px の場所をそのまま取るので、`label` の余白 `m-1`（4px）が
+効いてしまった。
+
+`m-1` を外して `my.css` に `.my-sde-detail-sw label { margin: 1px; }` を
+足し、44.25px に戻した。
+
+**キャプチャを目で見比べただけでは気づけなかった。** verifier は
+「崩れなし」と報告してきていて、`getBoundingClientRect()` で数えて
+初めて出てきた。見た目を変えない類いの確認では、**数えるほうを先にする**。
 
 ---
 

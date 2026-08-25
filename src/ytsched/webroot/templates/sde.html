@@ -72,7 +72,9 @@
     </div>
     {% else %}
     <div class="col-1 p-1 text-center">
-      <i class="far fa-square my-sde-check"></i>
+      <svg class="my-icon my-sde-check">
+        <use href="{{ static_url('icons/icons.svg') }}#square"></use>
+      </svg>
     </div>
     {% end %}<!-- if not todo -->
     <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
@@ -140,8 +142,10 @@
       class="longtext-sw d-none">
     <div class="col-1 p-0 m-0 text-center my-btn longtext-sw-label
                 my-sde-detail-sw">
-      <label class="m-1" for="{{ sw_id }}">
-        <i class="fas fa-angle-down fa-lg"></i>
+      <label for="{{ sw_id }}">
+        <svg class="my-icon my-icon-lg">
+          <use href="{{ static_url('icons/icons.svg') }}#angle-down"></use>
+        </svg>
       </label>
     </div>
     <!-- 開いたときの ``.longtext`` は ``white-space: pre-wrap`` なので、
