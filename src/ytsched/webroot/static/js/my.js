@@ -192,9 +192,58 @@ const doSubmit = (id) => {
 };
 
 /**
- * formタグを新たに生成し、
- * hiddenタイプの inputタグを生成して、
- * POSTする。
+ * pathとクエリから URLを組み立てる (TODO-050)。
+ *
+ * 値が undefined・nullのものは入れない。
+ *
+ * @param {String} path
+ * @param {Object} data   {param1_name: value1, param2_name: value2, ..}
+ * @return {String}
+ */
+const mkUrl = (path, data) => {
+    if (data === undefined) {
+        return path;
+    }
+
+    const params = new URLSearchParams();
+    for (let param in data) {
+        const value = data[param];
+        if (value === undefined || value === null) {
+            continue;
+        }
+        params.append(param, value);
+    }
+
+    const query = params.toString();
+    if (! query) {
+        return path;
+    }
+    return `${path}?${query}`;
+};
+
+/**
+ * クエリを組み立てて GETで移動する (TODO-050)。
+ *
+ * 以前は formを生成して POSTしていたが、URLが変わらないので、
+ * 戻る/進む・リロード・ブックマークのどれも効かなかった。
+ *
+ * @param {String} path
+ * @param {Object} data   {param1_name: value1, param2_name: value2, ..}
+ */
+const doGet = (path, data) => {
+    loadingSpinner(true);
+    location.href = mkUrl(path, data);
+};
+
+/**
+ * formタグを生成して POSTする。
+ *
+ * **``conf.json``へ保存される値 (検索語・目標件数など) を送るときだけ
+ * 使う** (TODO-050)。GETのクエリに載せると、ブックマークにも履歴にも
+ * 検索語が残ってしまう。URLに持たせるのは日付だけと決めた。
+ *
+ * POSTを受けた ``MainHandler.post()``が、値を保存してから日付だけの
+ * GETへ飛ばす (POST-Redirect-GET)ので、リロードしても再送信にならない。
  *
  * @param {String} path
  * @param {Object} data   {param1_name: value1, param2_name: value2, ..}
@@ -221,13 +270,77 @@ const doPost = (path, data) => {
 };
 
 /**
+ * 画面内のスクロールで移動したときに、URLの ``date``を書き換える
+ * (TODO-050)。
+ *
+ * **履歴に積む (``pushState``)。** 読み直しを伴う移動と揃えて、
+ * どちらで移動しても戻るで 1つずつ辿れるようにする。
+ *
+ * 最初は ``replaceState``にしていたが、それだと画面内で完結する移動が
+ * 履歴に残らず、**戻るときに途中の日付を飛び越えてしまう**
+ * (← を 8回押してから戻ると 3回分が 1つにまとまった)。
+ *
+ * @param {String} date   'YYYY-mm-dd'
+ */
+const pushDateInUrl = (date) => {
+    const url = new URL(location.href);
+    url.searchParams.set("date", date);
+    history.pushState({date: date}, "", url.toString());
+};
+
+/**
+ * URLの ``date``を書き換えるが、**履歴には積まない** (TODO-050)。
+ *
+ * ページを読み直した直後に使う。読み直しそのもので履歴は 1つ増えて
+ * いるので、そこで ``pushState``すると**同じ日付が 2つ並び、戻るを
+ * 1回押しても画面が変わらない**。
+ *
+ * @param {String} date   'YYYY-mm-dd'
+ */
+const replaceDateInUrl = (date) => {
+    const url = new URL(location.href);
+    url.searchParams.set("date", date);
+    history.replaceState({date: date}, "", url.toString());
+};
+
+/**
+ * 戻る/進むで呼ばれる (TODO-050)。
+ *
+ * ``pushDateInUrl()``で積んだ履歴へ戻ってきたときは、ページの
+ * 読み直しが起きないので、ここで URLの ``date``まで動かす。
+ * 読み込んである範囲の外なら、その URLで読み直す。
+ */
+const popstateHdr = (event) => {
+    const date = new URL(location.href).searchParams.get("date");
+    console.log(`popstateHdr:date=${date}`);
+
+    if ( ! date ) {
+        location.reload();
+        return;
+    }
+
+    // 画面内にあればスクロールで済ませる。無ければ読み直す
+    scrollFlag = false;
+    if ( scrollToId(`date-${date}`, "top", "auto") ) {
+        const el_cur_day = document.getElementById("cur_day");
+        if ( el_cur_day ) {
+            el_cur_day.value = date;
+        }
+        scrollFlag = true;
+        return;
+    }
+
+    location.reload();
+};
+
+/**
  * @param {String} path
  * @param {String} date   'YYYY-mm-dd'
  * @param {number} days
  * @param {String} sde_align
  */
-const doPostDate = (path, date, days = 0, sde_align = undefined) => {
-    console.log(`doPostDate: sde_align=${sde_align}`);
+const doGetDate = (path, date, days = 0, sde_align = undefined) => {
+    console.log(`doGetDate: sde_align=${sde_align}`);
 
     // dateをJSTとみなすために、区切りを '/'に変換
     let d1 = new Date(date.split('-').join('/'));
@@ -239,7 +352,7 @@ const doPostDate = (path, date, days = 0, sde_align = undefined) => {
     if ( sde_align ) {
         data_obj.sde_align = sde_align;
     }
-    doPost(path, data_obj);
+    doGet(path, data_obj);
 };
 
 let scrollFlag = false;
@@ -272,14 +385,14 @@ const scrollHdr = (event) => {
       el = document.getElementById("date_from");
       date = el.value;
       console.log(`date=${date}`);
-      doPost(`${url_prefix}`, {date: date, sde_align: "top"});
+      doGet(`${url_prefix}`, {date: date, sde_align: "top"});
     }
     if (d_bottom < 80) {
       scrollFlag = false;
       el = document.getElementById("date_to");
       date = el.value;
       console.log(`date=${date}`);
-      doPost(`${url_prefix}`, {date: date, sde_align: "bottom"});
+      doGet(`${url_prefix}`, {date: date, sde_align: "bottom"});
     }
 };
 
@@ -360,12 +473,19 @@ const scrollToDate = (path, date, sde_align="top", behavior="smooth", push_flag=
 
     if (scrollToId(`date-${date}`, sde_align, behavior)) {
         el_cur_day.value = date;
+        // 読み直した直後 (``push_flag``が偽) は履歴に積まない。
+        // 読み直しそのもので 1つ増えているため (TODO-050)
+        if ( push_flag ) {
+            pushDateInUrl(date);
+        } else {
+            replaceDateInUrl(date);
+        }
         scrollFlag = true;
         return true;
     }
 
     console.log(`path=${path}`);
-    doPost(path, {date: date, sde_align: sde_align});
+    doGet(path, {date: date, sde_align: sde_align});
     return false;
 };
 
@@ -414,11 +534,12 @@ const moveToMonday = (direction=1, path, behavior="smooth") => {
 
     el_d2 = document.getElementById(`date-${d2_str}`);
     if ( ! el_d2 ) {
-        doPost(path, {date: d1_str, sde_align: "top"});
+        doGet(path, {date: d1_str, sde_align: "top"});
         return;
     }
 
     el_cur_day.value = d1_str;
+    pushDateInUrl(d1_str);
     scrollFlag = false;
     scrollToId(`date-${d1_str}`);
 };
@@ -457,3 +578,77 @@ if ( window.visualViewport ) {
     window.visualViewport.addEventListener("scroll", followKeyboard);
     window.addEventListener("load", followKeyboard);
 }
+
+
+/**
+ * 入力欄にフォーカスがあるかどうか (TODO-050)。
+ *
+ * キーの割り当てを拾う前に見る。検索欄で ``/``が打てなくなったり、
+ * 日付の入力欄で ←→ が週送りになったりしないようにする。
+ */
+const isTyping = () => {
+    const el = document.activeElement;
+    if ( ! el ) {
+        return false;
+    }
+    const tag = el.tagName.toLowerCase();
+    if ( tag === "input" || tag === "textarea" || tag === "select" ) {
+        return true;
+    }
+    return el.isContentEditable === true;
+};
+
+/**
+ * キーボードで操作する (TODO-050)。
+ *
+ * | キー    | 動き                          |
+ * |---------|-------------------------------|
+ * | ← / →   | 前の週へ / 次の週へ           |
+ * | ↑ / ↓   | 今までどおりスクロール        |
+ * | Home    | 今日へ                        |
+ * | /       | 検索欄へ移る                  |
+ * | Esc     | 検索欄から抜ける              |
+ *
+ * 一覧 (``main.html``) でだけ登録する。編集画面で ←→ が効くと、
+ * 入力の途中で画面が変わってしまう。
+ */
+const keyHdr = (event) => {
+    if ( isTyping() ) {
+        if ( event.key === "Escape" ) {
+            document.activeElement.blur();
+        }
+        return;
+    }
+
+    if ( event.ctrlKey || event.altKey || event.metaKey ) {
+        return;
+    }
+
+    switch ( event.key ) {
+    case "ArrowLeft":
+        event.preventDefault();
+        moveToMonday(-1, url_prefix);
+        break;
+
+    case "ArrowRight":
+        event.preventDefault();
+        moveToMonday(1, url_prefix);
+        break;
+
+    case "Home": {
+        event.preventDefault();
+        const today_str = getLocaltimeDateString(new Date());
+        scrollToDate(url_prefix, today_str, "top");
+        break;
+    }
+
+    case "/": {
+        event.preventDefault();
+        const el_search = document.getElementById("search_str");
+        if ( el_search ) {
+            el_search.focus();
+        }
+        break;
+    }
+    }
+};

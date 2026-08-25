@@ -11,6 +11,7 @@ __date__ = "2021/01"
 import datetime
 import math
 import re
+import urllib.parse
 from collections.abc import Callable
 from typing import ClassVar
 
@@ -97,13 +98,101 @@ class MainHandler(HandlerBase):
     DELTA_DAY1 = datetime.timedelta(1)
 
     def post(self):
-        """POST"""
+        """POST。値を保存して ``cmd`` を実行し、GET へ飛ばす (TODO-050)。
+
+        描画は GET に任せる (POST-Redirect-GET)。**リロードしても
+        再送信にならない**ようにするため。TODO-050 より前は、ここで
+        ``get()`` を呼んでそのまま描いていた。
+
+        POST で来るのは、``cmd`` (追加・修正・更新・削除) と、
+        ``main.html`` の 3 つのフォーム (検索・ToDo の日数・絞り込み)。
+        どれも値を ``conf.json`` へ保存するので、読むだけで保存される
+        (``get_conf_arg()``)。
+        """
         self.__log.debug(f"request={self.request.__dict__}")
         self.__log.debug(
             f"request.body_arguments={self.request.body_arguments}"
         )
 
-        self.get()
+        #
+        # ``conf.json`` へ保存される値を読む (``get()`` と同じ変換)
+        #
+        search_str = self.get_conf_arg(
+            "search_str",
+            self.CONF_KEY_SEARCH_STR,
+            "",
+            empty_is_given=True,
+            convert=normalize,
+        )
+        _ = self.get_conf_arg(
+            "filter_str",
+            self.CONF_KEY_FILTER_STR,
+            "",
+            empty_is_given=True,
+            convert=normalize,
+        )
+        _ = self.get_conf_arg(
+            "todo_days",
+            self.CONF_KEY_TODO_DAYS,
+            self.DEF_TODO_DAYS,
+            empty_is_given=False,
+            convert=self.str2todo_days,
+        )
+        _ = self.get_conf_arg(
+            "search_n",
+            self.CONF_KEY_SEARCH_N,
+            self.DEF_SEARCH_N,
+            empty_is_given=True,
+            convert=int,
+        )
+
+        #
+        # command (add/fix/update/del)
+        #
+        modified_date, modified_sde_id, edit_url = self.exec_cmd(search_str)
+
+        if edit_url:
+            self.redirect(edit_url)
+            return
+
+        #
+        # 表示する日付は、今までどおりの優先順位で決めてから渡す
+        # (``cur_day`` などは GET には引き継がれないため)
+        #
+        date = self.get_date(modified_date)
+
+        self.redirect(
+            self.mkurl(
+                self._url_prefix,
+                {
+                    "date": date,
+                    "modified_sde_id": modified_sde_id,
+                    "sde_align": self.get_argument("sde_align", None),
+                },
+            )
+        )
+
+    @staticmethod
+    def mkurl(path: str, args: dict[str, object | None]) -> str:
+        """パスとクエリから URL を組み立てる (TODO-050)。
+
+        値が ``None`` や空のものは入れない。
+
+        Parameters
+        ----------
+        path: str
+        args: dict[str, object | None]
+
+        Returns
+        -------
+        str
+
+        """
+        params = {key: str(val) for key, val in args.items() if val}
+        if not params:
+            return path
+
+        return f"{path}?{urllib.parse.urlencode(params)}"
 
     def get(self):
         """GET method and rendering"""
@@ -126,16 +215,20 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"search_str='{search_str}'")
 
         #
-        # command (add/fix/del)
+        # 変更した行の ``sde_id``
         #
-        modified_date, modified_sde_id, rendered = self.exec_cmd(search_str)
-        if rendered:
-            return
+        # 更新したあとに光らせる (``main.html`` の ``class_blink``)。
+        # TODO-050 より前は ``cmd`` の実行結果をそのまま渡していたが、
+        # ``cmd`` は ``post()`` が実行してリダイレクトするようになった
+        # ので、クエリから受け取る
+        #
+        modified_sde_id = self.get_argument("modified_sde_id", None)
+        self.__log.debug(f"modified_sde_id={modified_sde_id}")
 
         #
         # set Date
         #
-        date = self.get_date(modified_date)
+        date = self.get_date(None)
 
         #
         # todo_days_value
@@ -377,27 +470,28 @@ class MainHandler(HandlerBase):
 
     def exec_cmd(
         self, search_str: str
-    ) -> tuple[datetime.date | None, str | None, bool]:
+    ) -> tuple[datetime.date | None, str | None, str | None]:
         """``cmd`` (add/fix/update/del) を実行する。
 
         Parameters
         ----------
         search_str: str
-            ``update`` のときの描画に渡す
+            ``update`` のあと、編集画面へ引き継ぐ
 
         Returns
         -------
         modified_date: datetime.date | None
         modified_sde_id: str | None
-        rendered: bool
-            描画まで済ませたかどうか。``True`` なら呼び出し側は
-            そのまま ``return`` する
+        edit_url: str | None
+            編集画面へ戻すときの行き先 (``cmd=update``)。TODO-050 より
+            前はここで編集画面を描いていたが、``post()`` がリダイレクト
+            するようになったので、行き先だけを返す
 
         """
         cmd = self.get_argument("cmd", None)
 
         if cmd not in ["add", "fix", "update", "del"]:
-            return None, None, False
+            return None, None, None
 
         modified_date, modified_sde_id = self.exec_update(cmd)
         self.__log.debug(
@@ -407,14 +501,9 @@ class MainHandler(HandlerBase):
 
         if cmd in ["del"]:
             self.__log.debug(f"modified_date={modified_date}")
-            return modified_date, modified_sde_id, False
+            return modified_date, modified_sde_id, None
 
         sde = self.get_modified_sde(cmd, modified_date, modified_sde_id)
-
-        # 読み直したファイルの日付を、編集画面の ``orig_date`` にする
-        # (ToDo は None)。次の更新・削除が、その行が実際に入っている
-        # ファイルへ届くようにする (TODO-029)
-        orig_date = modified_date
 
         todo_flag = sde.is_todo()
         if todo_flag:
@@ -423,23 +512,20 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"modified_date={modified_date}")
 
         if cmd in ["update"]:
-            self.render(
-                self.HTML_EDIT,
-                title=self._title,
-                author=self._author,
-                version=self._version,
-                url_prefix=self._url_prefix,
-                post_url=self._url_prefix,
-                date=modified_date,
-                orig_date=orig_date,
-                sde=sde,
-                new_flag=False,
-                todo_flag=todo_flag,
-                search_str=search_str,
+            # 更新したあとも編集画面に留まる。編集画面の ``orig_date``
+            # (読み直したファイルの日付) は ``EditHandler`` が決めるので、
+            # ここからは送らない (TODO-029・TODO-034)
+            edit_url = self.mkurl(
+                self._url_prefix + "edit/",
+                {
+                    "date": modified_date,
+                    "sde_id": modified_sde_id,
+                    "todo_flag": str(todo_flag).lower(),
+                },
             )
-            return modified_date, modified_sde_id, True
+            return modified_date, modified_sde_id, edit_url
 
-        return modified_date, modified_sde_id, False
+        return modified_date, modified_sde_id, None
 
     def get_modified_sde(
         self,

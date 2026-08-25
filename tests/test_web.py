@@ -16,6 +16,7 @@ import tornado.testing
 from helpers import URL_PREFIX, make_app
 from loguru import logger
 
+from ytsched.edit_handler import EditHandler
 from ytsched.main_handler import MainHandler
 from ytsched.ytsched import SchedDataFile
 
@@ -1109,11 +1110,12 @@ class TestUpdate(WebTestBase):
     def test_update_search_str_is_lowered(self):
         """``cmd=update`` 経由でも、検索語が小文字になる。
 
-        edit 画面に渡る値を、``render()`` の引数で見る。
+        更新したあとは編集画面へリダイレクトするので (TODO-050)、
+        飛んだ先の ``EditHandler`` に渡る値を ``render()`` の引数で見る。
         """
         sde_id = self.add_sde()
 
-        with mock.patch.object(MainHandler, "render") as render:
+        with mock.patch.object(EditHandler, "render") as render:
             self.post_body(
                 URL_PREFIX + "/",
                 cmd="update",
@@ -1125,7 +1127,7 @@ class TestUpdate(WebTestBase):
                 search_str="ABC",
             )
 
-        assert render.call_args.args[0] == MainHandler.HTML_EDIT
+        assert render.call_args.args[0] == EditHandler.HTML_EDIT
         assert render.call_args.kwargs["search_str"] == "abc"
 
     def test_todo_done(self):
@@ -1713,3 +1715,156 @@ class TestEditOrigDate(WebTestBase):
         )
         assert len(lines) == 1
         assert json.loads(lines[0])["sde_id"] == "id-1"
+
+
+class TestRedirect(WebTestBase):
+    """POST したあとに GET へ飛ばす (POST-Redirect-GET、TODO-050)
+
+    リロードしても再送信にならないよう、POST では描画せず、
+    ``302`` で日付付きの GET へ飛ばす。
+    """
+
+    def post_no_redirect(self, path, **args):
+        """POST して、リダイレクトを追わずに応答を返す。"""
+        return self.fetch(
+            path,
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(args),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+    def add_sde(self, title="新しい予定"):
+        """1 件追加して、その sde_id を返す。"""
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            sde_type="会議",
+            title=title,
+        )
+
+        lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 1
+        return json.loads(lines[0])["sde_id"]
+
+    def test_post_redirects_to_get(self):
+        """素の POST も、日付付きの GET へ飛ばす。"""
+        res = self.post_no_redirect(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert res.code == 302
+        assert res.headers["Location"] == f"{URL_PREFIX}/?date={DATE1_STR}"
+
+    def test_add_redirects_to_list(self):
+        """追加したあとは一覧へ。変更した行の ``sde_id`` が付く。"""
+        res = self.post_no_redirect(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            sde_type="会議",
+            title="新しい予定",
+        )
+
+        assert res.code == 302
+        location = res.headers["Location"]
+        assert location.startswith(f"{URL_PREFIX}/?")
+        assert f"date={DATE1_STR}" in location
+        assert "modified_sde_id=" in location
+
+    def test_update_redirects_to_edit(self):
+        """更新したあとは編集画面へ。留まる形は今までと同じ。"""
+        sde_id = self.add_sde()
+
+        res = self.post_no_redirect(
+            URL_PREFIX + "/",
+            cmd="update",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+            sde_type="会議",
+            title="直した予定",
+        )
+
+        assert res.code == 302
+        location = res.headers["Location"]
+        assert location.startswith(f"{URL_PREFIX}/edit/?")
+        assert f"sde_id={sde_id}" in location
+
+    def test_del_redirects_to_list(self):
+        """削除したあとは一覧へ。"""
+        sde_id = self.add_sde()
+
+        res = self.post_no_redirect(
+            URL_PREFIX + "/",
+            cmd="del",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+        )
+
+        assert res.code == 302
+        assert f"date={DATE1_STR}" in res.headers["Location"]
+
+    def test_search_str_is_not_in_url(self):
+        """検索語は URL に入れず、``conf.json`` に保存する。
+
+        URL に持たせるのは日付だけ、と決めた (TODO-050)。
+        """
+        res = self.post_no_redirect(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="ABC"
+        )
+
+        assert res.code == 302
+        assert "search_str" not in res.headers["Location"]
+        assert read_conf(self.datadir)["SearchStr"] == "abc"
+
+    def test_get_with_date_query(self):
+        """GET のクエリで渡した日付で表示できる (ブックマーク)。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert f'value="{DATE1_STR}"' in body
+
+    def test_modified_sde_id_from_query(self):
+        """``modified_sde_id`` はクエリから受け取る。"""
+        sde_id = self.add_sde()
+
+        with mock.patch.object(MainHandler, "render") as render:
+            self.fetch(f"{URL_PREFIX}/?modified_sde_id={sde_id}")
+
+        assert render.call_args.kwargs["modified_sde_id"] == sde_id
+
+    def test_edit_search_str_comes_from_conf(self):
+        """編集画面の検索語は、URL ではなく ``conf.json`` から読む。
+
+        URL に持たせるのは日付だけと決めた (TODO-050)。検索語は
+        「検索中かどうか」の判定にしか使っていない
+        (``edit.html`` の ``sde_align``)。
+        """
+        # 検索して ``conf.json`` に保存させる
+        self.get_body(URL_PREFIX + "/", search_str="会議")
+
+        with mock.patch.object(EditHandler, "render") as render:
+            self.fetch(f"{URL_PREFIX}/edit/?date={DATE1_STR}")
+
+        assert render.call_args.kwargs["search_str"] == "会議"
+
+    def test_update_does_not_put_search_str_in_url(self):
+        """更新したあとの飛び先にも、検索語は付けない (TODO-050)。"""
+        self.get_body(URL_PREFIX + "/", search_str="会議")
+        sde_id = self.add_sde()
+
+        res = self.post_no_redirect(
+            URL_PREFIX + "/",
+            cmd="update",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+            sde_type="会議",
+            title="直した予定",
+        )
+
+        assert res.code == 302
+        assert "search_str" not in res.headers["Location"]

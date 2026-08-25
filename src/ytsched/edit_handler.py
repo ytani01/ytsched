@@ -68,7 +68,11 @@ class EditHandler(HandlerBase):
         #
         # search_str
         #
-        search_str = self.get_argument("search_str", None)
+        # 検索中かどうかで、保存したあとの表示位置が変わる
+        # (``edit.html`` の ``sde_align``)。**検索語は URL に載せず、
+        # ``conf.json`` から読む** (TODO-050)。一覧の URL に持たせるのは
+        # 日付だけと決めたので、編集画面へも引数では渡さない
+        search_str = self.get_conf(self.CONF_KEY_SEARCH_STR)
         self.__log.debug(f"search_str={search_str}")
 
         #
@@ -134,10 +138,3 @@ class EditHandler(HandlerBase):
             todo_flag=todo_flag,
             search_str=search_str,
         )
-
-    def post(self):
-        """POST も GET と同じ処理をする。"""
-        self.__log.debug(
-            f"request.body_arguments={self.request.body_arguments}"
-        )
-        self.get()

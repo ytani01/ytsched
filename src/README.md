@@ -147,8 +147,14 @@ classDiagram
   `str2date()` / `check_date()` / `date_range()` / `check_int_range()`。
   TODO-027）
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
-  実行（`cmd=add/fix/update/del`）を兼ねる。`GET`/`POST` とも同じ
-  `get()` を呼ぶ（`post()` は `self.get()` に委譲するだけ）
+  実行（`cmd=add/fix/update/del`）を兼ねる。**`GET` が描画、`POST` が
+  実行**で、`post()` は描かずに `redirect()` する（POST-Redirect-GET、
+  TODO-050）。リロードで再送信にならないようにするため。`cmd` を
+  実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
+  **URL に持たせるのは日付だけ**（`?date=2026-08-24`）。検索語・
+  絞り込み・ToDo の日数・目標件数は `conf.json` に保存する。
+  それらを送るときは、ブックマークや履歴に残らないよう `POST` を通す
+  （`my.js` の `doPost()`。表示を変えるだけの移動は `doGet()`）
 - **`EditHandler`**（`edit_handler.py`）が編集画面を出す。`date` /
   `sde_id` の決め方（引数 → クエリ文字列 → 既定値の順）は docstring に
   書いてある。フォームの隠しフィールド `orig_date`（更新・削除のときに
@@ -179,7 +185,9 @@ sequenceDiagram
     Browser->>Handler: GET または POST
     Note over Handler: __init__ のたびに conf.json を読む (load_conf)
     alt POST
-        Handler->>Handler: post() は get() に委譲するだけ
+        Handler->>Handler: post() が cmd を実行して conf.json へ保存
+        Handler-->>Browser: 302 (日付だけを付けた GET へ)
+        Browser->>Handler: GET
     end
     Handler->>SD: get_sdf(date) / get_sde(date, sde_id)
     alt キャッシュに無い

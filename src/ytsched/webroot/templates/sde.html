@@ -78,7 +78,7 @@
     <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
          ここからは送らない (TODO-034) -->
     <div class="col-11 p-0 my-btn {{ class_canceled_items }}"
-      onmousedown="doPost('{{ url }}',
+      onmousedown="doGet('{{ url }}',
                 {
                 date:'{{ sched_date }}',
                 sde_id: '{{ sde.sde_id }}',
@@ -86,7 +86,6 @@
                 cur_date: '{{ date }}',
                 date_from: '{{ date_from }}',
                 date_to: '{{ date_to }}',
-                search_str: '{{ search_str }}',
                 });">
       {% if sde.is_todo() %}
       {% if sde.date != sched_date %}

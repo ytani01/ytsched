@@ -17,6 +17,7 @@
          const el_search = document.getElementById("search_str");
          const search_str = el_search.value;
          console.log(`search_str=${search_str}`);
+         // search_str は URL に載せない (TODO-050)
          doPost('{{ url_prefix }}',
                 {
                   date: '{{ today }}',
@@ -30,7 +31,7 @@
 	     clickCount = 0;
 	     console.log( "double click" ) ;
        
-       doPost('{{ url_prefix }}',
+       doGet('{{ url_prefix }}',
               {date: '{{ today }}', sde_align: 'top'} );
      }
    };
@@ -85,9 +86,10 @@
      // 読み直したあとの位置合わせは一度で移す。"auto" は CSS の
      // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
      // アニメーションになってしまう (TODO-041)
+     // 読み直した直後なので、履歴には積まない (TODO-050)
      scrollToDate(location.pathname,
                   el_date.value, el_sde_align.value,
-                  "instant");
+                  "instant", false);
      
      const el_search = document.getElementById("search_str");
      console.log(`onload(): search_str="${el_search.value}"`);
@@ -101,10 +103,15 @@
    
    const changeSearchN = (val) => {
      console.log(`changeSearchN: val=${val}`);
+     // search_n は URL に載せない (TODO-050)
      doPost('{{ url_prefix }}', {date: cur_day.value, search_n: val} );
    };
 
    window.addEventListener('load', onloadHdr);
+   // キーボードでの操作は一覧だけ (TODO-050)
+   window.addEventListener('keydown', keyHdr);
+   // 画面内で完結した移動から戻ってきたとき (TODO-050)
+   window.addEventListener('popstate', popstateHdr);
   </script>
 </header>
 <main id="main" style="background-color:#FFF; visibility: hidden;
@@ -176,7 +183,7 @@
     <div class="row m-0 my-bar">
       <!-- backward -->
       <div class="col-2 p-0 text-center my-btn"
-        onmousedown="doPostDate(
+        onmousedown="doGetDate(
                   '{{ url_prefix }}',
                   '{{ date }}',
                   {{ str(date_from - date_to)[:-14] }} );">
@@ -193,7 +200,7 @@
         <i class="fas fa-arrows-alt-h"></i>
 
         <input type="date" value="{{ date_to }}"
-          onchange="doPostDate('{{ url_prefix }}',
+          onchange="doGetDate('{{ url_prefix }}',
                      this.value, 0);" />
         <br />
         <span class="my-fs-small">目標件数</span>
@@ -248,6 +255,8 @@
 
       {% set url = url_prefix %}
       {% set obj = {'date': str(sched_date), 'search_str': '' } %}
+      {# 検索の解除 (``search_str`` を空で送る) は conf.json を
+         書き換えるので POST。URL には載せない (TODO-050) #}
       <div class="col-1 p-0 text-center my-btn my-date-col
                   my-wday-{{ weekday }} {{ class_blink }}"
         onmousedown="doPost('{{ url }}', {{ obj }});">
@@ -287,7 +296,7 @@
         
         <!-- スケジュール追加ボタン -->                              
         <div class="text-center my-btn my-add-btn"
-          onmousedown="doPost(
+          onmousedown="doGet(
                     '{{ url_prefix + 'edit/' }}',
                     {date: '{{ sched_date }}', sde_id: ''} );">
           <i class="fas fa-plus-square"></i>
@@ -386,7 +395,7 @@
       <div class="col-5 p-0 text-center">
         <input id="date" name="date"
           type="date" value="{{ date }}"
-          onchange="doPost('{{ url_prefix }}',
+          onchange="doGet('{{ url_prefix }}',
                    {date:this.value});"/>
       </div><!-- col -->
       
