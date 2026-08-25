@@ -103,6 +103,10 @@ mise run shot -- --open -p todo046
 のような開閉するものを開いた状態も撮る（開くものは `--toggle` で指定。
 既定は `input.longtext-sw`）。
 
+- 撮る URL は既定で `http://localhost:10085/ytsched/`。`--urlprefix` の
+  既定（`/ytsched`）に合わせてある。一覧は `/` にも割り当ててあるので
+  どちらでも出るが、編集画面は前置きが無いと 404 になる。位置引数で
+  変えられる（`mise run shot -- http://localhost:10086/`）
 - playwright は dev 依存に入れていない。`mise run shot` は
   `uv run --with playwright` でそのつど用意する
 - ブラウザはシステムの `/usr/bin/chromium` を使う。

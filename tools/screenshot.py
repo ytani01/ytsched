@@ -42,8 +42,10 @@ from ytsched.mylog import exmsg, getLogger, loggerInit
 
 _log = getLogger("screenshot")
 
-#: 既定の URL (``mise run webapp`` の待ち受け先)
-DEF_URL = "http://localhost:10085/"
+#: 既定の URL (``mise run webapp`` の待ち受け先)。
+#: ``--urlprefix`` の既定 (``/ytsched``) に合わせてある。一覧は ``/`` にも
+#: 割り当ててあるが、編集画面は前置きが無いと 404 になる (TODO-051)
+DEF_URL = "http://localhost:10085/ytsched/"
 
 #: 既定の画面の幅 (px)。スマホと、広めの窓
 DEF_WIDTHS = (412, 800)
