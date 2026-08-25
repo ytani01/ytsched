@@ -110,6 +110,13 @@
    window.addEventListener('keydown', keyHdr);
    // 画面内で完結した移動から戻ってきたとき (TODO-050)
    window.addEventListener('popstate', popstateHdr);
+   // 左右のスワイプで週を送るのも一覧だけ (TODO-054)。
+   // 縦スクロールを邪魔しないよう、preventDefault() は呼ばない
+   // (どれも passive)
+   window.addEventListener('touchstart', touchStartHdr, {passive: true});
+   window.addEventListener('touchmove', touchMoveHdr, {passive: true});
+   window.addEventListener('touchend', touchEndHdr, {passive: true});
+   window.addEventListener('touchcancel', touchCancelHdr, {passive: true});
   </script>
 </header>
 <main id="main" style="background-color:#FFF; visibility: hidden;

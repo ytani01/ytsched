@@ -631,3 +631,116 @@ const keyHdr = (event) => {
     }
     }
 };
+
+/**
+ * 左右のスワイプで週を送るための、始点を覚えておく場所 (TODO-054)。
+ *
+ * 指が触れている間だけ ``{x, y, t}`` が入る。触れていないとき、
+ * 途中で 2 本目の指が触れたとき、``touchcancel`` が来たときは ``null``。
+ */
+let swipeStart = null;
+
+// 横に動いたと見なす最小の距離 (px)
+const SWIPE_MIN_X = 60;
+
+// 横の動きが縦の何倍あれば横スワイプと見なすか
+const SWIPE_X_PER_Y = 1.5;
+
+// これより長く触れていたら、スワイプと見なさない (msec)
+const SWIPE_MAX_MSEC = 800;
+
+// 画面の左右の端から、これだけの幅では受け付けない (px)
+const SWIPE_EDGE_PX = 30;
+
+/**
+ * 指が触れたとき (TODO-054)。
+ *
+ * 次の 3 つは、始めた時点で見送る。
+ *
+ * - **2 本以上の指。** ピンチで拡大しているときに週が変わらないように
+ * - **画面の左右の端から始まったもの。** iOS Safari の画面端スワイプ
+ *   (戻る/進む) に取られるので、こちらでも拾うと二重に効く
+ * - **入力欄の上で始まったもの。** 検索欄の中で文字を選ぼうとした
+ *   ときに週が変わらないように
+ */
+const touchStartHdr = (event) => {
+    swipeStart = null;
+
+    if ( event.touches.length !== 1 ) {
+        return;
+    }
+
+    const el = event.target;
+    if ( el && el.closest && el.closest("input, textarea, select") ) {
+        return;
+    }
+
+    const touch = event.touches[0];
+    const win_w = document.documentElement.clientWidth;
+    if ( touch.clientX < SWIPE_EDGE_PX
+         || touch.clientX > win_w - SWIPE_EDGE_PX ) {
+        return;
+    }
+
+    swipeStart = {x: touch.clientX, y: touch.clientY, t: Date.now()};
+};
+
+/**
+ * 指が増えていないかを、動いている間も見る (TODO-054)。
+ *
+ * ``touchstart`` は指が増えるたびに呼ばれ、``touchStartHdr`` が先頭で
+ * ``swipeStart`` を捨てるので、2 本目が触れた時点で見送りは決まって
+ * いる。ここはその**念のための二重の確認**で、``touchstart`` を
+ * 取りこぼした場合にだけ効く。
+ */
+const touchMoveHdr = (event) => {
+    if ( event.touches.length !== 1 ) {
+        swipeStart = null;
+    }
+};
+
+/**
+ * 指が離れたとき (TODO-054)。
+ *
+ * **縦の動きが優勢なら何もしない。** 1 週間分が画面に収まらない週では
+ * 上下にスクロールするので、その動きを週送りと取り違えないようにする。
+ *
+ * 左へ払ったら次の週、右へ払ったら前の週。画面の中身が指について
+ * 動くわけではないが、週が変わるとゲージの針が ``transition`` で
+ * 動くので、どちらへ移ったかはそれで分かる (TODO-049)。
+ */
+const touchEndHdr = (event) => {
+    const start = swipeStart;
+    swipeStart = null;
+
+    if ( ! start ) {
+        return;
+    }
+    if ( event.changedTouches.length !== 1 ) {
+        return;
+    }
+    if ( Date.now() - start.t > SWIPE_MAX_MSEC ) {
+        return;
+    }
+
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+
+    if ( Math.abs(dx) < SWIPE_MIN_X ) {
+        return;
+    }
+    if ( Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y ) {
+        return;
+    }
+
+    console.log(`touchEndHdr:dx=${dx}, dy=${dy}`);
+    moveToMonday(dx < 0 ? 1 : -1, url_prefix);
+};
+
+/**
+ * 途中で割り込まれたとき (TODO-054)。
+ */
+const touchCancelHdr = () => {
+    swipeStart = null;
+};
