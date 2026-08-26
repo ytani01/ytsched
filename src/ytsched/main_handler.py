@@ -130,7 +130,7 @@ class MainHandler(HandlerBase):
     #: ``conf.json`` の ``LoadMonths`` で変えられる
     DEF_LOAD_MONTHS = 1
     LOAD_MONTHS_MIN = 0
-    LOAD_MONTHS_MAX = 6
+    LOAD_MONTHS_MAX = 24
     #: ヶ月を週の数に直すときの、1 ヶ月の日数 (TODO-069)
     DAYS_PER_MONTH = 30
 
