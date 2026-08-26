@@ -234,6 +234,10 @@
     {% set sde_count = 0 %}
     {% set year=0 %}
 
+    <!-- 隣の週のはみ出しを切るための枠 (TODO-061)。
+         ここは動かないので、``week_wrap`` を横へずらしても
+         画面の外に出た分だけが切られる -->
+    <div class="my-week-viewport">
     <div id="week_wrap" class="my-week-wrap">
     {% for w in weeks %}
     <div class="my-week-panel my-week-{{ w['pos'] }}">
@@ -341,6 +345,7 @@
     </div><!-- my-week-panel -->
     {% end %}<!-- for w -->
     </div><!-- week_wrap -->
+    </div><!-- my-week-viewport -->
 
   </div><!-- container -->
 </main>

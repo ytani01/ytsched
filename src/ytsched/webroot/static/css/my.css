@@ -59,9 +59,6 @@ body {
     background-color: #fff;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
-    /* 前後の週を画面の外に置くので、横スクロールバーを出さない
-       (TODO-057) */
-    overflow-x: hidden;
 }
 
 b,
@@ -457,11 +454,13 @@ textarea {
 /* 横ゲージ (TODO-058)
    中央 (50%) が今週で、両端が ±30y。位置を割合で持つので、
    端末の幅が変わっても目盛りの意味は変わらない。
-   左右の 12px は、両端のラベル (±30y) が半分はみ出すぶんの逃げ */
+   左右の 16px は、両端のラベル (±30y) が半分はみ出すぶんの逃げ
+   (TODO-061 で 12px から広げた。幅 360px で ±30y が画面の端に
+   接していた) */
 .my-gage-bar {
     position: relative;
     height: 21px;
-    margin: 0 12px;
+    margin: 0 16px;
 }
 
 /* 目盛りの軸 */
@@ -510,14 +509,28 @@ textarea {
     transition: none;
 }
 
-/* 目盛りのラベル (left はテンプレートが埋める) */
+/* 目盛りのラベル (left はテンプレートが埋める)。
+   ``x-small`` (10px) では、幅 360px で ``+1w`` と ``+1m`` の隙間が
+   1px しかなく読めなかったので 8px に落とした (TODO-061)。
+   目盛りは 14 個のまま間引かない */
 .my-gage-label {
     position: absolute;
-    top: 9px;
-    font-size: x-small;
-    line-height: 12px;
+    top: 10px;
+    font-size: 8px;
+    line-height: 10px;
     white-space: nowrap;
     transform: translateX(-50%);
+}
+
+/* 隣の週のはみ出しを切る枠 (TODO-061)。
+   ``.my-week-wrap`` は指の追従で横へ動くので、こちらは動かさない。
+   ``hidden`` ではなく ``clip`` にするのは、``hidden`` だとスクロールの
+   入れ物になって縦まで切られ、今週より背の高い隣の週が、追従中に
+   下で切れて見えるため。
+   これを入れるまでは ``body`` の ``overflow-x: hidden`` で抑えていたが、
+   ``scrollWidth`` は画面の 2 倍のままだった (TODO-057・TODO-061) */
+.my-week-viewport {
+    overflow-x: clip;
 }
 
 /* 前週・今週・次週をまとめたラッパー (TODO-057)。
@@ -641,11 +654,14 @@ textarea {
     z-index: 200;
 }
 
+/* 3 行 (年 / 月日 / 曜日) を明示的に改行して出している。
+   ``line-height`` が文字 (10px) より低い 8px だったので、上下の行が
+   重なっていた (TODO-061) */
 .my-home-date {
     display: inline-block;
     font-size: xx-small;
     font-weight: bold;
-    line-height: 8px;
+    line-height: 10px;
     text-align: left;
     vertical-align: middle;
 }
