@@ -42,6 +42,7 @@
      loadingSpinner(false);
      
      elMain = document.getElementById("main"); // declared in my.js
+     elWeekWrap = document.getElementById("week_wrap"); // declared in my.js
 
      const elMenuBar = document.getElementById("menu_bar");
      const menu_bar_height = elMenuBar.offsetHeight;
@@ -98,10 +99,11 @@
    // 画面内で完結した移動から戻ってきたとき (TODO-050)
    window.addEventListener('popstate', popstateHdr);
    // 左右のスワイプで週を送るのも一覧だけ (TODO-054)。
-   // 縦スクロールを邪魔しないよう、preventDefault() は呼ばない
-   // (どれも passive)
+   // touchmove だけ passive: false (TODO-057)。横の動きと判定した
+   // あと preventDefault() で縦スクロールを止めないと、指に追従
+   // できない。他の 3 つは縦スクロールを邪魔しないので passive のまま
    window.addEventListener('touchstart', touchStartHdr, {passive: true});
-   window.addEventListener('touchmove', touchMoveHdr, {passive: true});
+   window.addEventListener('touchmove', touchMoveHdr, {passive: false});
    window.addEventListener('touchend', touchEndHdr, {passive: true});
    window.addEventListener('touchcancel', touchCancelHdr, {passive: true});
   </script>
@@ -232,7 +234,10 @@
     {% set sde_count = 0 %}
     {% set year=0 %}
 
-    {% for sched_ent in sched %}
+    <div id="week_wrap" class="my-week-wrap">
+    {% for w in weeks %}
+    <div class="my-week-panel my-week-{{ w['pos'] }}">
+    {% for sched_ent in w['sched'] %}
 
     {% set sched_date = sched_ent['date'] %}
 
@@ -256,8 +261,13 @@
     <strong>{{ year }}</strong>
     {% end %}
     {% end %}
+    {% if w['pos'] == 'cur' %}
     <div id="date-{{ sched_date }}"
       class="row p-0 m-0 border {{ class_date_block }}">
+    {% else %}
+    <div data-date="{{ sched_date }}"
+      class="row p-0 m-0 border {{ class_date_block }}">
+    {% end %}
 
       <!-- 日付 -->
       {% set weekday = sched_date.weekday() %}
@@ -328,6 +338,9 @@
     </div><!-- row -->
 
     {% end %}<!-- for sched_ent -->
+    </div><!-- my-week-panel -->
+    {% end %}<!-- for w -->
+    </div><!-- week_wrap -->
 
   </div><!-- container -->
 </main>

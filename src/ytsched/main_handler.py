@@ -342,6 +342,43 @@ class MainHandler(HandlerBase):
         )
 
         #
+        # 前週・次週分 (TODO-057)
+        #
+        # スワイプで指に追従させるため、隣の週も最初から出しておく。
+        # 検索モードは週の区切りに合わないので、今の週だけ (1 要素)。
+        #
+        if search_mode:
+            weeks = [{"pos": "cur", "sched": sched}]
+        else:
+            sched_prev, _, _ = self.load_sched(
+                date - datetime.timedelta(7),
+                filter_re,
+                filter_neg,
+                search_re,
+                search_mode,
+                search_n,
+                todo_days_value,
+                todo_sde,
+                todo_today_sde,
+            )
+            sched_next, _, _ = self.load_sched(
+                date + datetime.timedelta(7),
+                filter_re,
+                filter_neg,
+                search_re,
+                search_mode,
+                search_n,
+                todo_days_value,
+                todo_sde,
+                todo_today_sde,
+            )
+            weeks = [
+                {"pos": "prev", "sched": sched_prev},
+                {"pos": "cur", "sched": sched},
+                {"pos": "next", "sched": sched_next},
+            ]
+
+        #
         # render
         #
         today = datetime.date.today()
@@ -358,6 +395,7 @@ class MainHandler(HandlerBase):
             date_from=date_from,
             date_to=date_to,
             sched=sched,
+            weeks=weeks,
             modified_sde_id=modified_sde_id,
             todo_days_list=self.TODO_DAYS,
             todo_days_value=todo_days_value,

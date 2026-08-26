@@ -59,6 +59,9 @@ body {
     background-color: #fff;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* 前後の週を画面の外に置くので、横スクロールバーを出さない
+       (TODO-057) */
+    overflow-x: hidden;
 }
 
 b,
@@ -515,6 +518,45 @@ textarea {
     line-height: 12px;
     white-space: nowrap;
     transform: translateX(-50%);
+}
+
+/* 前週・今週・次週をまとめたラッパー (TODO-057)。
+   中央の週だけを通常フローに残し、body の高さを決めさせる。
+   前後の週は position: absolute で画面の外に置く */
+.my-week-wrap {
+    position: relative;
+}
+
+.my-week-panel {
+    width: 100%;
+}
+
+.my-week-prev,
+.my-week-next {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    visibility: hidden;
+}
+
+.my-week-prev {
+    left: -100%;
+}
+
+.my-week-next {
+    left: 100%;
+}
+
+/* 指の追従中・ボタン/キーでの送り中は、隣の週も見えるようにする */
+.my-week-wrap-dragging .my-week-prev,
+.my-week-wrap-dragging .my-week-next {
+    visibility: visible;
+}
+
+/* 滑らせるとき (指を離した後・ボタン/キー) だけ transition を掛ける。
+   指に追従している間は掛けない */
+.my-week-wrap-sliding {
+    transition: transform 0.2s ease-out;
 }
 
 /* 日付ごとのブロック (``.border`` より後なので、こちらが勝つ) */

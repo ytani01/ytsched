@@ -5,6 +5,9 @@
 let elLoadingSpinner;
 let elMain;
 let elGageR0;
+// 前週・今週・次週をまとめたラッパー (TODO-057)。指の追従・週送りの
+// アニメーションで動かす
+let elWeekWrap;
 
 /**
  *
@@ -502,10 +505,101 @@ const scrollToDate = (path, date, sde_align="top", behavior="smooth", push_flag=
     return false;
 };
 
+// 滑らせるアニメーションの長さ (msec)。CSS の
+// ``.my-week-wrap-sliding`` の transition と合わせる (TODO-057)
+const SWIPE_SLIDE_MSEC = 200;
+
+/**
+ * 隣の週 (prev/next) が DOM にあるかどうか (TODO-057)。
+ *
+ * 検索モードでは ``weeks`` が 1 要素で、``.my-week-prev`` /
+ * ``.my-week-next`` は CSS で隠れているのではなく、そもそも DOM に
+ * 無い。滑らせても中身の無い余白が見えるだけなので、その場合は false。
+ */
+const hasAdjacentWeek = () => {
+    return !! (document.querySelector(".my-week-prev")
+               || document.querySelector(".my-week-next"));
+};
+
+// 走っている ``slideWeekWrap()`` の後始末 (リスナーを外し、タイマーを
+// 消す)。呼び出しが重なったとき、次の呼び出しの先頭で使う (TODO-057)。
+let cancelActiveSlide = null;
+
+/**
+ * ``elWeekWrap`` を ``target_x`` (px) まで滑らせてから ``on_done`` を
+ * 呼ぶ (TODO-057)。
+ *
+ * 指の追従で途中まで動いていれば、その位置から続けて滑らせる
+ * (``elWeekWrap.style.transform`` を見る)。追従無しの呼び出し
+ * (メニューバー・キー) は 0 から始める。
+ *
+ * ``transitionend`` を待つが、来なかったときのために、タイマーでも
+ * 進める (来ないと週送りが効かなくなる)。
+ *
+ * 前の呼び出しがまだ終わっていなければ、その後始末 (リスナーを外し、
+ * タイマーを消す) だけ行い、``on_done()`` は呼ばない。あとから来た
+ * 呼び出しが勝つ。
+ *
+ * @param {number} target_x
+ * @param {Function} on_done
+ */
+const slideWeekWrap = (target_x, on_done) => {
+    if ( ! elWeekWrap || ! hasAdjacentWeek() ) {
+        on_done();
+        return;
+    }
+
+    if ( cancelActiveSlide ) {
+        cancelActiveSlide();
+        cancelActiveSlide = null;
+    }
+
+    elWeekWrap.classList.add("my-week-wrap-dragging");
+    if ( ! elWeekWrap.style.transform ) {
+        elWeekWrap.style.transform = "translateX(0px)";
+    }
+    void elWeekWrap.offsetWidth; // 強制的にレイアウトし、transition を効かせる
+
+    let done = false;
+    let timeoutId;
+    const cleanup = () => {
+        elWeekWrap.removeEventListener("transitionend", onEnd);
+        clearTimeout(timeoutId);
+    };
+    const finish = () => {
+        if ( done ) {
+            return;
+        }
+        done = true;
+        cancelActiveSlide = null;
+        cleanup();
+        elWeekWrap.classList.remove("my-week-wrap-sliding");
+        on_done();
+    };
+    const onEnd = (event) => {
+        if ( event.target !== elWeekWrap || event.propertyName !== "transform" ) {
+            return;
+        }
+        finish();
+    };
+
+    cancelActiveSlide = () => {
+        done = true;
+        cleanup();
+    };
+
+    elWeekWrap.addEventListener("transitionend", onEnd);
+    timeoutId = setTimeout(finish, SWIPE_SLIDE_MSEC + 100);
+
+    elWeekWrap.classList.add("my-week-wrap-sliding");
+    elWeekWrap.style.transform = `translateX(${target_x}px)`;
+};
+
 /**
  * 週を送る (次/前の月曜へ移る)。
  *
- * 週表示では前後の週は DOM に無いので、常に読み直す (TODO-049)。
+ * 隣の週まで滑らせてから ``doGet()`` する (TODO-057)。スワイプ・
+ * メニューバーの◀▶・キーの←→の、どの経路もここを通る。
  *
  * @param {number} direction
  * @param {String} path
@@ -537,7 +631,12 @@ const moveToMonday = (direction=1, path) => {
     d1_str = getLocaltimeDateString(d1);
     console.log(`moveToMonday:d1_str=${d1_str}`);
 
-    doGet(path, {date: d1_str, sde_align: "top"});
+    const win_w = document.documentElement.clientWidth;
+    const target_x = direction > 0 ? -win_w : win_w;
+
+    slideWeekWrap(target_x, () => {
+        doGet(path, {date: d1_str, sde_align: "top"});
+    });
 };
 
 /**
@@ -657,17 +756,41 @@ const keyHdr = (event) => {
  */
 let swipeStart = null;
 
+// 横の動きと判定して、隣の週を指に追従させているか (TODO-057)
+let swipeDragging = false;
+
 // 横に動いたと見なす最小の距離 (px)
 const SWIPE_MIN_X = 60;
 
 // 横の動きが縦の何倍あれば横スワイプと見なすか
 const SWIPE_X_PER_Y = 1.5;
 
-// これより長く触れていたら、スワイプと見なさない (msec)
-const SWIPE_MAX_MSEC = 800;
-
 // 画面の左右の端から、これだけの幅では受け付けない (px)
 const SWIPE_EDGE_PX = 30;
+
+// これより速く払ったら、画面幅の 1/3 に届いていなくても送る (px/msec)。
+// ``SWIPE_MAX_MSEC`` (指に追従させる前の、触れていた時間の上限) の
+// 代わり (TODO-057)
+const SWIPE_FAST_PX_PER_MSEC = 0.5;
+
+/**
+ * 指が離れたときに、追従していた分を 0 へ戻す (TODO-057)。
+ *
+ * 追従していなければ (``swipeDragging`` が false) 何もしない。
+ * ``elWeekWrap`` が無いとき (このページに無い) も何もしない。
+ */
+const cancelSwipeDrag = () => {
+    if ( ! swipeDragging ) {
+        return;
+    }
+    swipeDragging = false;
+    slideWeekWrap(0, () => {
+        if ( elWeekWrap ) {
+            elWeekWrap.style.transform = "";
+            elWeekWrap.classList.remove("my-week-wrap-dragging");
+        }
+    });
+};
 
 /**
  * 指が触れたとき (TODO-054)。
@@ -682,6 +805,7 @@ const SWIPE_EDGE_PX = 30;
  */
 const touchStartHdr = (event) => {
     swipeStart = null;
+    cancelSwipeDrag(); // 前の指が離れ損なっていたときの後始末 (念のため)
 
     if ( event.touches.length !== 1 ) {
         return;
@@ -703,16 +827,49 @@ const touchStartHdr = (event) => {
 };
 
 /**
- * 指が増えていないかを、動いている間も見る (TODO-054)。
+ * 指が動いている間、隣の週を追従させる (TODO-057)。
  *
- * ``touchstart`` は指が増えるたびに呼ばれ、``touchStartHdr`` が先頭で
- * ``swipeStart`` を捨てるので、2 本目が触れた時点で見送りは決まって
- * いる。ここはその**念のための二重の確認**で、``touchstart`` を
- * 取りこぼした場合にだけ効く。
+ * 横の動きと判定するまでは何もしない (縦スクロールを邪魔しないため)。
+ * 判定したあとは、``elWeekWrap`` に ``translateX()`` を掛けて指に
+ * ついて来させ、``preventDefault()`` で縦スクロールを止める。
+ *
+ * 指が増えたときは、``touchStartHdr`` が先頭で ``swipeStart`` を
+ * 捨てるので、2 本目が触れた時点で見送りは決まっている。ここはその
+ * **念のための二重の確認**で、``touchstart`` を取りこぼした場合に
+ * だけ効く (TODO-054)。
  */
 const touchMoveHdr = (event) => {
     if ( event.touches.length !== 1 ) {
         swipeStart = null;
+        cancelSwipeDrag();
+        return;
+    }
+
+    if ( ! swipeStart ) {
+        return;
+    }
+
+    const touch = event.touches[0];
+    const dx = touch.clientX - swipeStart.x;
+    const dy = touch.clientY - swipeStart.y;
+
+    if ( ! swipeDragging ) {
+        if ( Math.abs(dx) < SWIPE_MIN_X
+             || Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y ) {
+            return;
+        }
+        if ( ! hasAdjacentWeek() ) {
+            return;
+        }
+        swipeDragging = true;
+        if ( elWeekWrap ) {
+            elWeekWrap.classList.add("my-week-wrap-dragging");
+        }
+    }
+
+    event.preventDefault();
+    if ( elWeekWrap ) {
+        elWeekWrap.style.transform = `translateX(${dx}px)`;
     }
 };
 
@@ -722,9 +879,9 @@ const touchMoveHdr = (event) => {
  * **縦の動きが優勢なら何もしない。** 1 週間分が画面に収まらない週では
  * 上下にスクロールするので、その動きを週送りと取り違えないようにする。
  *
- * 左へ払ったら次の週、右へ払ったら前の週。画面の中身が指について
- * 動くわけではないが、週が変わるとゲージの針が ``transition`` で
- * 動くので、どちらへ移ったかはそれで分かる (TODO-049)。
+ * **画面幅の 1/3 以上動いたか、速く払ったとき**に送る (TODO-057)。
+ * それ以外は追従していた分を 0 へ戻す。左へ払ったら次の週、右へ払ったら
+ * 前の週。
  */
 const touchEndHdr = (event) => {
     const start = swipeStart;
@@ -734,24 +891,32 @@ const touchEndHdr = (event) => {
         return;
     }
     if ( event.changedTouches.length !== 1 ) {
-        return;
-    }
-    if ( Date.now() - start.t > SWIPE_MAX_MSEC ) {
+        cancelSwipeDrag();
         return;
     }
 
     const touch = event.changedTouches[0];
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
+    const elapsed_msec = Date.now() - start.t;
 
-    if ( Math.abs(dx) < SWIPE_MIN_X ) {
+    if ( Math.abs(dx) < SWIPE_MIN_X
+         || Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y ) {
+        cancelSwipeDrag();
         return;
     }
-    if ( Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y ) {
+
+    const win_w = document.documentElement.clientWidth;
+    const velocity = elapsed_msec > 0
+          ? Math.abs(dx) / elapsed_msec : Infinity;
+
+    if ( Math.abs(dx) < win_w / 3 && velocity < SWIPE_FAST_PX_PER_MSEC ) {
+        cancelSwipeDrag();
         return;
     }
 
-    console.log(`touchEndHdr:dx=${dx}, dy=${dy}`);
+    console.log(`touchEndHdr:dx=${dx}, dy=${dy}, velocity=${velocity}`);
+    swipeDragging = false;
     moveToMonday(dx < 0 ? 1 : -1, url_prefix);
 };
 
@@ -760,4 +925,5 @@ const touchEndHdr = (event) => {
  */
 const touchCancelHdr = () => {
     swipeStart = null;
+    cancelSwipeDrag();
 };
