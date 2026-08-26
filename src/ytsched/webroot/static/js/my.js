@@ -615,15 +615,10 @@ const moveToMonday = (direction=1, path) => {
         wday = 7; // Sun: 0 --> 7
     }
 
-    let days;
-    if ( direction > 0 ) {
-        days = 8 - wday;
-    } else {
-        days = 1 - wday;
-        if (days == 0) {
-            days = -7; // Mon
-        }
-    }
+    // まず ``cur_day`` をその週の月曜まで戻してから、前後へ 7 日
+    // ずらす (TODO-063)。週の途中の日付から直に前の月曜を求めると、
+    // 同じ週の月曜になって週が送れない
+    const days = (1 - wday) + (direction > 0 ? 7 : -7);
     console.log(`moveToMonday:days=${days}`);
 
     let d1 = new Date(el_cur_day.value);
