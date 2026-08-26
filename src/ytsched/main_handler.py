@@ -1,11 +1,11 @@
 #
-# (c) 2021 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """
 MainHandler
 """
 
-__author__ = "Yoichi Tanibayashi"
+__author__ = "ytani01"
 __date__ = "2021/01"
 
 import datetime

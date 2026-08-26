@@ -1,5 +1,5 @@
 /**
- *   (c) 2021 Yoichi Tanibayashi
+ *   (c) 2026 ytani01
  */
 
 let elLoadingSpinner;

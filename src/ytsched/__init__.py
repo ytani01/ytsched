@@ -1,5 +1,5 @@
 #
-# (c) 2021 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """
 YT scheduler
@@ -7,7 +7,7 @@ YT scheduler
 
 from importlib.metadata import PackageNotFoundError, version
 
-__author__ = "Yoichi Tanibayashi"
+__author__ = "ytani01"
 
 if __package__:
     try:

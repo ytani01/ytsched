@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """アプリの画面を撮る (TODO-046)
 
@@ -29,7 +29,7 @@ uv run ytsched webapp --datadir /tmp/somewhere --port 10085
 ```
 """
 
-__author__ = "Yoichi Tanibayashi"
+__author__ = "ytani01"
 __date__ = "2026/08"
 
 import argparse

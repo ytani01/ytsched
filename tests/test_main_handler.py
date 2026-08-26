@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """``MainHandler`` の現状の挙動を押さえるテスト（TODO-021）
 

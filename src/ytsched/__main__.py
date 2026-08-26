@@ -1,5 +1,5 @@
 #
-# (c) 2020 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """
 main for musicbox package
@@ -19,7 +19,7 @@ from .click_utils import click_common_opts
 from .migrate import Migrator
 from .mylog import getLogger, loggerInit
 
-__author__ = "Yoichi Tanibayashi"
+__author__ = "ytani01"
 __date__ = "2021/01"
 
 _log = getLogger("main")

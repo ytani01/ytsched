@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """TODO 項目ごとのトークン消費量を集計する (TODO-035)
 
@@ -23,7 +23,7 @@ uv run python tools/token-usage.py --list
 ``mise run tokens -- TODO-034`` でも同じ。
 """
 
-__author__ = "Yoichi Tanibayashi"
+__author__ = "ytani01"
 __date__ = "2026/08"
 
 import argparse

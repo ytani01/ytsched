@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """移行ツール（旧形式 → JSON Lines）のテスト (TODO-020)
 

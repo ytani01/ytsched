@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """アイコンの確認用ページを作る (TODO-048)
 
@@ -25,7 +25,7 @@ uv run --with playwright python tools/screenshot.py \
 参照できるかも同じページで見るので、隣にも置いてある。
 """
 
-__author__ = "Yoichi Tanibayashi"
+__author__ = "ytani01"
 __date__ = "2026/08"
 
 import argparse

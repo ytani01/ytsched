@@ -1,5 +1,5 @@
 #
-# (c) 2025 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 from collections.abc import Callable
 from typing import Any

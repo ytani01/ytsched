@@ -1,5 +1,5 @@
 #
-# (c) Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """旧形式(タブ区切りテキスト)から JSON Lines への移行 (TODO-020)
 
@@ -12,7 +12,7 @@
 ここで行う (TODO-032)。
 """
 
-__author__ = "Yoichi Tanibayashi"
+__author__ = "ytani01"
 __date__ = "2026/08"
 
 import dataclasses

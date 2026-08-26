@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """テスト用の共通部品
 
@@ -44,7 +44,7 @@ def make_app(datadir):
         static_url_prefix=URL_PREFIX + "/static/",
         template_path=os.path.join(webroot, "templates"),
         title="Ytsched",
-        author="Yoichi Tanibayashi",
+        author="ytani01",
         version="0.0.0",
         url_prefix=URL_PREFIX + "/",
         datadir=datadir,

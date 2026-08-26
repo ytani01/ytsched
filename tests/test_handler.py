@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """HandlerBase（conf.json の読み書き）と days2x_percent のテスト"""
 
@@ -35,7 +35,7 @@ def test_settings_are_read(datadir):
     handler = make_handler(app, HandlerBase)
 
     assert handler._title == "Ytsched"
-    assert handler._author == "Yoichi Tanibayashi"
+    assert handler._author == "ytani01"
     assert handler._version == "0.0.0"
     assert handler._url_prefix == URL_PREFIX + "/"
     assert handler._datadir == str(datadir)

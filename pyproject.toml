@@ -5,7 +5,7 @@ description = "ytsched: YT Scheduler"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Yoichi Tanibayashi", email = "yoichi@tanibayashi.jp" }
+    { name = "ytani01", email = "yoichi@tanibayashi.jp" }
 ]
 requires-python = ">=3.14"
 dependencies = [

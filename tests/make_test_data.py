@@ -1,5 +1,5 @@
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 """移行元（旧形式）のテストデータを生成する（TODO-019）。
 

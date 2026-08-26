@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# (c) 2026 Yoichi Tanibayashi
+# (c) 2026 ytani01
 #
 # アイコン画像を SVG から作り直す (TODO-039)。
 #
