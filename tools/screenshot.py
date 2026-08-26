@@ -9,15 +9,14 @@
 
 ブラウザはシステムの ``/usr/bin/chromium`` を使う。
 ``~/.cache/ms-playwright`` にあるビルドは playwright-mcp が入れたもので、
-``uv run --with playwright`` が取ってくる版とは合わず起動しない
-(TODO-045)。
+pip で入る playwright の版とは合わず起動しない (TODO-045)。
 
 # 使い方
 
 ```
-uv run --with playwright python tools/screenshot.py
-uv run --with playwright python tools/screenshot.py --width 412 --width 800
-uv run --with playwright python tools/screenshot.py -p todo047 --open
+uv run python tools/screenshot.py
+uv run python tools/screenshot.py --width 412 --width 800
+uv run python tools/screenshot.py -p todo047 --open
 ```
 
 ``mise run shot -- --open`` でも同じ。
@@ -230,8 +229,7 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{exmsg(ex)}\n"
             "playwright が要る。"
-            "`uv run --with playwright python tools/screenshot.py` "
-            "で走らせる。",
+            "`uv sync` で dev 依存を入れる (TODO-056)。",
             file=sys.stderr,
         )
         return 1

@@ -76,8 +76,8 @@ description = "screenshot of the webapp (TODO-046)"
 # 先に `mise run webapp` などでアプリを起動しておくこと。
 # `mise run shot -- --open -p todo047` のように渡す
 # （mise が引数を行の末尾へ足す）。
-# playwright は dev 依存に入れず、`--with` でそのつど用意する。
-run = "uv run --with playwright python tools/screenshot.py"
+# playwright は dev 依存に入っている（TODO-056）。
+run = "uv run python tools/screenshot.py"
 
 [tasks.migrate]
 description = "migrate old data (.cgi) to JSON Lines"

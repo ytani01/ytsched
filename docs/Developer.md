@@ -107,8 +107,9 @@ mise run shot -- --open -p todo046
   既定（`/ytsched`）に合わせてある。一覧は `/` にも割り当ててあるので
   どちらでも出るが、編集画面は前置きが無いと 404 になる。位置引数で
   変えられる（`mise run shot -- http://localhost:10086/`）
-- playwright は dev 依存に入れていない。`mise run shot` は
-  `uv run --with playwright` でそのつど用意する
+- playwright は dev 依存に入っている（TODO-056 でブラウザを動かす
+  テストを足したときに入れた）。`uv sync` すれば `mise run shot` も
+  そのまま動く
 - ブラウザはシステムの `/usr/bin/chromium` を使う。
   `~/.cache/ms-playwright` にあるビルドは playwright-mcp が入れたもので、
   `--with playwright` が取ってくる版とは合わず起動しない（TODO-045）
@@ -130,6 +131,20 @@ mise run shot -- --open -p todo046
 まとめて動く。各テストファイルが何を見ているか、`helpers.py` の役割、
 ゴールデンマスターテストの位置づけは [../tests/README.md](../tests/README.md)
 を見ること。
+
+`test_browser.py` だけはブラウザを起動する（TODO-056）。`pytest` は
+`my.js` を実行しないので、JavaScript の不具合はそれ以外のテストでは
+捕まらない。
+
+- **他のテストと同じ `mise run test` で一緒に走る。** playwright は
+  dev 依存に入れてあるので、`uv sync` のほかに用意するものは無い
+- ブラウザはシステムの `/usr/bin/chromium` を使う（`mise run shot` と
+  同じ理由。TODO-045）。無ければ skip する
+- テストごとに `ytsched webapp` を空いている port で起動し、`--datadir`
+  には `tmp_path` を渡す。実データ（`~/ytsched/data`）には触れない
+- 1 件だけ走らせるときは
+  `uv run pytest tests/test_browser.py -v`。ブラウザの動きを目で見たい
+  ときは、`page` fixture の `launch()` に `headless=False` を足す
 
 移行元（旧形式）の合成テストデータを作り直したいときは、
 `uv run python tests/make_test_data.py` を実行する。
