@@ -123,31 +123,29 @@
     </svg>
   </div>
   <!-- 週バー (TODO-055)
-       表示している週の範囲と、今週から何週離れているかを出す。
+       横ゲージで、今週からどのあたりの週を見ているかを出す。
+       期間の表示は各日の欄と重なるのでやめた (TODO-066)。
        検索モードでは出さない。検索結果は日付が飛び飛びで週の区切りに
        合わず、期間は下の「検索期間・件数」が出しているため -->
   {% if not search_mode %}
   <div id="week_bar" class="container-fluid p-1 fixed-top my-bar">
-    <div class="row m-0 my-fs-small">
-      <div class="col-8 p-0 text-start">
-        {{ date_from.strftime('%Y/%m/%d') }}
-        &ndash;
-        {{ date_to.strftime('%m/%d') }}
-      </div>
-      <div class="col-4 p-0 text-end">
-        {% if week_diff %}
-        {{ '%+dw' % week_diff }}
-        {% end %}
-      </div>
-    </div><!-- row -->
-
     <!-- 横ゲージ (TODO-058) -->
     <div class="my-gage-bar">
       <div class="my-gage-axis"></div>
       <div class="my-gage-base"></div>
-      <svg id="gage_r" class="my-gage-r" viewBox="0 0 12 8">
-        <polygon points="0,0 12,0 6,8" />
-      </svg>
+      <!-- 針と、今週からの週の差 (TODO-066)。
+           差は針の位置そのものを読む数字なので、針の上に置いて一緒に
+           動かす。位置は ``#gage_r`` がまとめて持ち、文字は
+           JavaScript の ``setGagePosition()`` が書き換える。
+           ここが埋めるのは、読み込んだ直後の一度だけ -->
+      <div id="gage_r" class="my-gage-r">
+        <div id="gage_r_label" class="my-gage-r-label">
+          {% if week_diff %}{{ '%+dw' % week_diff }}{% else %}&plusmn;0{% end %}
+        </div>
+        <svg class="my-gage-r-needle" viewBox="0 0 12 8">
+          <polygon points="0,0 12,0 6,8" />
+        </svg>
+      </div>
       {% for d in gage %}
       <div class="my-gage-label"
         style="left:{{ '%.2f' % (50 + d['x_percent']) }}%">{{ d['label'] }}</div>

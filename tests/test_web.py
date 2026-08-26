@@ -520,40 +520,42 @@ class TestMainHandler(WebTestBase):
 class TestWeekBar(WebTestBase):
     """上部の週の帯（TODO-055）
 
-    表示している週の範囲と、今週から何週離れているか（``+3w``）を出す。
-    週の差は、ゲージのラベル（``+1w`` など）にも同じ文字列があるので、
-    帯の中だけを取り出してから見る。
+    帯には横ゲージだけを出す。今週から何週離れているか（``+3w``）は、
+    ゲージの針の上にある（TODO-066）。目盛りのラベルにも ``+1w`` などと
+    同じ文字列があるので、針のラベルだけを取り出してから見る。
     """
 
     def week_bar(self, body):
-        """帯の中身を返す。帯が無ければ ``None``。
-
-        横ゲージ（TODO-058）のラベルにも ``+1w`` などと同じ文字列が
-        あるので、``.row``（週の範囲・週の差）までで切る。
-        """
-        m = re.search(r'id="week_bar".*?</div><!-- row -->', body, re.DOTALL)
+        """帯の中身を返す。帯が無ければ ``None``。"""
+        m = re.search(r'id="week_bar".*?<!-- container -->', body, re.DOTALL)
         if m is None:
             return None
         return m.group(0)
 
-    def test_week_range_is_displayed(self):
-        """月曜〜日曜の範囲が出る（``DATE1`` は月曜）。"""
+    def gage_label(self, body):
+        """針の上のラベル（週の差）を返す。無ければ ``None``。"""
+        m = re.search(r'id="gage_r_label"[^>]*>(.*?)</div>', body, re.DOTALL)
+        if m is None:
+            return None
+        return html.unescape(m.group(1)).strip()
+
+    def test_no_date_range_in_week_bar(self):
+        """期間は帯に出さない（TODO-066。``DATE1`` は月曜）。
+
+        各日の欄に日付が出ているので、帯との二重表示をやめた。
+        """
         bar = self.week_bar(self.get_body(URL_PREFIX + "/", date=DATE1_STR))
 
         assert bar is not None
-        assert "2021/03/01" in bar
-        assert "03/07" in bar
+        assert "2021/03/01" not in bar
 
-    def test_no_week_diff_in_this_week(self):
-        """今週のときは、週の差を出さない。"""
+    def test_this_week_shows_plus_minus_zero(self):
+        """今週のときは ``±0``（TODO-066）。"""
         today = datetime.date.today()
 
-        bar = self.week_bar(
-            self.get_body(URL_PREFIX + "/", date=today.isoformat())
-        )
+        body = self.get_body(URL_PREFIX + "/", date=today.isoformat())
 
-        assert bar is not None
-        assert re.search(r"[+-]\d+w", bar) is None
+        assert self.gage_label(body) == "\u00b10"
 
     def test_week_diff_is_displayed(self):
         """今週から離れていれば、その週数を出す。"""
@@ -561,12 +563,10 @@ class TestWeekBar(WebTestBase):
 
         for weeks, expected in [(3, "+3w"), (-1, "-1w")]:
             date = today + datetime.timedelta(weeks * 7)
-            bar = self.week_bar(
-                self.get_body(URL_PREFIX + "/", date=date.isoformat())
-            )
 
-            assert bar is not None
-            assert expected in bar
+            body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
+
+            assert self.gage_label(body) == expected
 
     def test_no_week_bar_in_search_mode(self):
         """検索モードでは帯を出さない。

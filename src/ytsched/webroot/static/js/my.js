@@ -83,8 +83,28 @@ const mondayOf = (date_str) => {
 };
 
 /**
+ * 今週からの週の差を、針に出す文字にする (TODO-066)。
+ * 今週のときは ``±0``。
+ *
+ * @param {number} weeks
+ *
+ * @return {String} label
+ */
+const weekDiffLabel = (weeks) => {
+    if (weeks === 0) {
+        return "\u00b10";
+    }
+    if (weeks > 0) {
+        return `+${weeks}w`;
+    }
+    return `${weeks}w`;
+};
+
+/**
  * 針の位置 (``left``) を計算してセットする。``transition`` は
- * 掛けたまま (TODO-049)。
+ * 掛けたまま (TODO-049)。針の上のラベル (今週からの週の差) も、
+ * ここで書き換える。位置は入れ物 (``#gage_r``) が持っているので、
+ * ラベルは黙って一緒に動く (TODO-066)。
  *
  * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい。
  *   月曜へ丸めてから、今週の月曜との差を見る)
@@ -95,6 +115,12 @@ const setGagePosition = (date_str) => {
     const top_rel_days = calcDays(this_monday, monday);
 
     elGageR0.style.left = `${50 + days2xPercent(top_rel_days)}%`;
+
+    // どちらも月曜なので、7 で割り切れる
+    const elLabel = document.getElementById("gage_r_label");
+    if (elLabel) {
+        elLabel.textContent = weekDiffLabel(Math.round(top_rel_days / 7));
+    }
 };
 
 // 直前に見ていた週の月曜 (TODO-049)。ページを読み直したあと、
@@ -137,12 +163,12 @@ const setGageMonday = (monday_str) => {
 /**
  * ``transition`` を効かせずに、いったんその位置へ針を置く。
  *
- * **レイアウトを確定させるのに ``offsetHeight`` は使えない** (TODO-060)。
- * 針は ``<svg>`` (``SVGSVGElement``) で、``offsetHeight`` は
- * ``HTMLElement`` のものなので、読んでも ``undefined`` が返るだけで
- * レイアウトは確定しない。位置が反映されないまま ``transition`` が
- * 戻り、CSS の初期値 (``left: 50%``、つまり中央) から補間が始まって
- * しまう。``getBoundingClientRect()`` は SVG でも効く。
+ * レイアウトを確定させるのに ``getBoundingClientRect()`` を使う
+ * (TODO-060)。確定しないまま ``transition`` が戻ると、CSS の初期値
+ * (``left: 50%``、つまり中央) から補間が始まってしまう。
+ * ``#gage_r`` が ``<svg>`` だったころは ``offsetHeight`` が
+ * ``undefined`` を返してレイアウトが確定せず、これで踏んだ
+ * (いまは針とラベルをまとめた ``<div>``。TODO-066)。
  *
  * @param {String} date_str   'YYYY-mm-dd'
  */

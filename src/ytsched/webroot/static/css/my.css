@@ -459,7 +459,7 @@ textarea {
    接していた) */
 .my-gage-bar {
     position: relative;
-    height: 21px;
+    height: 33px;
     margin: 0 16px;
 }
 
@@ -468,7 +468,7 @@ textarea {
     position: absolute;
     left: 0;
     right: 0;
-    top: 7px;
+    top: 19px;
     height: 1px;
     background-color: #FFF;
     opacity: 0.5;
@@ -477,7 +477,7 @@ textarea {
 /* 今週のしるし (中央に固定) */
 .my-gage-base {
     position: absolute;
-    top: 3px;
+    top: 15px;
     left: 50%;
     width: 2px;
     height: 9px;
@@ -485,14 +485,17 @@ textarea {
     transform: translateX(-50%);
 }
 
-/* 針 (left は JavaScript が書き換える) */
+/* 針と、今週からの週の差 (TODO-066)。
+   位置 (left) は JavaScript が書き換える。差の文字も一緒に動かすので、
+   針と文字をこの入れ物にまとめ、動かすのはこの 1 つだけにする。
+   幅は針 (12px) に合わせてあり、それより広い文字は、この中で
+   中央 (left: 50%) を基準に置く */
 .my-gage-r {
     position: absolute;
     top: 0;
     left: 50%;
     width: 12px;
-    height: 8px;
-    fill: #FFF;
+    height: 20px;
     transform: translateX(-50%);
     /* 週を切り替えたときに、針が動くのが見えるようにする (TODO-049)。
        ページを読み直した直後は、前の週の位置へ ``.my-gage-r-no-transition``
@@ -509,13 +512,36 @@ textarea {
     transition: none;
 }
 
+/* 針の上に出す、今週からの週の差 (TODO-066)。
+   入れ物 (12px) より広いので、中央を基準に左右へはみ出させる。
+   今週のときは ``±0``。文字は ``setGagePosition()`` が入れる */
+.my-gage-r-label {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    line-height: 10px;
+    white-space: nowrap;
+}
+
+/* 針そのもの (TODO-043 の三角形) */
+.my-gage-r-needle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 12px;
+    height: 8px;
+    fill: #FFF;
+}
+
 /* 目盛りのラベル (left はテンプレートが埋める)。
    ``x-small`` (10px) では、幅 360px で ``+1w`` と ``+1m`` の隙間が
    1px しかなく読めなかったので 8px に落とした (TODO-061)。
    目盛りは 14 個のまま間引かない */
 .my-gage-label {
     position: absolute;
-    top: 10px;
+    top: 22px;
     font-size: 8px;
     line-height: 10px;
     white-space: nowrap;

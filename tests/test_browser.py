@@ -188,3 +188,57 @@ def test_back_button_moves_a_week(page, server):
         lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
         timeout=10000,
     )
+
+
+def _center_x(page, selector):
+    """要素の左右の中心（px）。"""
+    box = page.locator(selector).bounding_box()
+    assert box is not None
+    return box["x"] + box["width"] / 2
+
+
+def test_gage_label_moves_with_the_needle(page, server):
+    """週の差のラベルが、針と一緒に動く（TODO-066）。
+
+    ラベルは針の入れ物の中にあるので、針が動けばラベルも同じだけ動く。
+    今週から離れた週を開き、ラベルの文字と、針との中心のずれを見る。
+    """
+    today = datetime.date.today()
+    far = _monday_of(today) + datetime.timedelta(days=3 * 7)
+
+    _open(page, server, far.strftime("%Y-%m-%d"))
+
+    label = page.locator("#gage_r_label")
+    label.wait_for(state="visible", timeout=10000)
+
+    # 針が動き終わるのを待つ（transition は 0.3s）
+    page.wait_for_function(
+        "() => document.getElementById('gage_r_label').textContent.trim() === '+3w'",
+        timeout=10000,
+    )
+    page.wait_for_timeout(500)
+
+    # 針より右にいる（今週は中央）
+    assert _center_x(page, "#gage_r") > page.viewport_size["width"] / 2
+
+    # ラベルの中心が、針の中心とそろっている
+    assert (
+        abs(
+            _center_x(page, "#gage_r_label")
+            - _center_x(page, ".my-gage-r-needle")
+        )
+        < 2
+    )
+
+
+def test_gage_label_is_plus_minus_zero_in_this_week(page, server):
+    """今週のときは ``±0``（TODO-066）。"""
+    today = datetime.date.today()
+
+    _open(page, server, today.strftime("%Y-%m-%d"))
+
+    page.wait_for_function(
+        "() => document.getElementById('gage_r_label').textContent.trim()"
+        " === '\\u00b10'",
+        timeout=10000,
+    )
