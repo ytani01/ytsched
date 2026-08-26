@@ -126,6 +126,14 @@ class MainHandler(HandlerBase):
 
     DELTA_DAY1 = datetime.timedelta(1)
 
+    #: 前後どれだけの週を DOM に持たせるか (ヶ月。TODO-069)。
+    #: ``conf.json`` の ``LoadMonths`` で変えられる
+    DEF_LOAD_MONTHS = 1
+    LOAD_MONTHS_MIN = 0
+    LOAD_MONTHS_MAX = 6
+    #: ヶ月を週の数に直すときの、1 ヶ月の日数 (TODO-069)
+    DAYS_PER_MONTH = 30
+
     def post(self):
         """POST。値を保存して ``cmd`` を実行し、GET へ飛ばす (TODO-050)。
 
@@ -320,6 +328,12 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"search_n={search_n}")
 
         #
+        # 前後どれだけの週を持たせるか (TODO-069)
+        #
+        load_months = self.get_load_months()
+        self.__log.debug(f"load_months={load_months}")
+
+        #
         # load ToDo
         #
         todo_sde, todo_today_sde = self.load_todo(
@@ -342,41 +356,45 @@ class MainHandler(HandlerBase):
         )
 
         #
-        # 前週・次週分 (TODO-057)
+        # 前後の週も一緒に描いて返す (TODO-057・TODO-069)
         #
-        # スワイプで指に追従させるため、隣の週も最初から出しておく。
+        # スワイプで指に追従させるため隣の週を出していたのを、前後
+        # ``load_months`` ヶ月ぶんへ広げた。ブラウザはこの中を動く
+        # かぎり、ページを読み直さない。
         # 検索モードは週の区切りに合わないので、今の週だけ (1 要素)。
         #
+        # ``monday`` は検索モードだけ None になるので、値の型を
+        # 揃えずに ``object`` で受ける (テンプレートへ渡すだけ)
+        weeks: list[dict[str, object]] = []
         if search_mode:
-            weeks = [{"pos": "cur", "sched": sched}]
+            # 検索モードの範囲は週の区切りに合わないので、月曜は
+            # 持たせない (TODO-069)。DOM の中で週を移ることも無い
+            weeks = [{"offset": 0, "monday": None, "sched": sched}]
         else:
-            sched_prev, _, _ = self.load_sched(
-                date - datetime.timedelta(7),
-                filter_re,
-                filter_neg,
-                search_re,
-                search_mode,
-                search_n,
-                todo_days_value,
-                todo_sde,
-                todo_today_sde,
-            )
-            sched_next, _, _ = self.load_sched(
-                date + datetime.timedelta(7),
-                filter_re,
-                filter_neg,
-                search_re,
-                search_mode,
-                search_n,
-                todo_days_value,
-                todo_sde,
-                todo_today_sde,
-            )
-            weeks = [
-                {"pos": "prev", "sched": sched_prev},
-                {"pos": "cur", "sched": sched},
-                {"pos": "next", "sched": sched_next},
-            ]
+            weeks_n = self.months2weeks(load_months)
+            for offset in range(-weeks_n, weeks_n + 1):
+                monday = date_from + datetime.timedelta(7 * offset)
+                if offset == 0:
+                    sched_offset = sched
+                else:
+                    sched_offset, _, _ = self.load_sched(
+                        monday,
+                        filter_re,
+                        filter_neg,
+                        search_re,
+                        search_mode,
+                        search_n,
+                        todo_days_value,
+                        todo_sde,
+                        todo_today_sde,
+                    )
+                weeks.append(
+                    {
+                        "offset": offset,
+                        "monday": monday,
+                        "sched": sched_offset,
+                    }
+                )
 
         #
         # render
@@ -464,6 +482,75 @@ class MainHandler(HandlerBase):
             min(self.TODO_DAYS.values()),
             max(self.TODO_DAYS.values()),
         )
+
+    def str2load_months(self, value: str) -> int:
+        """DOM に持たせる前後の月数にする (TODO-069)。
+
+        ``convert_value()`` に渡す変換関数。数字にならない値も、
+        ``LOAD_MONTHS_MIN``〜``LOAD_MONTHS_MAX`` の外も ``ValueError``。
+
+        Parameters
+        ----------
+        value: str
+
+        Returns
+        -------
+        int
+
+        """
+        return self.check_int_range(
+            self.CONF_KEY_LOAD_MONTHS,
+            int(value),
+            self.LOAD_MONTHS_MIN,
+            self.LOAD_MONTHS_MAX,
+        )
+
+    def get_load_months(self) -> int:
+        """DOM に持たせる前後の月数を ``conf.json`` から読む (TODO-069)。
+
+        **他の設定と違い、リクエストの引数では変えられない。**
+        画面から変えるものではなく、利用者が ``conf.json`` へ手で
+        書く値なので、``get_conf_arg()`` を通さず読むだけにする
+        （``set_conf()`` しないので、手で書いた値は消えない）。
+
+        読めない値 (数字にならない、範囲の外) は警告を 1 行出して
+        既定値へ落とす。不正な引数の扱い (TODO-027) と同じ。
+
+        Returns
+        -------
+        int
+
+        """
+        value = self.get_conf(self.CONF_KEY_LOAD_MONTHS)
+        if value is None:
+            return self.DEF_LOAD_MONTHS
+
+        converted = self.convert_value(
+            self.CONF_KEY_LOAD_MONTHS, value, self.str2load_months
+        )
+        if converted is None:
+            return self.DEF_LOAD_MONTHS
+
+        return converted
+
+    @classmethod
+    def months2weeks(cls, months: int) -> int:
+        """月数を、前後それぞれの週の数に直す (TODO-069)。
+
+        1 ヶ月を ``DAYS_PER_MONTH``(30) 日として数える。暦の月に
+        合わせないのは、**前後で週の数が変わると DOM の並びが
+        左右で非対称になる**ため。
+
+        Parameters
+        ----------
+        months: int
+
+        Returns
+        -------
+        int
+
+        """
+        return round(months * cls.DAYS_PER_MONTH / 7)
 
     def get_conf_arg[T](
         self,

@@ -592,36 +592,48 @@ textarea {
     overflow-x: clip;
 }
 
-/* 前週・今週・次週をまとめたラッパー (TODO-057)。
-   中央の週だけを通常フローに残し、body の高さを決めさせる。
-   前後の週は position: absolute で画面の外に置く */
+/* 前後数ヶ月ぶんの週をまとめたラッパー (TODO-057・TODO-069)。
+   いま見ている週だけを通常フローに残し、body の高さを決めさせる。
+   他の週は position: absolute で画面の外に置く。
+
+   どの週を通常フローに残すかは JavaScript が ``my-week-cur`` を
+   付け替えて決める。``left`` も一緒に振り直すので、絶対位置の週は
+   いつも「いま見ている週から何週ぶん左右か」の位置に来る
+   (TODO-069) */
 .my-week-wrap {
     position: relative;
 }
 
-.my-week-panel {
-    width: 100%;
-}
+/* 離れた週は ``display: none``。**位置を持たせるのは、いま見ている週と
+   その隣の 2 週だけ** (TODO-069)。
 
-.my-week-prev,
-.my-week-next {
+   絶対位置の週も、縦にはみ出した分だけ文書のスクロールを伸ばす
+   (``overflow-x: clip`` が切るのは横だけ)。前後数ヶ月ぶんを全部
+   置くと、いちばん背の高い週の分だけ下に空白ができてスクロール
+   できてしまう。``display: none`` なら場所を取らないので、伸びるのは
+   隣の 2 週の分まで (TODO-057 のころと同じ) で収まる。
+   最初の読み込みで 6 週分のレイアウトを省ける利点もある */
+.my-week-panel {
+    display: none;
     position: absolute;
     top: 0;
     width: 100%;
     visibility: hidden;
 }
 
-.my-week-prev {
-    left: -100%;
+.my-week-near {
+    display: block;
 }
 
-.my-week-next {
-    left: 100%;
+.my-week-cur {
+    display: block;
+    position: static;
+    width: 100%;
+    visibility: visible;
 }
 
 /* 指の追従中・ボタン/キーでの送り中は、隣の週も見えるようにする */
-.my-week-wrap-dragging .my-week-prev,
-.my-week-wrap-dragging .my-week-next {
+.my-week-wrap-dragging .my-week-near {
     visibility: visible;
 }
 

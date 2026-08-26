@@ -40,6 +40,7 @@ from test_web import (
     date_id,
     day_block,
     mk_dataline,
+    week_panel,
 )
 
 from ytsched.main_handler import MainHandler, calc_week_diff
@@ -271,12 +272,15 @@ class TestSearchModeRange(WebTestBase):
         検索モードでないので、予定が無い日も欄が出る。``BASE`` は月曜。
         """
         body = self.get_body(URL_PREFIX + "/", date=self.BASE.isoformat())
+        # 前後の週も DOM にあるので、いま見ている週の中だけを見る
+        # (TODO-069)
+        panel = week_panel(body)
 
         day = datetime.timedelta(1)
-        assert date_id(self.BASE - day) not in body
-        assert date_id(self.BASE) in body
-        assert date_id(self.BASE + day * 6) in body
-        assert date_id(self.BASE + day * 7) not in body
+        assert date_id(self.BASE - day) not in panel
+        assert date_id(self.BASE) in panel
+        assert date_id(self.BASE + day * 6) in panel
+        assert date_id(self.BASE + day * 7) not in panel
 
     def test_normal_mode_range_starts_at_monday_when_date_is_monday(self):
         """月曜を指定したとき、その日が ``date_from`` になる（TODO-049）。"""
@@ -299,13 +303,14 @@ class TestSearchModeRange(WebTestBase):
         sunday = datetime.date(2026, 1, 4)
 
         body = self.get_body(URL_PREFIX + "/", date=monday.isoformat())
+        panel = week_panel(body)
 
         assert f'value="{monday}"' in body
-        assert date_id(monday) in body
-        assert date_id(sunday) in body
-        assert date_id(sunday - datetime.timedelta(1)) in body
-        assert date_id(monday - datetime.timedelta(1)) not in body
-        assert date_id(sunday + datetime.timedelta(1)) not in body
+        assert date_id(monday) in panel
+        assert date_id(sunday) in panel
+        assert date_id(sunday - datetime.timedelta(1)) in panel
+        assert date_id(monday - datetime.timedelta(1)) not in panel
+        assert date_id(sunday + datetime.timedelta(1)) not in panel
 
     def test_search_mode_stops_365_days_after_first_hit(self):
         """1 件目が見つかったあとは、365 日前まででやめる。

@@ -30,7 +30,10 @@
        //event.preventDefault() ;
 	     clickCount = 0;
 	     console.log( "double click" ) ;
-       
+
+       // データを読み直す (TODO-069)。前後数ヶ月ぶんを DOM に持つ
+       // ようになったので、抱えたまま古くなる。ダブルタップが、
+       // 手で取り直す道
        doGet('{{ url_prefix }}',
               {date: '{{ today }}', sde_align: 'top'} );
      }
@@ -43,6 +46,12 @@
      
      elMain = document.getElementById("main"); // declared in my.js
      elWeekWrap = document.getElementById("week_wrap"); // declared in my.js
+
+     // 読み込んだ直後は、真ん中の週 (offset 0) を見ている。
+     // サーバも同じ形で描いているので並べ直す必要は無いが、
+     // ``my-week-near`` はサーバが付けないのでここで付ける (TODO-069)
+     activeWeekOffset = 0; // declared in my.js
+     layoutWeeks();
 
      const elMenuBar = document.getElementById("menu_bar");
      const menu_bar_height = elMenuBar.offsetHeight;
@@ -246,7 +255,10 @@
     <div class="my-week-viewport">
     <div id="week_wrap" class="my-week-wrap">
     {% for w in weeks %}
-    <div class="my-week-panel my-week-{{ w['pos'] }}">
+    <div class="my-week-panel{% if w['offset'] == 0 %} my-week-cur{% end %}"
+      data-offset="{{ w['offset'] }}"
+      {% if w['monday'] %}data-monday="{{ w['monday'] }}"{% end %}
+      style="left: {{ w['offset'] * 100 }}%">
     {% for sched_ent in w['sched'] %}
 
     {% set sched_date = sched_ent['date'] %}
@@ -271,13 +283,15 @@
     <strong>{{ year }}</strong>
     {% end %}
     {% end %}
-    {% if w['pos'] == 'cur' %}
+    {# ``id`` は前後数ヶ月ぶんの週すべてに付ける (TODO-069)。
+       TODO-057 で隣の週を出したときは、今の週にだけ ``id`` を付けて
+       いた。``scrollToId()`` が隠れている週へ寄せてしまわないように
+       するためだったが、週を移るのが DOM の中だけになったので、
+       寄せる前に週を移すのは呼び出し側 (``scrollToDate()`` /
+       ``popstateHdr()``) の役目になった。日付は週をまたいで重複
+       しないので、``id`` は全部に付いていてよい #}
     <div id="date-{{ sched_date }}"
       class="row p-0 m-0 border {{ class_date_block }}">
-    {% else %}
-    <div data-date="{{ sched_date }}"
-      class="row p-0 m-0 border {{ class_date_block }}">
-    {% end %}
 
       <!-- 日付 -->
       {% set weekday = sched_date.weekday() %}

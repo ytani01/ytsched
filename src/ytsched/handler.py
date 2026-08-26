@@ -33,6 +33,7 @@ class HandlerBase(tornado.web.RequestHandler):
     CONF_KEY_FILTER_STR = "FilterStr"
     CONF_KEY_SEARCH_STR = "SearchStr"
     CONF_KEY_SEARCH_N = "SearchN"
+    CONF_KEY_LOAD_MONTHS = "LoadMonths"
 
     HTML_MAIN = "main.html"
     HTML_EDIT = "edit.html"

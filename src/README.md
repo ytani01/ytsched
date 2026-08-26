@@ -140,7 +140,8 @@ classDiagram
   共通部分。リクエストのたびにデータディレクトリ直下の設定ファイル
   `conf.json` を読み書きする（`load_conf()` / `save_conf()` /
   `get_conf()` / `set_conf()`）。JSON のオブジェクト 1 つで、値は
-  すべて文字列（TODO-032）。人が手で編集するファイルではない。
+  すべて文字列（TODO-032）。**`LoadMonths` を除いて**、人が手で編集する
+  ファイルではない（`LoadMonths` については `MainHandler` の項を参照）。
   読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
   でないキー）は、警告を 1 行出して無視する。
   引数や設定値の変換と検証もここに置く（`convert_value()` /
@@ -154,6 +155,12 @@ classDiagram
   一覧に出すのは、**渡された日を含む週の月曜から日曜までの 7 日**
   （`load_sched()`。TODO-049）。検索したときだけは週で区切らず、
   条件に当たった日を古いほうへさかのぼって並べる。
+  **返す HTML には、前後 1 ヶ月ぶんの週も一緒に入れる**（TODO-069）。
+  ブラウザはこの中を動くかぎりページを読み直さない。何ヶ月ぶんかは
+  `conf.json` の `LoadMonths` で変えられる（既定 1、範囲 0〜6）。
+  **これだけは利用者が手で書く設定**で、画面から変える UI は無く、
+  アプリは読むだけ（`get_load_months()`）なので手で書いた値は消えない。
+  検索モードでは週の区切りに合わないので 1 週だけ。
   **URL に持たせるのは日付だけ**（`?date=2026-08-24`）。検索語・
   絞り込み・ToDo の日数・目標件数は `conf.json` に保存する。
   それらを送るときは、ブックマークや履歴に残らないよう `POST` を通す
@@ -206,6 +213,40 @@ sequenceDiagram
     Handler->>Template: render(html, ...)
     Template-->>Browser: HTML
 ```
+
+## 週の移動（ブラウザ側）
+
+前後 1 ヶ月ぶんの週が最初から DOM にあるので、**週送りはページを
+読み直さず、DOM の中で見せる週を差し替えるだけ**（TODO-069）。
+スワイプ・メニューバーの◀▶・キーの←→は、どれも `my.js` の
+`moveToMonday()` を通る。
+
+```mermaid
+flowchart TD
+    A["moveToMonday(direction)"] --> B["slideWeekWrap()<br/>隣の週まで滑らせる"]
+    B --> C{"送り先の週が<br/>DOM にあるか"}
+    C -- ある --> D["setActiveWeek()<br/>my-week-cur を付け替え、<br/>left を振り直す"]
+    D --> E["#cur_day / #date / #date_from /<br/>ゲージを、その週の月曜に揃える"]
+    E --> F["pushDateInUrl()<br/>URL を履歴に積む"]
+    C -- 無い --> G["doGet()<br/>その日を中心に読み直す"]
+```
+
+- 各週は `.my-week-panel` で、`data-offset`（最初に描かれた週からの
+  週数）と `data-monday`（その週の月曜）を持つ。検索モードでは週の
+  区切りに合わないので `data-monday` は付かない
+- **通常フローに残るのは、いま見ている週（`my-week-cur`）だけ。**
+  隣の 2 週（`my-week-near`）は `position: absolute` で、`left` は
+  「いま見ている週から何週ぶん左右か」。`position: absolute` の週は
+  body の高さを決めないので、週を差し替えるときは `my-week-cur` も
+  一緒に動かさないと、高さが前の週のまま残る
+- **離れた週は `display: none`。** 置くのはこの 3 つだけ。
+  `position: absolute` の週も縦にはみ出した分だけ文書のスクロールを
+  伸ばすので、9 週を全部置くと下に空白ができてスクロールできてしまう
+- 日付の欄の `id="date-YYYY-mm-dd"` は、**前後数ヶ月ぶんの週すべてに
+  付く**。だから `scrollToId()` で寄せる前に、その日を含む週へ移る
+  のは呼び出し側（`scrollToDate()` / `popstateHdr()`）の役目
+- **DOM に持っているデータは古くなる。** ホームボタンのダブルタップが、
+  手で取り直す道（1 回のタップは今日の週へ移るだけ）
 
 ## フィルタ・検索文字列の扱い
 

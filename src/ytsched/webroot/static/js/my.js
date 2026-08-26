@@ -422,6 +422,17 @@ const replaceDateInUrl = (date) => {
  * ``pushDateInUrl()``で積んだ履歴へ戻ってきたときは、ページの
  * 読み直しが起きないので、ここで URLの ``date``まで動かす。
  * 読み込んである範囲の外なら、その URLで読み直す。
+ *
+ * **まず週を移してから、日付へ寄せる** (TODO-069)。前後数ヶ月ぶんを
+ * DOM に持つようになったので、``date-YYYY-mm-dd`` は表示していない週
+ * にもある。週を移さずにスクロールだけすると、隠れている週へ寄せて
+ * しまう。
+ *
+ * **週が分からなくても、そこで読み直しに倒さない。** 検索モードでは
+ * 週の区切りに合わないので panel が月曜を持たず、
+ * ``weekOffsetOfDate()`` はいつも null になる。「週が分からない」は
+ * 「持っている範囲の外」ではないので、``scrollToDate()`` と同じく、
+ * スクロールを試してから決める。
  */
 const popstateHdr = (event) => {
     const date = new URL(location.href).searchParams.get("date");
@@ -430,6 +441,11 @@ const popstateHdr = (event) => {
     if ( ! date ) {
         location.reload();
         return;
+    }
+
+    const offset = weekOffsetOfDate(date);
+    if ( offset !== null && offset !== activeWeekOffset ) {
+        setActiveWeek(offset, false);
     }
 
     // 画面内にあればスクロールで済ませる。無ければ読み直す
@@ -532,6 +548,16 @@ const scrollToDate = (path, date, sde_align="top", behavior="smooth", push_flag=
 
     const el_cur_day = document.getElementById("cur_day");
 
+    // 表示していない週の日付なら、まず週を移す (TODO-069)。
+    // ``date-YYYY-mm-dd`` は前後数ヶ月ぶんの週すべてにあるので、
+    // 週を移さずにスクロールすると、隠れている週へ寄せてしまう。
+    // URL はこのあとこの関数が ``date`` で書き換えるので、ここでは
+    // 積まない
+    const offset = weekOffsetOfDate(date);
+    if ( offset !== null && offset !== activeWeekOffset ) {
+        setActiveWeek(offset, false);
+    }
+
     if (scrollToId(`date-${date}`, sde_align, behavior)) {
         el_cur_day.value = date;
         // 読み直した直後 (``push_flag``が偽) は履歴に積まない。
@@ -553,16 +579,134 @@ const scrollToDate = (path, date, sde_align="top", behavior="smooth", push_flag=
 // ``.my-week-wrap-sliding`` の transition と合わせる (TODO-057)
 const SWIPE_SLIDE_MSEC = 200;
 
+// いま見ている週が、最初に描かれた週から何週ぶん離れているか
+// (TODO-069)。``.my-week-panel`` の ``data-offset`` と同じ数え方で、
+// 読み込んだ直後は 0
+let activeWeekOffset = 0;
+
 /**
- * 隣の週 (prev/next) が DOM にあるかどうか (TODO-057)。
+ * ``offset`` の週の ``.my-week-panel`` を返す (TODO-069)。
  *
- * 検索モードでは ``weeks`` が 1 要素で、``.my-week-prev`` /
- * ``.my-week-next`` は CSS で隠れているのではなく、そもそも DOM に
- * 無い。滑らせても中身の無い余白が見えるだけなので、その場合は false。
+ * 読み込んだ範囲の外なら null。
+ *
+ * @param {number} offset
+ * @return {Element | null}
+ */
+const weekPanelOf = (offset) => {
+    if ( ! elWeekWrap ) {
+        return null;
+    }
+    return elWeekWrap.querySelector(
+        `.my-week-panel[data-offset="${offset}"]`);
+};
+
+/**
+ * ``date_str`` を含む週が DOM にあれば、その ``offset`` を返す
+ * (TODO-069)。無ければ null。
+ *
+ * 週の panel は月曜 (``data-monday``) を持っているので、渡された
+ * 日付を月曜へ丸めてから探す。
+ *
+ * @param {String} date_str   'YYYY-mm-dd'
+ * @return {number | null}
+ */
+const weekOffsetOfDate = (date_str) => {
+    if ( ! elWeekWrap || ! date_str ) {
+        return null;
+    }
+    const monday = getLocaltimeDateString(mondayOf(date_str));
+    const panel = elWeekWrap.querySelector(
+        `.my-week-panel[data-monday="${monday}"]`);
+    if ( ! panel ) {
+        return null;
+    }
+    return Number(panel.dataset.offset);
+};
+
+/**
+ * 隣の週が DOM にあるかどうか (TODO-057・TODO-069)。
+ *
+ * 検索モードでは ``weeks`` が 1 要素で、隣の週は CSS で隠れている
+ * のではなく、そもそも DOM に無い。読み込んだ範囲の端でも同じ。
+ * 滑らせても中身の無い余白が見えるだけなので、その場合は false。
  */
 const hasAdjacentWeek = () => {
-    return !! (document.querySelector(".my-week-prev")
-               || document.querySelector(".my-week-next"));
+    return !! (weekPanelOf(activeWeekOffset - 1)
+               || weekPanelOf(activeWeekOffset + 1));
+};
+
+/**
+ * 週の並べ直し (TODO-069)。
+ *
+ * ``activeWeekOffset`` の週だけを通常フロー (``my-week-cur``) に
+ * 残し、他は ``left`` で左右へ振り分ける。**通常フローに残す週を
+ * 差し替えるのは、body の高さをその週に合わせるため**
+ * (``position: absolute`` の週は高さを決めない)。
+ *
+ * 隣の 2 週にだけ ``my-week-near`` を付ける。指の追従中に見える
+ * ようにするのはこの 2 週だけで、前後数ヶ月ぶんを全部見せない。
+ */
+const layoutWeeks = () => {
+    if ( ! elWeekWrap ) {
+        return;
+    }
+    const panels = elWeekWrap.querySelectorAll(".my-week-panel");
+    for ( const panel of panels ) {
+        const offset = Number(panel.dataset.offset);
+        const rel = offset - activeWeekOffset;
+
+        panel.classList.toggle("my-week-cur", rel === 0);
+        panel.classList.toggle("my-week-near", Math.abs(rel) === 1);
+        panel.style.left = `${rel * 100}%`;
+    }
+};
+
+/**
+ * いま見ている週を ``offset`` の週にする (TODO-069)。
+ *
+ * ページを読み直さずに、DOM の中だけで週を移る。並べ直したうえで、
+ * 週に付いて回るもの (``#cur_day``・``#date``・``#date_from``・
+ * ヘッダのゲージ) を、その週の月曜に揃える。
+ *
+ * ``push_flag`` が真なら URL を履歴に積む。戻る/進むから呼ぶときは
+ * 偽にする (``popstate`` で来た時点で URL はもう動いている)。
+ *
+ * @param {number} offset
+ * @param {boolean} push_flag
+ * @return {boolean}   移れたら true
+ */
+const setActiveWeek = (offset, push_flag = true) => {
+    const panel = weekPanelOf(offset);
+    if ( ! panel ) {
+        return false;
+    }
+
+    activeWeekOffset = offset;
+    layoutWeeks();
+
+    // 滑らせ終わった位置から、ずらした分を戻す。並べ直しで見た目の
+    // 位置は変わらないので、transition を掛けずに戻す
+    elWeekWrap.classList.remove("my-week-wrap-sliding");
+    elWeekWrap.classList.remove("my-week-wrap-dragging");
+    elWeekWrap.style.transform = "";
+
+    const monday = panel.dataset.monday;
+
+    for ( const id of ["cur_day", "date", "date_from"] ) {
+        const el = document.getElementById(id);
+        if ( el ) {
+            el.value = monday;
+        }
+    }
+
+    if ( push_flag ) {
+        pushDateInUrl(monday);
+    }
+
+    dispGage(monday);
+    scrollToId(`date-${monday}`, "top", "instant");
+
+    return true;
 };
 
 // 走っている ``slideWeekWrap()`` の後始末 (リスナーを外し、タイマーを
@@ -642,8 +786,10 @@ const slideWeekWrap = (target_x, on_done) => {
 /**
  * 週を送る (次/前の月曜へ移る)。
  *
- * 隣の週まで滑らせてから ``doGet()`` する (TODO-057)。スワイプ・
- * メニューバーの◀▶・キーの←→の、どの経路もここを通る。
+ * 隣の週まで滑らせてから、**送り先が DOM にあれば、そこへ移るだけ**
+ * (TODO-069)。読み込んだ範囲の外へ出るときだけ ``doGet()`` して、
+ * 新しい日付を中心に前後数ヶ月を取り直す。スワイプ・メニューバーの
+ * ◀▶・キーの←→の、どの経路もここを通る。
  *
  * @param {number} direction
  * @param {String} path
@@ -672,8 +818,13 @@ const moveToMonday = (direction=1, path) => {
 
     const win_w = document.documentElement.clientWidth;
     const target_x = direction > 0 ? -win_w : win_w;
+    const next_offset = activeWeekOffset + direction;
+    console.log(`moveToMonday:next_offset=${next_offset}`);
 
     slideWeekWrap(target_x, () => {
+        if ( setActiveWeek(next_offset) ) {
+            return;
+        }
         doGet(path, {date: d1_str, sde_align: "top"});
     });
 };

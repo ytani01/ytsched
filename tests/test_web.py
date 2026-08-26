@@ -60,6 +60,22 @@ def date_id(date):
     return f'id="date-{date}"'
 
 
+def week_panel(body):
+    """いま見ている週の ``.my-week-panel`` だけを取り出す（TODO-069）。
+
+    前後数ヶ月ぶんの週を DOM に持つようになり、``id="date-..."`` も
+    その全部に付くので、「その日が本文にあるか」は「その日が
+    表示中の週に入っているか」ではなくなった。週の範囲を見るときは、
+    ``my-week-cur`` が付いた panel の中だけを見る。
+    """
+    marker = 'class="my-week-panel my-week-cur"'
+    start = body.index(marker)
+    next_start = body.find('class="my-week-panel', start + len(marker))
+    if next_start == -1:
+        next_start = len(body)
+    return body[start:next_start]
+
+
 def day_block(body, date):
     """``date`` の日付ブロックだけを取り出す（``main.html``。TODO-049）。
 
@@ -514,7 +530,10 @@ class TestMainHandler(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", todo_days="7")
 
-        assert "ノートを買う" not in body
+        # 期限の日 (今日 + 30 日) は前後数ヶ月ぶんの週に入っていて、
+        # その日の欄には出る。ここで見るのは「今日の欄に出ないこと」
+        # なので、今日の欄だけを取り出す (TODO-069)
+        assert "ノートを買う" not in day_block(body, datetime.date.today())
 
 
 class TestWeekBar(WebTestBase):
@@ -773,6 +792,70 @@ class TestInvalidArgs(WebTestBase):
 
         assert date_id(DATE1) in body
         assert f'value="{MainHandler.DEF_TODO_DAYS}" selected' in body
+
+    #
+    # LoadMonths (TODO-069)
+    #
+    def week_panel_count(self, body):
+        """描かれた週の数（``.my-week-panel`` の数）。"""
+        return body.count('class="my-week-panel')
+
+    def test_load_months_default_is_one_month_each_way(self):
+        """既定では前後 1 ヶ月ぶん（前後 4 週 + 今の週 = 9 週）。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        weeks_n = MainHandler.months2weeks(MainHandler.DEF_LOAD_MONTHS)
+        assert self.week_panel_count(body) == weeks_n * 2 + 1
+
+    def test_load_months_zero_leaves_only_the_current_week(self):
+        """``0`` なら今の週だけ。"""
+        write_conf(self.datadir, {"LoadMonths": "0"})
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert self.week_panel_count(body) == 1
+
+    def test_load_months_widens_the_range(self):
+        """大きくすると、その分だけ週が増える。"""
+        write_conf(self.datadir, {"LoadMonths": "2"})
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        weeks_n = MainHandler.months2weeks(2)
+        assert self.week_panel_count(body) == weeks_n * 2 + 1
+
+    def test_broken_load_months_falls_back_to_the_default(self):
+        """数字にならない値も、範囲の外も既定値へ落とす。"""
+        for value in ("abc", "-1", "99"):
+            write_conf(self.datadir, {"LoadMonths": value})
+
+            body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+            weeks_n = MainHandler.months2weeks(MainHandler.DEF_LOAD_MONTHS)
+            assert self.week_panel_count(body) == weeks_n * 2 + 1, value
+
+    def test_load_months_is_not_overwritten(self):
+        """手で書いた値は ``conf.json`` から消えない。
+
+        画面から変える設定ではないので、アプリは読むだけで
+        ``set_conf()`` しない（TODO-069）。他の設定を保存したときに
+        巻き添えで消えないことまで見る。
+        """
+        write_conf(self.datadir, {"LoadMonths": "2"})
+
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
+
+        conf = read_conf(self.datadir)
+        assert conf["LoadMonths"] == "2"
+        assert conf["ToDo_Days"] == "7"
+
+    def test_search_mode_has_only_one_week(self):
+        """検索モードでは週の区切りに合わないので 1 つだけ。"""
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="ミーティング"
+        )
+
+        assert self.week_panel_count(body) == 1
 
     #
     # date / cur_day / year+month+day
