@@ -360,7 +360,7 @@
   <div id="menu_bar"
     class="container-fluid p-2 fixed-bottom my-bar my-menu-bar
            my-follow-keyboard">
-    <div class="row m-0">
+    <div class="row m-0 my-row-middle">
 
       <!-- menu_sw -->
       <div class="col-2 p-0 text-center">
@@ -377,7 +377,7 @@
       <!-- back -->
       <div id="back_button" class="col-1 p-0 text-center my-btn"
         onmousedown="moveToMonday(-1, '{{ url_prefix }}');">
-        <svg class="my-icon">
+        <svg class="my-icon my-icon-lg">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-left"></use>
         </svg>
       </div><!-- col -->
@@ -385,7 +385,7 @@
       <!-- forward -->
       <div id="forward_button" class="col-1 p-0 text-center my-btn"
         onmousedown="moveToMonday(1, '{{ url_prefix }}');">
-        <svg class="my-icon">
+        <svg class="my-icon my-icon-lg">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-right"></use>
         </svg>
       </div><!-- col -->
@@ -448,7 +448,7 @@
       </div>
       
     </div><!-- row -->
-    <div class="row m-1">
+    <div class="row m-1 my-row-middle">
 
       <!-- date -->
       <div class="col-5 p-0 text-center">
@@ -484,15 +484,15 @@
       </div><!-- col -->
 
       <!-- filter -->
-      <div class="col-4 p-0 text-center my-fs-small">
+      <div class="col-4 p-0 text-center my-fs-medium">
         <form id="form_filter" name="form_filter"
           action="{{ url_prefix }}" method="POST">
-          <svg class="my-icon my-icon-2x my-btn align-middle"
+          <svg class="my-icon my-icon-lg my-btn align-middle"
             onmousedown="doSubmit('form_filter');">
             <use href="{{ static_url('icons/icons.svg') }}#filter"></use>
           </svg>
           <input id="filter_str" name="filter_str" type="text" size="7"
-            class="align-middle"
+            class="my-fs-small align-middle"
             value="{{ filter_str }}" />
           <input name="cur_day"
             type="hidden" value="{{ date }}" />

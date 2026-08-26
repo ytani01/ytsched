@@ -1,62 +1,11 @@
 # TODO
 
-**残っている項目: TODO-067,TODO-069,TODO-070。**
-これまでに 67 件を決着させた。
+**残っている項目: TODO-069,TODO-070。**
+これまでに 68 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-071` から。**
 
 着手する項目は利用者が指定する。
-
----
-
-## TODO-067. フッターの入力欄とアイコンの縦位置を揃える
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | main + verifier + wording |
-
-- [ ] `.align-middle` が `.my-icon` に負けているのを直す
-- [ ] フッターのアイコンの大きさを揃える
-- [ ] フッターの列を flex にして、高さの違う要素を中央で揃える
-
-フッターの入力欄とアイコンの縦位置が揃っていない。幅 412px で測った
-ずれは次のとおり（数字は要素の上下の中心）。
-
-上段（メニューの中身）: date 入力欄 834.3 / list アイコン 830.3 /
-select 834.1 / filter アイコン 833.3 / **filter 入力欄 841.3**。
-
-下段（メニューバー）: bars 872 / chevron 873 / home 873.2 /
-search アイコン 872 / **search 入力欄 875.8**。
-
-原因は 3 つある。
-
-**1. `align-middle` が SVG アイコンに効いていない。**
-`my.css` の `.align-middle`（`vertical-align: middle`）と `.my-icon`
-（`vertical-align: -0.125em`）は詳細度が同じで、後ろにある `.my-icon` が
-勝つ。テンプレートは `class="my-icon my-icon-lg align-middle"` と書いて
-いるが、computed 値は `-2px` だった。入力欄と select には `align-middle`
-が効いているので、アイコンと揃わない。
-
-効くように直すと、フッター以外（`main.html` の検索期間のアイコンなど）の
-見た目も変わる。**そちらも撮って確かめること。**
-
-**2. アイコンの大きさと、親のフォントサイズがバラバラ。**
-クラスが `my-icon`（chevron、1em）・`my-icon-lg`（bars・home・search・
-list、1.25em）・`my-icon-2x`（filter、2em）と混ざっている。さらに親の
-div のフォントサイズが 16px と 13px（`my-fs-small`）に割れているため、
-実寸は filter が 26px、list が 20px になる。
-
-**3. 縦の揃えを `vertical-align` に頼っている。**
-`.row` は Grid で、列は `align-self: stretch`。中身はインライン要素として
-`vertical-align` で揃えているので、高さの違う要素（date 入力欄 28px /
-select 21px / 入力欄 25.5px）が中心で揃わない。列を
-`display: flex; align-items: center` にすれば、高さに関係なく揃う。
-
-横位置の不揃い（列の幅と `text-center` の組み合わせで、列ごとに中身の
-寄り方が違う）も目につくが、この項目では扱わない。
-
-確かめ方は `mise run shot`。メニューを開いた状態は
-`--toggle '#menu-sw' --open` で撮れる。
 
 ---
 
@@ -80,6 +29,7 @@ select 21px / 入力欄 25.5px）が中心で揃わない。列を
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-067.** フッターの入力欄とアイコンの縦位置を揃える](archives/todo/TODO-067.%20フッターの入力欄とアイコンの縦位置を揃える.md)
 - [**TODO-066.** ヘッダーの期間表示をやめて、週の差を針と一緒に動かす](archives/todo/TODO-066.%20ヘッダーの期間表示をやめて、週の差を針と一緒に動かす.md)
 - [**TODO-068.** 編集画面から週表示に戻ったとき、スピナーが表示されっぱなしになるのを修正](archives/todo/TODO-068.%20編集画面から週表示に戻ったとき、スピナーが表示されっぱなしになるのを修正.md)
 - [**TODO-056.** JavaScript の退行を捕まえられるようにする](archives/todo/TODO-056.%20JavaScript%20の退行を捕まえられるようにする.md)

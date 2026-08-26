@@ -154,6 +154,32 @@ textarea {
     padding-left: calc(var(--my-gutter-x) * .5);
 }
 
+/*
+ * 行の中身を、高さに関係なく上下の中央で揃える (TODO-067)。
+ *
+ * ``.row`` は Grid で、列は ``align-self: stretch`` で行の高さいっぱいに
+ * なる。その中身をインラインのまま ``vertical-align`` で揃えると、高さの
+ * 違う要素 (入力欄 25.5px・select 21px・アイコン 20px) は中心で揃わない。
+ * 列を flex にすれば、高さに関係なく中央で揃う。
+ *
+ * 入力欄とアイコンは ``form`` の中にあり、列から見ると孫なので、列だけで
+ * なく ``form`` (と、アイコンを包む ``label``) にも同じ指定が要る。
+ * flex では要素の間の空白が消えるので、``gap`` で間隔を戻す。
+ */
+.my-row-middle > *,
+.my-row-middle form,
+.my-row-middle label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+}
+
+.my-row-middle > .text-end,
+.my-row-middle > .text-end form {
+    justify-content: flex-end;
+}
+
 /* 数字なしの ``col`` は 12 列ぶん。1 行に 1 つだけ置いて使っている。
    使っていない番号もあるが、途中が抜けているほうが分かりにくいので
    12 列ぶんそろえてある */
@@ -262,16 +288,6 @@ textarea {
 
 .fw-bold {
     font-weight: 700;
-}
-
-/* 縦位置。inline 要素 (アイコン・入力欄) に付けるもので、
-   Grid の ``align-self`` とは別物 */
-.align-middle {
-    vertical-align: middle;
-}
-
-.align-bottom {
-    vertical-align: bottom;
 }
 
 /* 隠す指定。後ろの ``my-*`` に負けると困るので、ここだけ
@@ -449,6 +465,23 @@ textarea {
 @keyframes my-icon-spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
+}
+
+/*
+ * 縦位置。inline 要素 (アイコン・入力欄) に付けるもので、Grid の
+ * ``align-self`` とは別物。
+ *
+ * ``.my-icon`` の ``vertical-align: -0.125em`` と詳細度が同じなので、
+ * ユーティリティの節に置くと後ろの ``.my-icon`` に負けて、アイコンに
+ * 付けても効かない。それで、他のユーティリティから離してここに
+ * 置いてある (TODO-067)。
+ */
+.align-middle {
+    vertical-align: middle;
+}
+
+.align-bottom {
+    vertical-align: bottom;
 }
 
 /* 横ゲージ (TODO-058)
