@@ -552,7 +552,7 @@ class TestWeekBar(WebTestBase):
         return m.group(0)
 
     def gage_label(self, body):
-        """針の上のラベル（週の差）を返す。無ければ ``None``。"""
+        """針の上のラベル（今週からの差）を返す。無ければ ``None``。"""
         m = re.search(r'id="gage_r_label"[^>]*>(.*?)</div>', body, re.DOTALL)
         if m is None:
             return None
@@ -577,10 +577,21 @@ class TestWeekBar(WebTestBase):
         assert self.gage_label(body) == "\u00b10"
 
     def test_week_diff_is_displayed(self):
-        """今週から離れていれば、その週数を出す。"""
+        """今週から離れていれば、その差を出す。"""
         today = datetime.date.today()
 
         for weeks, expected in [(3, "+3w"), (-1, "-1w")]:
+            date = today + datetime.timedelta(weeks * 7)
+
+            body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
+
+            assert self.gage_label(body) == expected
+
+    def test_unit_switches_to_months_and_years(self):
+        """1 ヶ月からは月数、1 年からは年数（TODO-072）。"""
+        today = datetime.date.today()
+
+        for weeks, expected in [(5, "+1.1m"), (-5, "-1.1m"), (53, "+1.0y")]:
             date = today + datetime.timedelta(weeks * 7)
 
             body = self.get_body(URL_PREFIX + "/", date=date.isoformat())

@@ -43,7 +43,7 @@ from test_web import (
     week_panel,
 )
 
-from ytsched.main_handler import MainHandler, calc_week_diff
+from ytsched.main_handler import MainHandler, calc_gage_label
 from ytsched.ytsched import SchedData
 
 CONF_FNAME = "conf.json"
@@ -58,24 +58,51 @@ def test_cookie_todo_days_is_removed():
     assert not hasattr(MainHandler, "COOKIE_TODO_DAYS")
 
 
-def test_calc_week_diff():
-    """週の差は、どちらも月曜へ丸めてから数える（TODO-055）。
+def test_calc_gage_label_rounds_to_monday():
+    """差は、どちらも月曜へ丸めてから数える（TODO-055）。
 
     ``2021-03-01`` は月曜、``2021-03-07`` は日曜で、同じ週。
     """
     monday = datetime.date(2021, 3, 1)
     sunday = datetime.date(2021, 3, 7)
 
-    # 同じ週なら、週の中のどの日どうしでも 0
-    assert calc_week_diff(monday, monday) == 0
-    assert calc_week_diff(sunday, monday) == 0
-    assert calc_week_diff(monday, sunday) == 0
+    # 同じ週なら、週の中のどの日どうしでも ±0
+    assert calc_gage_label(monday, monday) == "\u00b10"
+    assert calc_gage_label(sunday, monday) == "\u00b10"
+    assert calc_gage_label(monday, sunday) == "\u00b10"
 
     # 日曜から次の月曜は 1 日しか離れていないが、週としては +1
-    assert calc_week_diff(sunday + datetime.timedelta(1), sunday) == 1
+    assert calc_gage_label(sunday + datetime.timedelta(1), sunday) == "+1w"
 
-    assert calc_week_diff(monday + datetime.timedelta(21), monday) == 3
-    assert calc_week_diff(monday - datetime.timedelta(7), monday) == -1
+    assert calc_gage_label(monday + datetime.timedelta(21), monday) == "+3w"
+    assert calc_gage_label(monday - datetime.timedelta(7), monday) == "-1w"
+
+
+def test_calc_gage_label_switches_unit():
+    """1 ヶ月からは月数、1 年からは年数（TODO-072）。
+
+    1 ヶ月は 365.25 / 12 = 30.4375 日なので、4 週 (28 日) はまだ週数、
+    5 週 (35 日) から月数になる。1 年は 365.25 日なので、52 週
+    (364 日) はまだ月数、53 週 (371 日) から年数になる。
+    """
+    monday = datetime.date(2021, 3, 1)
+
+    def label(weeks):
+        return calc_gage_label(monday + datetime.timedelta(weeks * 7), monday)
+
+    # 1 ヶ月の手前までは週数
+    assert label(4) == "+4w"
+    assert label(-4) == "-4w"
+
+    # 1 ヶ月からは月数。小数点以下 1 桁
+    assert label(5) == "+1.1m"
+    assert label(-5) == "-1.1m"
+    assert label(52) == "+12.0m"
+
+    # 1 年からは年数
+    assert label(53) == "+1.0y"
+    assert label(-53) == "-1.0y"
+    assert label(53 * 2) == "+2.0y"
 
 
 #

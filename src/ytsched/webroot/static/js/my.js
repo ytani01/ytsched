@@ -40,6 +40,7 @@ window.addEventListener("pageshow", (event) => {
 
 // 横ゲージ (TODO-058)。``main_handler.py`` の ``DAYS_YEAR`` と同じ値
 const DAYS_YEAR = 365.25;
+const DAYS_MONTH = DAYS_YEAR / 12;
 const DAYS_GAGE_MAX = DAYS_YEAR * 30;
 // 中心の近くをどれだけ詰めるか (TODO-059)。``main_handler.py`` の
 // ``DAYS_GAGE_K`` と同じ値
@@ -83,26 +84,41 @@ const mondayOf = (date_str) => {
 };
 
 /**
- * 今週からの週の差を、針に出す文字にする (TODO-066)。
- * 今週のときは ``±0``。
+ * 今週からの差を、針に出す文字にする (TODO-066)。今週のときは ``±0``。
  *
- * @param {number} weeks
+ * 単位は差の大きさで切り替える (TODO-072)。1 ヶ月に届かないうちは
+ * 週数 (``+3w``)、1 ヶ月から 1 年までは月数 (``+1.2m``)、1 年からは
+ * 年数 (``+1.2y``)。月と年は小数点以下 1 桁。
+ *
+ * Python 側 (``main_handler.py`` の ``calc_gage_label()``) と同じ
+ * 区切り・同じ書き方にしてある。サーバが埋めるのは読み込んだ直後の
+ * 一度だけで、あとはここが書き換えるため、食い違うと針が動く前後で
+ * 文字が変わって見える。
+ *
+ * @param {number} days   今週の月曜からの日数 (7 の倍数)
  *
  * @return {String} label
  */
-const weekDiffLabel = (weeks) => {
-    if (weeks === 0) {
+const gageDiffLabel = (days) => {
+    if (days === 0) {
         return "\u00b10";
     }
-    if (weeks > 0) {
-        return `+${weeks}w`;
+
+    const sign = days > 0 ? "+" : "-";
+    const abs_days = Math.abs(days);
+
+    if (abs_days < DAYS_MONTH) {
+        return `${sign}${abs_days / 7}w`;
     }
-    return `${weeks}w`;
+    if (abs_days < DAYS_YEAR) {
+        return `${sign}${(abs_days / DAYS_MONTH).toFixed(1)}m`;
+    }
+    return `${sign}${(abs_days / DAYS_YEAR).toFixed(1)}y`;
 };
 
 /**
  * 針の位置 (``left``) を計算してセットする。``transition`` は
- * 掛けたまま (TODO-049)。針の上のラベル (今週からの週の差) も、
+ * 掛けたまま (TODO-049)。針の上のラベル (今週からの差) も、
  * ここで書き換える。位置は入れ物 (``#gage_r``) が持っているので、
  * ラベルは黙って一緒に動く (TODO-066)。
  *
@@ -119,7 +135,7 @@ const setGagePosition = (date_str) => {
     // どちらも月曜なので、7 で割り切れる
     const elLabel = document.getElementById("gage_r_label");
     if (elLabel) {
-        elLabel.textContent = weekDiffLabel(Math.round(top_rel_days / 7));
+        elLabel.textContent = gageDiffLabel(Math.round(top_rel_days / 7) * 7);
     }
 };
 

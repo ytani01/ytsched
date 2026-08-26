@@ -50,11 +50,22 @@ def days2x_percent(days: float) -> float:
     return x_percent
 
 
-def calc_week_diff(date: datetime.date, today: datetime.date) -> int:
-    """``date`` の週が ``today`` の週から何週離れているか (TODO-055)。
+DAYS_YEAR = 31 + 28.25 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
+DAYS_MONTH = DAYS_YEAR / 12
+DAYS_GAGE_MAX = DAYS_YEAR * 30
 
-    どちらも月曜へ丸めてから差を取る。同じ週なら 0、翌週なら +1、
-    前の週なら -1。
+
+def calc_gage_label(date: datetime.date, today: datetime.date) -> str:
+    """針の上に出す、今週からの差の文字 (TODO-072)。
+
+    どちらも月曜へ丸めてから差を取る。同じ週なら ``±0``。1 ヶ月に
+    届かないうちは週数 (``+3w``)、1 ヶ月から 1 年までは月数
+    (``+1.2m``)、1 年からは年数 (``+1.2y``)。月と年は小数点以下 1 桁。
+
+    JavaScript 側 (``my.js`` の ``gageDiffLabel()``) と同じ区切り・
+    同じ書き方にしてある。読み込んだ直後の一度だけここが埋め、
+    あとは JavaScript が書き換えるため、食い違うと針が動く前後で
+    文字が変わって見える。
 
     Parameters
     ----------
@@ -64,17 +75,21 @@ def calc_week_diff(date: datetime.date, today: datetime.date) -> int:
 
     Returns
     -------
-    week_diff: int
+    label: str
 
     """
     monday = date - datetime.timedelta(date.weekday())
     this_monday = today - datetime.timedelta(today.weekday())
-    return (monday - this_monday).days // 7
+    days = (monday - this_monday).days
 
+    if days == 0:
+        return "\u00b10"
+    if abs(days) < DAYS_MONTH:
+        return f"{days // 7:+d}w"
+    if abs(days) < DAYS_YEAR:
+        return f"{days / DAYS_MONTH:+.1f}m"
+    return f"{days / DAYS_YEAR:+.1f}y"
 
-DAYS_YEAR = 31 + 28.25 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
-DAYS_MONTH = DAYS_YEAR / 12
-DAYS_GAGE_MAX = DAYS_YEAR * 30
 
 # 中心の近くをどれだけ詰めるか (TODO-059)。大きいほど詰まる。10 のとき
 # ``-1w`` と ``+1w`` の間隔が 7.6%。**これより大きくすると、幅 360px で
@@ -395,7 +410,7 @@ class MainHandler(HandlerBase):
             version=self._version,
             url_prefix=self._url_prefix,
             today=today,
-            week_diff=calc_week_diff(date, today),
+            gage_label=calc_gage_label(date, today),
             delta_day1=self.DELTA_DAY1,
             date=date,
             date_from=date_from,
@@ -637,8 +652,7 @@ class MainHandler(HandlerBase):
 
         modified_date, modified_sde_id = self.exec_update(cmd)
         self.__log.debug(
-            f"modified_date={modified_date},"
-            f" modified_sde_id={modified_sde_id}"
+            f"modified_date={modified_date}, modified_sde_id={modified_sde_id}"
         )
 
         if cmd in ["del"]:
