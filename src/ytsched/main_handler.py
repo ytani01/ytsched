@@ -22,29 +22,31 @@ from .mylog import getLogger
 from .ytsched import SchedDataEnt, normalize
 
 
-def days2y_offset(days: float) -> int:
-    """
+def days2x_percent(days: float) -> float:
+    """今週の中心からの左右のずれを、ゲージの幅に対する割合 (%) で返す
+
     Parameters
     ----------
     days: float
 
     Returns
     -------
-    y_offset: int
+    x_percent: float
 
     """
     dd = 0.6
-    a = 70
-    b = 0
 
     if days == 0:
-        return 0
+        return 0.0
 
-    y_offset = round(math.log10(float(abs(days)) + dd) * a + b)
+    x_percent = (
+        50.0 * math.log10(abs(days) + dd) / math.log10(DAYS_GAGE_MAX + dd)
+    )
+    x_percent = min(x_percent, 50.0)
 
     if days < 0:
-        return -y_offset
-    return y_offset
+        return -x_percent
+    return x_percent
 
 
 def calc_week_diff(date: datetime.date, today: datetime.date) -> int:
@@ -71,24 +73,17 @@ def calc_week_diff(date: datetime.date, today: datetime.date) -> int:
 
 DAYS_YEAR = 31 + 28.25 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
 DAYS_MONTH = DAYS_YEAR / 12
+DAYS_GAGE_MAX = DAYS_YEAR * 30
 
 GAGE = [
-    {"label": "-30y", "y_offset": days2y_offset(-DAYS_YEAR * 30)},
-    {"label": "-10y", "y_offset": days2y_offset(-DAYS_YEAR * 10)},
-    {"label": "-3y", "y_offset": days2y_offset(-DAYS_YEAR * 3)},
-    {"label": "-1y", "y_offset": days2y_offset(-DAYS_YEAR * 1)},
-    {"label": "-3m", "y_offset": days2y_offset(-DAYS_MONTH * 3)},
-    {"label": "-1m", "y_offset": days2y_offset(-DAYS_MONTH * 1)},
-    {"label": "-1w", "y_offset": days2y_offset(-7)},
-    {"label": "-3d", "y_offset": days2y_offset(-3)},
-    {"label": "+3d", "y_offset": days2y_offset(+3)},
-    {"label": "+1w", "y_offset": days2y_offset(+7)},
-    {"label": "+1m", "y_offset": days2y_offset(+DAYS_MONTH * 1)},
-    {"label": "+3m", "y_offset": days2y_offset(+DAYS_MONTH * 3)},
-    {"label": "+1y", "y_offset": days2y_offset(+DAYS_YEAR * 1)},
-    {"label": "+3y", "y_offset": days2y_offset(+DAYS_YEAR * 3)},
-    {"label": "+10y", "y_offset": days2y_offset(+DAYS_YEAR * 10)},
-    {"label": "+30y", "y_offset": days2y_offset(+DAYS_YEAR * 30)},
+    {"label": "-30y", "x_percent": days2x_percent(-DAYS_YEAR * 30)},
+    {"label": "-1y", "x_percent": days2x_percent(-DAYS_YEAR)},
+    {"label": "-1m", "x_percent": days2x_percent(-DAYS_MONTH)},
+    {"label": "-1w", "x_percent": days2x_percent(-7)},
+    {"label": "+1w", "x_percent": days2x_percent(+7)},
+    {"label": "+1m", "x_percent": days2x_percent(+DAYS_MONTH)},
+    {"label": "+1y", "x_percent": days2x_percent(+DAYS_YEAR)},
+    {"label": "+30y", "x_percent": days2x_percent(+DAYS_YEAR * 30)},
 ]
 
 

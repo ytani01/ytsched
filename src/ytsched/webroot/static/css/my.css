@@ -340,27 +340,6 @@ textarea {
     bottom: 42px;
 }
 
-.my-osd-base {
-    position: fixed;
-    z-index: 10;
-}
-
-/* 目盛りのラベル (TODO-043 で針と基準線が SVG になり、文字で描いて
-   いるのはラベルだけになった) */
-.my-gage {
-    vertical-align: middle;
-    font-size: large;
-    font-weight: normal;
-    line-height: 17px;
-    color: #000;
-    /* background-color: #FFF; */
-    padding: 0px;
-}
-.my-gage-text {
-    display: inline-block;
-    transform: translate(0%, 50%);
-}
-
 /*
  * 幅は ``col-11`` (Grid の 11 列ぶん) に任せる。``width: auto`` に
  * すると中身の長さまで伸びて ``row`` が折り返し、閉じているときに
@@ -472,25 +451,52 @@ textarea {
     to   { transform: rotate(360deg); }
 }
 
-/* ゲージ (bottom と display は JavaScript が書き換える)
-
-   針と基準線は SVG で描いている (TODO-043)。大きさは、以前使っていた
-   Font Awesome のアイコンの字面に合わせた:
-   fa-caret-right が 194x298 units (fa-2x = 36px で 13.6x21.0px)、
-   fa-grip-lines が 448x192 units (fa-xs = 13.5px で 11.8x5.1px)。
-   translateY(50%) で、JavaScript が渡す bottom が図形の中心に来る */
-.my-gage-r {
-    left: 0px;
-    width: 14px;
+/* 横ゲージ (TODO-058)
+   中央 (50%) が今週で、両端が ±30y。位置を割合で持つので、
+   端末の幅が変わっても目盛りの意味は変わらない。
+   左右の 12px は、両端のラベル (±30y) が半分はみ出すぶんの逃げ */
+.my-gage-bar {
+    position: relative;
     height: 21px;
-    fill: #000;
-    opacity: 0.2;
-    transform: translateY(50%);
+    margin: 0 12px;
+}
+
+/* 目盛りの軸 */
+.my-gage-axis {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 7px;
+    height: 1px;
+    background-color: #FFF;
+    opacity: 0.5;
+}
+
+/* 今週のしるし (中央に固定) */
+.my-gage-base {
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    width: 2px;
+    height: 9px;
+    background-color: #FFF;
+    transform: translateX(-50%);
+}
+
+/* 針 (left は JavaScript が書き換える) */
+.my-gage-r {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 12px;
+    height: 8px;
+    fill: #FFF;
+    transform: translateX(-50%);
     /* 週を切り替えたときに、針が動くのが見えるようにする (TODO-049)。
        ページを読み直した直後は、前の週の位置へ ``.my-gage-r-no-transition``
        で一度置いてから、この transition を効かせて今の週へ動かす
        (JavaScript 側は ``dispGage()``) */
-    transition: bottom 0.3s ease-out;
+    transition: left 0.3s ease-out;
 }
 
 /* ``.my-gage-r`` と同じ詳細度 (クラス 1 つ) だと、ソース順でしか
@@ -501,17 +507,14 @@ textarea {
     transition: none;
 }
 
-.my-gage-base {
-    left: 3px;
-    width: 12px;
-    height: 5px;
-    fill: #000;
-    transform: translateY(50%);
-}
-
+/* 目盛りのラベル (left はテンプレートが埋める) */
 .my-gage-label {
-    left: 1px;
+    position: absolute;
+    top: 9px;
     font-size: x-small;
+    line-height: 12px;
+    white-space: nowrap;
+    transform: translateX(-50%);
 }
 
 /* 日付ごとのブロック (``.border`` より後なので、こちらが勝つ) */

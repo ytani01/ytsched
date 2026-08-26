@@ -526,8 +526,12 @@ class TestWeekBar(WebTestBase):
     """
 
     def week_bar(self, body):
-        """帯の中身を返す。帯が無ければ ``None``。"""
-        m = re.search(r'id="week_bar".*?<!-- container -->', body, re.DOTALL)
+        """帯の中身を返す。帯が無ければ ``None``。
+
+        横ゲージ（TODO-058）のラベルにも ``+1w`` などと同じ文字列が
+        あるので、``.row``（週の範囲・週の差）までで切る。
+        """
+        m = re.search(r'id="week_bar".*?</div><!-- row -->', body, re.DOTALL)
         if m is None:
             return None
         return m.group(0)

@@ -57,29 +57,8 @@
      
      const body_h = document.body.clientHeight;
      const win_h = document.documentElement.clientHeight;
-     const centerY = win_h / 2 + 40;
-     console.log(`centerY=${centerY}`);
-
-     let gage = [
-       {% for i, d in enumerate(gage) %}
-       {
-         id: 'gage_r{{ i }}',
-         label: '{{ d['label'] }}',
-         yOffset: {{ d['y_offset'] }}
-       },
-       {% end %}
-     ];
-
-     for (let g of gage) {
-       // console.log(`g={${g.id},${g.yOffset}},${centerY - g.yOffset}`);
-       const el = document.getElementById(g.id);
-       el.style.bottom = `${centerY - g.yOffset}px`;
-     }
-
-     const elGageRBase = document.getElementById("gage_r_base");
 
      elGageR0 = document.getElementById("gage_r"); // declared in my.js
-     elGageRBase.style.bottom = `${centerY}px`;
 
      if ( body_h < win_h ) {
        console.log(`body_h=${body_h} < win_h=${win_h}`);
@@ -127,8 +106,7 @@
    window.addEventListener('touchcancel', touchCancelHdr, {passive: true});
   </script>
 </header>
-<main id="main" style="background-color:#FFF; visibility: hidden;
-          padding-left:22px">
+<main id="main" style="background-color:#FFF; visibility: hidden;">
   <div id="loadingSpinner" class="my-spinner">
     <svg class="my-icon my-icon-9x my-icon-spin">
       <use href="{{ static_url('icons/icons.svg') }}#spinner"></use>
@@ -152,6 +130,19 @@
         {% end %}
       </div>
     </div><!-- row -->
+
+    <!-- 横ゲージ (TODO-058) -->
+    <div class="my-gage-bar">
+      <div class="my-gage-axis"></div>
+      <div class="my-gage-base"></div>
+      <svg id="gage_r" class="my-gage-r" viewBox="0 0 12 8">
+        <polygon points="0,0 12,0 6,8" />
+      </svg>
+      {% for d in gage %}
+      <div class="my-gage-label"
+        style="left:{{ '%.2f' % (50 + d['x_percent']) }}%">{{ d['label'] }}</div>
+      {% end %}
+    </div>
   </div><!-- container -->
   {% end %}
 
@@ -184,29 +175,6 @@
       type="hidden" value="{{ date }}" />
     <input id="search_n" name="search_n"
       type="hidden" value="{{ search_n }}" />
-
-    <!-- gages
-         針と基準線は図形なので SVG で描く。Font Awesome のアイコン
-         (fa-caret-right / fa-grip-lines) で描いていたときは、フォント側の
-         既定値が変わるたびに位置がずれた (TODO-042・TODO-043)。
-         大きさは、そのときの字面の実寸に合わせてある -->
-    <svg id="gage_r" class="my-osd-base my-gage-r"
-      viewBox="0 0 14 21">
-      <polygon points="0,0 14,10.5 0,21" />
-    </svg>
-
-    <svg id="gage_r_base" class="my-osd-base my-gage-base"
-      viewBox="0 0 12 5">
-      <rect x="0" y="0" width="12" height="1.7" rx="0.85" />
-      <rect x="0" y="3.3" width="12" height="1.7" rx="0.85" />
-    </svg>
-
-    {% for i, d in enumerate(gage) %}
-    <div id="gage_r{{ i }}"
-      class="my-osd-base my-gage my-gage-text my-gage-label">
-      <span>{{ d['label'] }}</span>
-    </div>
-    {% end %}
 
     {% if search_mode %}
     {% set date_from2 = str(date_from).replace('-','/') %}

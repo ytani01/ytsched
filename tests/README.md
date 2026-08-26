@@ -15,7 +15,7 @@
 - `test_ytsched.py` — データモデル（`SchedDataEnt` /
   `SchedDataFile` / `SchedData`）のテスト
 - `test_handler.py` — `HandlerBase`（`conf.json` の読み書き）と
-  `days2y_offset` のテスト
+  `days2x_percent` のテスト
 - `test_main_handler.py` — `MainHandler` の個々のメソッドのテスト
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /
   `EditHandler` へ実際にリクエストを送るテスト

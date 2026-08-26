@@ -17,26 +17,35 @@ const loadingSpinner = (on) => {
     }
 };
 
+// 横ゲージ (TODO-058)。``main_handler.py`` の ``DAYS_YEAR`` と同じ値
+const DAYS_YEAR = 365.25;
+const DAYS_GAGE_MAX = DAYS_YEAR * 30;
+
 /**
+ * 今週の中心からの左右のずれを、ゲージの幅に対する割合 (%) で返す。
+ * Python 側 (``main_handler.py`` の ``days2x_percent()``) と同じ式・
+ * 同じ頭打ち (TODO-058)。
+ *
  * @param {number} days
  *
- * @return {number} yOffset
+ * @return {number} xPercent
  */
-const days2yOffset = (days) => {
+const days2xPercent = (days) => {
     const dd = 0.6;
-    const a = 70;
-    const b = 0;
 
     // console.log(`days=${days}`);
     if (days == 0) {
         return 0;
     }
-    
-    const yOffset = Math.round(Math.log10(Math.abs(days) + dd) * a + b);
+
+    let xPercent = 50.0 * Math.log10(Math.abs(days) + dd)
+          / Math.log10(DAYS_GAGE_MAX + dd);
+    xPercent = Math.min(xPercent, 50.0);
+
     if (days < 0) {
-        return -yOffset;
+        return -xPercent;
     }
-    return yOffset;
+    return xPercent;
 };
 
 /**
@@ -56,7 +65,7 @@ const mondayOf = (date_str) => {
 };
 
 /**
- * 針の位置 (``bottom``) を計算してセットする。``transition`` は
+ * 針の位置 (``left``) を計算してセットする。``transition`` は
  * 掛けたまま (TODO-049)。
  *
  * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい。
@@ -67,11 +76,7 @@ const setGagePosition = (date_str) => {
     const this_monday = mondayOf(getLocaltimeDateString(new Date()));
     const top_rel_days = calcDays(this_monday, monday);
 
-    const centerY = document.documentElement.clientHeight / 2 + 40;
-    const yOffset = days2yOffset(top_rel_days);
-    const gageBottom = centerY - yOffset;
-
-    elGageR0.style.bottom = `${gageBottom}px`;
+    elGageR0.style.left = `${50 + days2xPercent(top_rel_days)}%`;
 };
 
 // 直前に見ていた週の月曜 (TODO-049)。ページを読み直したあと、
@@ -137,6 +142,11 @@ const placeGageWithoutTransition = (date_str) => {
  * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
  */
 const dispGage = (date_str) => {
+    // 検索モードでは週バーごと帯が出ないので、gage_r が無い (TODO-058)
+    if ( ! elGageR0 ) {
+        return;
+    }
+
     if ( ! date_str ) {
         elGageR0.style.display = "none";
         return;

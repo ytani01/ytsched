@@ -1,7 +1,7 @@
 #
 # (c) 2026 Yoichi Tanibayashi
 #
-"""HandlerBase（conf.json の読み書き）と days2y_offset のテスト"""
+"""HandlerBase（conf.json の読み書き）と days2x_percent のテスト"""
 
 import json
 import os
@@ -12,7 +12,7 @@ import pytest
 from helpers import URL_PREFIX, make_app, make_handler, run_in_c_locale
 
 from ytsched.handler import HandlerBase
-from ytsched.main_handler import days2y_offset
+from ytsched.main_handler import DAYS_YEAR, days2x_percent
 
 CONF_FNAME = HandlerBase.CONF_FNAME
 
@@ -193,20 +193,33 @@ def test_conf_is_not_locale_dependent(tmp_path, datadir):
 
 
 #
-# days2y_offset()
+# days2x_percent()
 #
-def test_days2y_offset_zero():
-    assert days2y_offset(0) == 0
+def test_days2x_percent_zero():
+    assert days2x_percent(0) == 0.0
 
 
-def test_days2y_offset_sign():
-    assert days2y_offset(7) == 62
-    assert days2y_offset(-7) == -62
+def test_days2x_percent_sign():
+    assert days2x_percent(7) == pytest.approx(-days2x_percent(-7))
+    assert days2x_percent(7) > 0
+    assert days2x_percent(-7) < 0
 
 
-def test_days2y_offset_is_monotonic():
-    values = [days2y_offset(d) for d in [1, 3, 7, 30, 365]]
+def test_days2x_percent_is_monotonic():
+    values = [days2x_percent(d) for d in [1, 3, 7, 30, 365]]
     assert values == sorted(values)
+
+
+def test_days2x_percent_clamps_at_30y():
+    """±30y がゲージの端 (50) になる。"""
+    assert days2x_percent(DAYS_YEAR * 30) == pytest.approx(50.0)
+    assert days2x_percent(-DAYS_YEAR * 30) == pytest.approx(-50.0)
+
+
+def test_days2x_percent_stays_clamped_beyond_30y():
+    """30y より先の日付でも、端 (50) で頭打ちのまま。"""
+    assert days2x_percent(DAYS_YEAR * 60) == pytest.approx(50.0)
+    assert days2x_percent(-DAYS_YEAR * 60) == pytest.approx(-50.0)
 
 
 #
