@@ -479,6 +479,14 @@ textarea {
     position: relative;
     height: 33px;
     margin: 0 16px;
+    cursor: pointer;
+}
+
+/* タップ・クリックできることが分かるように (TODO-074)。
+   ボタンと同じ黄色にすると帯が一色に塗り潰され、押している間だけ
+   目盛りと針が読めなくなるので、薄い半透明の白にしてある */
+.my-gage-bar:active {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* 目盛りの軸 */

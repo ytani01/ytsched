@@ -138,8 +138,11 @@
        合わず、期間は下の「検索期間・件数」が出しているため -->
   {% if not search_mode %}
   <div id="week_bar" class="container-fluid p-1 fixed-top my-bar">
-    <!-- 横ゲージ (TODO-058) -->
-    <div class="my-gage-bar">
+    <!-- 横ゲージ (TODO-058)。タップ・クリックしたら、その位置が指す
+         週の月曜へ移る (TODO-074)。日付セルなどと同じ onmousedown で
+         登録し、mouseDownHdr()/mouseUpHdr() (my.js) にドラッグと
+         クリックの区別を任せる -->
+    <div class="my-gage-bar" onmousedown="gageBarClickHdr(event);">
       <div class="my-gage-axis"></div>
       <div class="my-gage-base"></div>
       <!-- 針と、今週からの差 (TODO-066)。

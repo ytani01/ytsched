@@ -68,6 +68,28 @@ const days2xPercent = (days) => {
 };
 
 /**
+ * ``days2xPercent()`` の逆算 (TODO-074)。ゲージの帯をタップしたときに、
+ * その位置 (中央からの割合 %) から、今週の月曜との日数の差を出すために使う。
+ * 同じ式・同じ定数 (``DAYS_GAGE_K`` / ``DAYS_GAGE_MAX``) の逆関数で、
+ * 頭打ちは無い (``xPercent`` は呼び出し側で -50〜+50 に収まっている前提)。
+ *
+ * @param {number} xPercent
+ *
+ * @return {number} days
+ */
+const xPercent2days = (xPercent) => {
+    const abs_xPercent = Math.abs(xPercent);
+    const exponent = abs_xPercent / 50.0
+          * Math.log10(1 + DAYS_GAGE_MAX / DAYS_GAGE_K);
+    const abs_days = DAYS_GAGE_K * (Math.pow(10, exponent) - 1);
+
+    if (xPercent < 0) {
+        return -abs_days;
+    }
+    return abs_days;
+};
+
+/**
  * ``date_str`` を含む週の月曜 (Localtime) を返す (TODO-049)。
  *
  * @param {String} date_str   'YYYY-mm-dd' or 'YYYY/mm/dd'
@@ -235,6 +257,47 @@ const dispGage = (date_str) => {
     // 呼ぶと、針の ``left`` が CSS の初期値 (``left: 50%``) のままな
     // ので、中央から目的地まで transition が掛かる (TODO-060)
     placeGageWithoutTransition(monday_str);
+};
+
+/**
+ * ゲージの帯 (``.my-gage-bar``) をタップ・クリックしたら、その位置が
+ * 指す週の月曜へ移る (TODO-074)。ドラッグでの追従は無く、タップした
+ * 瞬間の位置だけを見る。範囲の頭打ちも無い (逆算した先へそのまま飛ぶ)。
+ *
+ * ``.my-gage-bar`` に ``onmousedown`` 属性で登録してある。ここが
+ * 呼ばれるまでの経路は、既存のボタン (``moveToMonday()`` など) と同じ
+ * (``mouseDownHdr()`` / ``mouseUpHdr()`` を参照)。マウスは、押した位置
+ * から動かずに離すとクリックと見なされ、``mouseUpHdr()`` がここへ
+ * ``mouseup`` の event を渡して呼ぶ。動いていない前提なので、
+ * ``event.clientX`` は押したときと同じ位置を指す。タッチも、動きが
+ * 無ければブラウザが作る合成 ``mousedown``/``mouseup`` がそのまま
+ * 素通りして同じ経路を通る (``mouseDownHdr()`` の
+ * ``MOUSE_AFTER_TOUCH_MSEC`` を参照)。どちらの経路でも
+ * ``target``/``currentTarget`` が指す要素は食い違うことがあるので、
+ * それには頼らず ``.my-gage-bar`` 自体を取り直す (検索モードでは
+ * 週バーごと出ないので見つからない。TODO-058 と同じ前提)。
+ *
+ * 帯の左端を 0%・右端を 100% として、中央 (50%) からの割合を
+ * ``xPercent2days()`` に渡し、今週の月曜からの日数を出す。
+ *
+ * @param {Event} event
+ */
+const gageBarClickHdr = (event) => {
+    const el_bar = document.querySelector(".my-gage-bar");
+    if ( ! el_bar ) {
+        return;
+    }
+
+    const rect = el_bar.getBoundingClientRect();
+    const x_percent = (event.clientX - rect.left) / rect.width * 100 - 50;
+    const days = xPercent2days(x_percent);
+
+    const this_monday = mondayOf(getLocaltimeDateString(new Date()));
+    const target_date = shiftDays(this_monday, Math.round(days));
+    const monday = mondayOf(getLocaltimeDateString(target_date));
+
+    // パスは onloadHdr() と同じく location.pathname でよい (TODO-074)
+    scrollToDate(location.pathname, getLocaltimeDateString(monday));
 };
 
 /**

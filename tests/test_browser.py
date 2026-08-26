@@ -399,3 +399,50 @@ def test_gage_label_is_plus_minus_zero_in_this_week(page, server):
         " === '\\u00b10'",
         timeout=10000,
     )
+
+
+def test_x_percent2days_inverts_days2x_percent(page, server):
+    """``xPercent2days()`` が ``days2xPercent()`` の逆になっている
+    （TODO-074）。往復させて元の日数に戻ることを見る。
+    """
+    today = datetime.date.today()
+    _open(page, server, today.strftime("%Y-%m-%d"))
+
+    for days in (0, 1, 7, 30, 100, 365, 3650, -1, -7, -100, -3650):
+        got = page.evaluate(
+            "(days) => xPercent2days(days2xPercent(days))", days
+        )
+        assert got == pytest.approx(days, abs=1e-6), f"days={days}"
+
+
+def test_gage_bar_click_moves_to_the_tapped_week(page, server):
+    """ゲージの帯をクリックすると、その位置に応じた週へ移る（TODO-074）。
+
+    3 週間先 (21 日) が指す位置を ``days2xPercent()`` で計算し、その
+    座標をそのままクリックする。21 は 7 の倍数なので、逆算した先は
+    ちょうど月曜になる。
+    """
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    target_days = 21
+    x_percent = page.evaluate("(d) => days2xPercent(d)", target_days)
+
+    box = page.locator(".my-gage-bar").bounding_box()
+    assert box is not None
+    click_x = box["x"] + box["width"] * (50 + x_percent) / 100
+    click_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(click_x, click_y)
+    page.mouse.down()
+    page.mouse.up()
+
+    expected = monday + datetime.timedelta(days=target_days)
+    page.wait_for_function(
+        "(monday) => document.querySelector('.my-week-cur')"
+        ".dataset.monday === monday",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
