@@ -1971,7 +1971,7 @@ class TestRedirect(WebTestBase):
         assert res.headers["Location"] == f"{URL_PREFIX}/?date={DATE1_STR}"
 
     def test_add_redirects_to_list(self):
-        """追加したあとは一覧へ。変更した行の ``sde_id`` が付く。"""
+        """追加したあとは一覧へ。"""
         res = self.post_no_redirect(
             URL_PREFIX + "/",
             cmd="add",
@@ -1985,7 +1985,6 @@ class TestRedirect(WebTestBase):
         location = res.headers["Location"]
         assert location.startswith(f"{URL_PREFIX}/?")
         assert f"date={DATE1_STR}" in location
-        assert "modified_sde_id=" in location
 
     def test_update_redirects_to_edit(self):
         """更新したあとは編集画面へ。留まる形は今までと同じ。"""
@@ -2039,15 +2038,6 @@ class TestRedirect(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
         assert f'value="{DATE1_STR}"' in body
-
-    def test_modified_sde_id_from_query(self):
-        """``modified_sde_id`` はクエリから受け取る。"""
-        sde_id = self.add_sde()
-
-        with mock.patch.object(MainHandler, "render") as render:
-            self.fetch(f"{URL_PREFIX}/?modified_sde_id={sde_id}")
-
-        assert render.call_args.kwargs["modified_sde_id"] == sde_id
 
     def test_edit_search_str_comes_from_conf(self):
         """編集画面の検索語は、URL ではなく ``conf.json`` から読む。

@@ -186,7 +186,7 @@ class MainHandler(HandlerBase):
         #
         # command (add/fix/update/del)
         #
-        modified_date, modified_sde_id, edit_url = self.exec_cmd(search_str)
+        modified_date, edit_url = self.exec_cmd(search_str)
 
         if edit_url:
             self.redirect(edit_url)
@@ -203,7 +203,6 @@ class MainHandler(HandlerBase):
                 self._url_prefix,
                 {
                     "date": date,
-                    "modified_sde_id": modified_sde_id,
                     "sde_align": self.get_argument("sde_align", None),
                 },
             )
@@ -250,17 +249,6 @@ class MainHandler(HandlerBase):
             convert=normalize,
         )
         self.__log.debug(f"search_str='{search_str}'")
-
-        #
-        # 変更した行の ``sde_id``
-        #
-        # 更新したあとに光らせる (``main.html`` の ``class_blink``)。
-        # TODO-050 より前は ``cmd`` の実行結果をそのまま渡していたが、
-        # ``cmd`` は ``post()`` が実行してリダイレクトするようになった
-        # ので、クエリから受け取る
-        #
-        modified_sde_id = self.get_argument("modified_sde_id", None)
-        self.__log.debug(f"modified_sde_id={modified_sde_id}")
 
         #
         # set Date
@@ -414,7 +402,6 @@ class MainHandler(HandlerBase):
             date_to=date_to,
             sched=sched,
             weeks=weeks,
-            modified_sde_id=modified_sde_id,
             todo_days_list=self.TODO_DAYS,
             todo_days_value=todo_days_value,
             filter_str=filter_str,
@@ -626,7 +613,7 @@ class MainHandler(HandlerBase):
 
     def exec_cmd(
         self, search_str: str
-    ) -> tuple[datetime.date | None, str | None, str | None]:
+    ) -> tuple[datetime.date | None, str | None]:
         """``cmd`` (add/fix/update/del) を実行する。
 
         Parameters
@@ -637,7 +624,6 @@ class MainHandler(HandlerBase):
         Returns
         -------
         modified_date: datetime.date | None
-        modified_sde_id: str | None
         edit_url: str | None
             編集画面へ戻すときの行き先 (``cmd=update``)。TODO-050 より
             前はここで編集画面を描いていたが、``post()`` がリダイレクト
@@ -647,7 +633,7 @@ class MainHandler(HandlerBase):
         cmd = self.get_argument("cmd", None)
 
         if cmd not in ["add", "fix", "update", "del"]:
-            return None, None, None
+            return None, None
 
         modified_date, modified_sde_id = self.exec_update(cmd)
         self.__log.debug(
@@ -657,7 +643,7 @@ class MainHandler(HandlerBase):
 
         if cmd in ["del"]:
             self.__log.debug(f"modified_date={modified_date}")
-            return modified_date, modified_sde_id, None
+            return modified_date, None
 
         sde = self.get_modified_sde(cmd, modified_date, modified_sde_id)
 
@@ -679,9 +665,9 @@ class MainHandler(HandlerBase):
                     "todo_flag": str(todo_flag).lower(),
                 },
             )
-            return modified_date, modified_sde_id, edit_url
+            return modified_date, edit_url
 
-        return modified_date, modified_sde_id, None
+        return modified_date, None
 
     def get_modified_sde(
         self,

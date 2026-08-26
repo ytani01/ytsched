@@ -322,21 +322,6 @@ textarea {
  * 上のユーティリティと詳細度が同じなので、こちらが勝つ。
  * =================================================================== */
 
-@keyframes blink {
-    0% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 1;
-        background-color: #8F8;
-    }
-}
-
-.blink {
-    animation: blink .5s ease-in-out alternate;
-    animation-iteration-count: 10;
-}
-
 .my-bar {
     color: white;
     background-color: #48C;
@@ -715,10 +700,6 @@ textarea {
 
 .my-wday-6 {
     background-color: #FFCCCC;
-}
-
-.my-add-btn {
-    opacity: .4;
 }
 
 .my-menu-bar {

@@ -271,12 +271,6 @@
     {% set class_date_block = 'my-date-block my-date-block-today' %}
     {% end %}
 
-    {% if sched_date == date %}
-    {% set class_blink = 'blink' %}
-    {% else %}
-    {% set class_blink = '' %}
-    {% end %}
-
     {% if search_mode %}
     {% if int(sched_date.year) != int(year) %}
     {% set year=sched_date.year %}
@@ -313,7 +307,7 @@
       {% set on_date_col = "doGet('%sedit/', %s);" % (url_prefix, obj) %}
       {% end %}
       <div class="col-1 p-0 text-center my-btn my-date-col
-                  my-wday-{{ weekday }} {{ class_blink }}"
+                  my-wday-{{ weekday }}"
         onmousedown="{{ on_date_col }}">
 
         {% set class_today = '' %}
@@ -348,16 +342,6 @@
         {% for sde in sched_ent['sde'] %}
         {% include sde.html %}
         {% end %}
-        
-        <!-- スケジュール追加ボタン -->                              
-        <div class="text-center my-btn my-add-btn"
-          onmousedown="doGet(
-                    '{{ url_prefix + 'edit/' }}',
-                    {date: '{{ sched_date }}', sde_id: ''} );">
-          <svg class="my-icon">
-            <use href="{{ static_url('icons/icons.svg') }}#plus-square"></use>
-          </svg>
-        </div>                              
       </div><!-- col -->
     </div><!-- row -->
 

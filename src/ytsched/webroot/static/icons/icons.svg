@@ -62,13 +62,6 @@
     <path d="M3.5 4h17l-6.6 7.6V18l-3.8 2v-10.4Z"/>
   </symbol>
 
-  <!-- 四角に十字: 予定を足す (main.html) -->
-  <symbol id="plus-square" viewBox="0 0 24 24">
-    <rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/>
-    <path d="M12 8v8"/>
-    <path d="M8 12h8"/>
-  </symbol>
-
   <!-- 四角にチェック: 確定 (edit.html の fix) -->
   <symbol id="check-square" viewBox="0 0 24 24">
     <rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/>

@@ -57,12 +57,7 @@
      {% end %}
 
 -->
-{% set class_blink = '' %}
-{% if sde.sde_id == modified_sde_id %}
-{% set class_blink = 'blink' %}
-{% end %}
-
-<div class="container-fluid p-0 border my-sde {{ class_bg }} {{ class_blink }}">
+<div class="container-fluid p-0 border my-sde {{ class_bg }}">
   <div class="row m-0">
     {% if not sde.is_todo() %}
     <div class="col-1 p-0 text-start my-sde-time {{ class_canceled }}">
