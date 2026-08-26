@@ -21,7 +21,7 @@ src/ytsched/
   __main__.py      # click による CLI（`ytsched` コマンド）
   webroot/
     templates/      # tornado のテンプレート（base/main/edit/sde.html）
-    static/         # CSS・JS・favicon
+    static/         # CSS・JS・アイコン・manifest.json・favicon
 ```
 
 CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形式からの
@@ -157,7 +157,7 @@ classDiagram
   条件に当たった日を古いほうへさかのぼって並べる。
   **返す HTML には、前後 1 ヶ月ぶんの週も一緒に入れる**（TODO-069）。
   ブラウザはこの中を動くかぎりページを読み直さない。何ヶ月ぶんかは
-  `conf.json` の `LoadMonths` で変えられる（既定 1、範囲 0〜6）。
+  `conf.json` の `LoadMonths` で変えられる（既定 1、範囲 0〜24）。
   **これだけは利用者が手で書く設定**で、画面から変える UI は無く、
   アプリは読むだけ（`get_load_months()`）なので手で書いた値は消えない。
   検索モードでは週の区切りに合わないので 1 週だけ。

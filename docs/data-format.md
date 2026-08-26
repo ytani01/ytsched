@@ -372,7 +372,7 @@ uv run ytsched migrate --datadir ~/ytsched/data
 ### 変換元のテストデータ
 
 移行ツールを作るには、変換元の実データか、代表的なサンプルが要る。
-現在 `~/ytsched/data` は空になっている。
+実データは個人の予定そのものなのでリポジトリに入れられない。
 
 **合成のテストデータを `tests/data/old_format/` に用意した**（TODO-019）。
 上に挙げた特徴を一通り含み、中身は架空。`tests/make_test_data.py` が
