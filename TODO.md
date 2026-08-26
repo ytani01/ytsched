@@ -1,11 +1,56 @@
 # TODO
 
-**残っている項目: 無し。**
+**残っている項目: TODO-075。**
 これまでに 74 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-075` から**（TODO-071 は欠番）。
+**番号は `TODO-076` から**（TODO-071 は欠番）。
 
 着手する項目は利用者が指定する。
+
+---
+
+## TODO-075. 文書と実装のズレを直す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | verifier + wording |
+
+- [ ] `README.md` の 4 件
+- [ ] `src/README.md` の 2 件
+- [ ] `docs/Developer.md` の 1 件
+- [ ] `docs/data-format.md` の 1 件
+
+文書を通して読み、実装と突き合わせたところ、次の 8 件が実装に
+追いついていなかった。
+
+`README.md`
+
+1. 「`<symbol>` 23 個」→ 実際は 22 個。TODO-070 でプラスのアイコンを
+   廃止したときに減った
+2. 特徴の「無限にスクロール」→ TODO-049 で 1 画面 1 週間の表示になり、
+   TODO-054・TODO-069 で週送りに変わった。無限スクロールはもう無い
+3. 「画面の端にゲージを表示」→ TODO-058 でヘッダの横向きのゲージに
+   なった。TODO-074 でタップしてその週へ飛べるようにもなっている
+4. 「テキスト形式(独自)のデータ」「10年以上前に、Perl CGIで作成した
+   データをそのまま使えるようにしている」→ TODO-018・TODO-020 で
+   JSON Lines へ移した。旧形式は `ytsched migrate` で変換して使う
+
+`src/README.md`
+
+5. `LoadMonths` の「範囲 0〜6」→ 実装は `LOAD_MONTHS_MAX = 24`
+6. モジュール一覧の `static/` の説明が「CSS・JS・favicon」→ 実際は
+   アイコン（`icons/`）と `manifest.json` も置いてある
+
+`docs/Developer.md`
+
+7. 「個別コマンドで実行する場合」の対象が `src tests` → `mise.toml` は
+   `src tests tools` を見ている
+
+`docs/data-format.md`
+
+8. 「現在 `~/ytsched/data` は空になっている」→ 実データが入っている
+
+---
 
 ## 完了済み
 
