@@ -116,12 +116,19 @@ const setGageMonday = (monday_str) => {
 /**
  * ``transition`` を効かせずに、いったんその位置へ針を置く。
  *
+ * **レイアウトを確定させるのに ``offsetHeight`` は使えない** (TODO-060)。
+ * 針は ``<svg>`` (``SVGSVGElement``) で、``offsetHeight`` は
+ * ``HTMLElement`` のものなので、読んでも ``undefined`` が返るだけで
+ * レイアウトは確定しない。位置が反映されないまま ``transition`` が
+ * 戻り、CSS の初期値 (``left: 50%``、つまり中央) から補間が始まって
+ * しまう。``getBoundingClientRect()`` は SVG でも効く。
+ *
  * @param {String} date_str   'YYYY-mm-dd'
  */
 const placeGageWithoutTransition = (date_str) => {
     elGageR0.classList.add("my-gage-r-no-transition");
     setGagePosition(date_str);
-    void elGageR0.offsetHeight; // 強制的にレイアウトを確定させる
+    elGageR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
     elGageR0.classList.remove("my-gage-r-no-transition");
 };
 
@@ -161,7 +168,10 @@ const dispGage = (date_str) => {
         return;
     }
 
-    setGagePosition(monday_str);
+    // 動かす先が無いので、そのまま置く。``setGagePosition()`` を直に
+    // 呼ぶと、針の ``left`` が CSS の初期値 (``left: 50%``) のままな
+    // ので、中央から目的地まで transition が掛かる (TODO-060)
+    placeGageWithoutTransition(monday_str);
 };
 
 /**
