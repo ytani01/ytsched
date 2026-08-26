@@ -20,6 +20,24 @@ const loadingSpinner = (on) => {
     }
 };
 
+/**
+ * bfcache (戻る/進むで復元されるキャッシュ)から戻ってきたときは
+ * ``load``が起きないので、``doGet()``などで出したスピナーが
+ * 出たままになる (TODO-068)。``pageshow``で消す。
+ *
+ * ``elLoadingSpinner``は各ページの ``onloadHdr()``が入れているが、
+ * 復元されたときの値を当てにせず、ここで取り直す。
+ */
+window.addEventListener("pageshow", (event) => {
+    if (! event.persisted) {
+        return;
+    }
+    elLoadingSpinner = document.getElementById("loadingSpinner");
+    if (elLoadingSpinner) {
+        loadingSpinner(false);
+    }
+});
+
 // 横ゲージ (TODO-058)。``main_handler.py`` の ``DAYS_YEAR`` と同じ値
 const DAYS_YEAR = 365.25;
 const DAYS_GAGE_MAX = DAYS_YEAR * 30;
