@@ -52,7 +52,7 @@ playwright（`/tmp/todo065-scratch/venv` に別途インストール）＋
   `icons.svg` 等の静的ファイルへの HTTP リクエストが再び発生しており、
   この環境では bfcache が効かず、通常の `load` として作り直されている**
   （`event.persisted` を確認しようとしたが、bfcache 復元でないため
-  `pageshow` が「復元された文書」に対して発火する状況を作れなかった）。
+  `pageshow` が bfcache から復元されたページで起きる状況を作れなかった）。
   そのため、**この確認では TODO-068 の不具合そのものを再現できなかった**
   （依頼にあるとおり、再現できない可能性は織り込み済み）
 - 参考として、スピナーを `style.display = "block"` で強制的に出した
