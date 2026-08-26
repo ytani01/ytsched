@@ -106,6 +106,14 @@
    window.addEventListener('touchmove', touchMoveHdr, {passive: false});
    window.addEventListener('touchend', touchEndHdr, {passive: true});
    window.addEventListener('touchcancel', touchCancelHdr, {passive: true});
+   // PC のマウスの左右ドラッグでも週を送る (TODO-064)。
+   // mousedown だけ capture で拾って伝播を止める。日付セルなどの
+   // onmousedown は押した瞬間に遷移してしまい、そのままでは
+   // セルの上からドラッグを始められない。動かずに離したときは、
+   // mouseUpHdr が止めておいた onmousedown を自前で呼ぶ
+   window.addEventListener('mousedown', mouseDownHdr, true);
+   window.addEventListener('mousemove', mouseMoveHdr);
+   window.addEventListener('mouseup', mouseUpHdr);
   </script>
 </header>
 <main id="main" style="background-color:#FFF; visibility: hidden;">
