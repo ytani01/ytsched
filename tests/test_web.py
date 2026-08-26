@@ -5,6 +5,7 @@
 
 import contextlib
 import datetime
+import html
 import io
 import json
 import re
@@ -514,6 +515,114 @@ class TestMainHandler(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", todo_days="7")
 
         assert "ノートを買う" not in body
+
+
+class TestWeekBar(WebTestBase):
+    """上部の週の帯（TODO-055）
+
+    表示している週の範囲と、今週から何週離れているか（``+3w``）を出す。
+    週の差は、ゲージのラベル（``+1w`` など）にも同じ文字列があるので、
+    帯の中だけを取り出してから見る。
+    """
+
+    def week_bar(self, body):
+        """帯の中身を返す。帯が無ければ ``None``。"""
+        m = re.search(r'id="week_bar".*?<!-- container -->', body, re.DOTALL)
+        if m is None:
+            return None
+        return m.group(0)
+
+    def test_week_range_is_displayed(self):
+        """月曜〜日曜の範囲が出る（``DATE1`` は月曜）。"""
+        bar = self.week_bar(self.get_body(URL_PREFIX + "/", date=DATE1_STR))
+
+        assert bar is not None
+        assert "2021/03/01" in bar
+        assert "03/07" in bar
+
+    def test_no_week_diff_in_this_week(self):
+        """今週のときは、週の差を出さない。"""
+        today = datetime.date.today()
+
+        bar = self.week_bar(
+            self.get_body(URL_PREFIX + "/", date=today.isoformat())
+        )
+
+        assert bar is not None
+        assert re.search(r"[+-]\d+w", bar) is None
+
+    def test_week_diff_is_displayed(self):
+        """今週から離れていれば、その週数を出す。"""
+        today = datetime.date.today()
+
+        for weeks, expected in [(3, "+3w"), (-1, "-1w")]:
+            date = today + datetime.timedelta(weeks * 7)
+            bar = self.week_bar(
+                self.get_body(URL_PREFIX + "/", date=date.isoformat())
+            )
+
+            assert bar is not None
+            assert expected in bar
+
+    def test_no_week_bar_in_search_mode(self):
+        """検索モードでは帯を出さない。
+
+        検索結果は日付が飛び飛びで週の区切りに合わず、期間は検索側の
+        帯が出している。
+        """
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="病院"
+        )
+
+        assert self.week_bar(body) is None
+
+
+class TestDateColumn(WebTestBase):
+    """日付の欄を押したときの動き（TODO-055）"""
+
+    def date_col_onmousedown(self, body, date):
+        """その日の日付の欄の ``onmousedown`` を返す。
+
+        属性値は autoescape で ``&#x27;`` になっているので戻してから
+        返す。
+        """
+        m = re.search(
+            r'my-date-col[^>]*?onmousedown="([^"]*)"',
+            body[body.index(date_id(date)) :],
+        )
+        assert m is not None
+        return html.unescape(m.group(1))
+
+    def test_date_col_opens_edit(self):
+        """通常モードでは、その日の新規追加の画面へ移る。
+
+        週表示ではその日がすでに画面に出ていて、押しても何も変わらな
+        かったので、この操作を予定の追加に充てた。
+        """
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        onmousedown = self.date_col_onmousedown(body, DATE1)
+
+        assert "doGet(" in onmousedown
+        assert URL_PREFIX + "/edit/" in onmousedown
+        assert "'date': '2021-03-01'" in onmousedown
+        assert "'sde_id': ''" in onmousedown
+
+    def test_date_col_in_search_mode(self):
+        """検索モードでは今までどおり、その週へ移って検索を解除する。"""
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="病院"
+        )
+
+        onmousedown = self.date_col_onmousedown(body, DATE1)
+
+        assert "doPost(" in onmousedown
+        assert "edit/" not in onmousedown
+        assert "'search_str': ''" in onmousedown
 
 
 class TestManifestAndIcons(WebTestBase):

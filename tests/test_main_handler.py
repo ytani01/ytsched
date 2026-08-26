@@ -42,7 +42,7 @@ from test_web import (
     mk_dataline,
 )
 
-from ytsched.main_handler import MainHandler
+from ytsched.main_handler import MainHandler, calc_week_diff
 from ytsched.ytsched import SchedData
 
 CONF_FNAME = "conf.json"
@@ -55,6 +55,26 @@ def test_cookie_todo_days_is_removed():
     ための覚え書き。
     """
     assert not hasattr(MainHandler, "COOKIE_TODO_DAYS")
+
+
+def test_calc_week_diff():
+    """週の差は、どちらも月曜へ丸めてから数える（TODO-055）。
+
+    ``2021-03-01`` は月曜、``2021-03-07`` は日曜で、同じ週。
+    """
+    monday = datetime.date(2021, 3, 1)
+    sunday = datetime.date(2021, 3, 7)
+
+    # 同じ週なら、週の中のどの日どうしでも 0
+    assert calc_week_diff(monday, monday) == 0
+    assert calc_week_diff(sunday, monday) == 0
+    assert calc_week_diff(monday, sunday) == 0
+
+    # 日曜から次の月曜は 1 日しか離れていないが、週としては +1
+    assert calc_week_diff(sunday + datetime.timedelta(1), sunday) == 1
+
+    assert calc_week_diff(monday + datetime.timedelta(21), monday) == 3
+    assert calc_week_diff(monday - datetime.timedelta(7), monday) == -1
 
 
 #

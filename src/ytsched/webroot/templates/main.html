@@ -46,6 +46,14 @@
      const elMenuBar = document.getElementById("menu_bar");
      const menu_bar_height = elMenuBar.offsetHeight;
      document.body.style.paddingBottom = `${menu_bar_height}px`;
+
+     // 週バーは position: fixed なので、その高さぶんを空ける
+     // (TODO-055)。body_h を測るより先に入れること。
+     // 検索モードでは週バーが無いので、そのときは 0 のまま
+     const elWeekBar = document.getElementById("week_bar");
+     if ( elWeekBar ) {
+       document.body.style.paddingTop = `${elWeekBar.offsetHeight}px`;
+     }
      
      const body_h = document.body.clientHeight;
      const win_h = document.documentElement.clientHeight;
@@ -126,6 +134,27 @@
       <use href="{{ static_url('icons/icons.svg') }}#spinner"></use>
     </svg>
   </div>
+  <!-- 週バー (TODO-055)
+       表示している週の範囲と、今週から何週離れているかを出す。
+       検索モードでは出さない。検索結果は日付が飛び飛びで週の区切りに
+       合わず、期間は下の「検索期間・件数」が出しているため -->
+  {% if not search_mode %}
+  <div id="week_bar" class="container-fluid p-1 fixed-top my-bar">
+    <div class="row m-0 my-fs-small">
+      <div class="col-8 p-0 text-start">
+        {{ date_from.strftime('%Y/%m/%d') }}
+        &ndash;
+        {{ date_to.strftime('%m/%d') }}
+      </div>
+      <div class="col-4 p-0 text-end">
+        {% if week_diff %}
+        {{ '%+dw' % week_diff }}
+        {% end %}
+      </div>
+    </div><!-- row -->
+  </div><!-- container -->
+  {% end %}
+
   <div class="container-fluid p-0">
 
     <!-- 不正な正規表現の知らせ (TODO-012) -->
@@ -265,13 +294,25 @@
       <!-- 日付 -->
       {% set weekday = sched_date.weekday() %}
 
-      {% set url = url_prefix %}
-      {% set obj = {'date': str(sched_date), 'search_str': '' } %}
-      {# 検索の解除 (``search_str`` を空で送る) は conf.json を
+      {# 日付の欄を押したときの動き (TODO-055)。
+
+         週表示ではその日がすでに画面に出ていて、押しても何も変わらな
+         かったので、空いたこの操作を「その日に予定を追加」に充てた。
+         各日の下にある小さな ``+`` より押しやすい。
+
+         検索モードのときは今までどおり、その日の週へ移って検索を解除
+         する。検索の解除 (``search_str`` を空で送る) は conf.json を
          書き換えるので POST。URL には載せない (TODO-050) #}
+      {% if search_mode %}
+      {% set obj = {'date': str(sched_date), 'search_str': '' } %}
+      {% set on_date_col = "doPost('%s', %s);" % (url_prefix, obj) %}
+      {% else %}
+      {% set obj = {'date': str(sched_date), 'sde_id': '' } %}
+      {% set on_date_col = "doGet('%sedit/', %s);" % (url_prefix, obj) %}
+      {% end %}
       <div class="col-1 p-0 text-center my-btn my-date-col
                   my-wday-{{ weekday }} {{ class_blink }}"
-        onmousedown="doPost('{{ url }}', {{ obj }});">
+        onmousedown="{{ on_date_col }}">
 
         {% set class_today = '' %}
         {% if today_flag %}

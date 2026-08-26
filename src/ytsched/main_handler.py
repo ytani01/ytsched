@@ -47,6 +47,28 @@ def days2y_offset(days: float) -> int:
     return y_offset
 
 
+def calc_week_diff(date: datetime.date, today: datetime.date) -> int:
+    """``date`` の週が ``today`` の週から何週離れているか (TODO-055)。
+
+    どちらも月曜へ丸めてから差を取る。同じ週なら 0、翌週なら +1、
+    前の週なら -1。
+
+    Parameters
+    ----------
+    date: datetime.date
+        表示している週の中の、どの日でもよい
+    today: datetime.date
+
+    Returns
+    -------
+    week_diff: int
+
+    """
+    monday = date - datetime.timedelta(date.weekday())
+    this_monday = today - datetime.timedelta(today.weekday())
+    return (monday - this_monday).days // 7
+
+
 DAYS_YEAR = 31 + 28.25 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
 DAYS_MONTH = DAYS_YEAR / 12
 
@@ -314,13 +336,15 @@ class MainHandler(HandlerBase):
         #
         # render
         #
+        today = datetime.date.today()
         self.render(
             self.HTML_MAIN,
             title=self._title,
             author=self._author,
             version=self._version,
             url_prefix=self._url_prefix,
-            today=datetime.date.today(),
+            today=today,
+            week_diff=calc_week_diff(date, today),
             delta_day1=self.DELTA_DAY1,
             date=date,
             date_from=date_from,
