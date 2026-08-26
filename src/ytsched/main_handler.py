@@ -25,6 +25,10 @@ from .ytsched import SchedDataEnt, normalize
 def days2x_percent(days: float) -> float:
     """今週の中心からの左右のずれを、ゲージの幅に対する割合 (%) で返す
 
+    対数なので、日数が小さいところほど目盛りの間隔が広がる。そのままだと
+    左右対称に置く ``-1w`` と ``+1w`` の間だけが広く空くので、
+    ``DAYS_GAGE_K`` で割ってから対数を取って詰めている (TODO-059)。
+
     Parameters
     ----------
     days: float
@@ -34,13 +38,10 @@ def days2x_percent(days: float) -> float:
     x_percent: float
 
     """
-    dd = 0.6
-
-    if days == 0:
-        return 0.0
-
     x_percent = (
-        50.0 * math.log10(abs(days) + dd) / math.log10(DAYS_GAGE_MAX + dd)
+        50.0
+        * math.log10(1 + abs(days) / DAYS_GAGE_K)
+        / math.log10(1 + DAYS_GAGE_MAX / DAYS_GAGE_K)
     )
     x_percent = min(x_percent, 50.0)
 
@@ -75,14 +76,26 @@ DAYS_YEAR = 31 + 28.25 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
 DAYS_MONTH = DAYS_YEAR / 12
 DAYS_GAGE_MAX = DAYS_YEAR * 30
 
+# 中心の近くをどれだけ詰めるか (TODO-059)。大きいほど詰まる。10 のとき
+# ``-1w`` と ``+1w`` の間隔が 7.6%。**これより大きくすると、幅 360px で
+# ``1w`` と ``1m`` のラベルが重なる**（15 で重なることを実測した）ので、
+# 上げるときは実際の見え方を確かめること
+DAYS_GAGE_K = 10.0
+
 GAGE = [
     {"label": "-30y", "x_percent": days2x_percent(-DAYS_YEAR * 30)},
+    {"label": "-10y", "x_percent": days2x_percent(-DAYS_YEAR * 10)},
+    {"label": "-3y", "x_percent": days2x_percent(-DAYS_YEAR * 3)},
     {"label": "-1y", "x_percent": days2x_percent(-DAYS_YEAR)},
+    {"label": "-3m", "x_percent": days2x_percent(-DAYS_MONTH * 3)},
     {"label": "-1m", "x_percent": days2x_percent(-DAYS_MONTH)},
     {"label": "-1w", "x_percent": days2x_percent(-7)},
     {"label": "+1w", "x_percent": days2x_percent(+7)},
     {"label": "+1m", "x_percent": days2x_percent(+DAYS_MONTH)},
+    {"label": "+3m", "x_percent": days2x_percent(+DAYS_MONTH * 3)},
     {"label": "+1y", "x_percent": days2x_percent(+DAYS_YEAR)},
+    {"label": "+3y", "x_percent": days2x_percent(+DAYS_YEAR * 3)},
+    {"label": "+10y", "x_percent": days2x_percent(+DAYS_YEAR * 10)},
     {"label": "+30y", "x_percent": days2x_percent(+DAYS_YEAR * 30)},
 ]
 

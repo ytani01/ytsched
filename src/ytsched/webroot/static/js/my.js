@@ -20,6 +20,9 @@ const loadingSpinner = (on) => {
 // 横ゲージ (TODO-058)。``main_handler.py`` の ``DAYS_YEAR`` と同じ値
 const DAYS_YEAR = 365.25;
 const DAYS_GAGE_MAX = DAYS_YEAR * 30;
+// 中心の近くをどれだけ詰めるか (TODO-059)。``main_handler.py`` の
+// ``DAYS_GAGE_K`` と同じ値
+const DAYS_GAGE_K = 10.0;
 
 /**
  * 今週の中心からの左右のずれを、ゲージの幅に対する割合 (%) で返す。
@@ -31,15 +34,9 @@ const DAYS_GAGE_MAX = DAYS_YEAR * 30;
  * @return {number} xPercent
  */
 const days2xPercent = (days) => {
-    const dd = 0.6;
-
     // console.log(`days=${days}`);
-    if (days == 0) {
-        return 0;
-    }
-
-    let xPercent = 50.0 * Math.log10(Math.abs(days) + dd)
-          / Math.log10(DAYS_GAGE_MAX + dd);
+    let xPercent = 50.0 * Math.log10(1 + Math.abs(days) / DAYS_GAGE_K)
+          / Math.log10(1 + DAYS_GAGE_MAX / DAYS_GAGE_K);
     xPercent = Math.min(xPercent, 50.0);
 
     if (days < 0) {
