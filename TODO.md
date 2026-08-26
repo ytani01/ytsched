@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-051・TODO-056・TODO-057。**
+**残っている項目: TODO-051・TODO-056・TODO-057・TODO-060。**
 これまでに 56 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-060` から。**
+**番号は `TODO-061` から。**
 
 着手する項目は利用者が指定する。
 
@@ -157,6 +157,69 @@ TODO-054 と分けたのは、閾値を超えたら `moveToMonday()` を呼ぶ�
 `tools/screenshot.py`（TODO-046）で変更の前と後のキャプチャを撮って突き合わせる。
 幅は既定の 412px と 800px。指の動きそのものはキャプチャに写らないので、
 TODO-056 のブラウザを動かすテストができていれば、そちらでも確かめる。
+
+---
+
+## TODO-060. ゲージの針が、毎回中央から動き出すのを直す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | main のみ + verifier |
+
+- [ ] `placeGageWithoutTransition()` がレイアウトを確定させるようにする
+- [ ] 前の週が無いとき・同じ週のときも、針を置いてから見せる
+- [ ] 3 つの経路（初回・同じ週・隣の週）で、中央から動かないことを測る
+
+利用者が見つけた（2026-08-26）。**ページが切り替わるたびに、針がいったん
+中央に出てから所定の位置へ動く。** TODO-059 とは関係なく、前からあった。
+
+### 原因 1: レイアウトを確定させる 1 行が効いていない
+
+`my.js` の `placeGageWithoutTransition()` にある。
+
+```js
+void elGageR0.offsetHeight; // 強制的にレイアウトを確定させる
+```
+
+針は `<svg id="gage_r">` で、実体は `SVGSVGElement`。**`offsetHeight` は
+`HTMLElement` のもので、SVG 要素には無い**（`'offsetHeight' in el` が
+`false` であることをブラウザで確かめた）。`undefined` を読むだけなので
+レイアウトは確定せず、`transition: none` を付けている間に位置が反映
+されない。`transition` が戻ってから、中央（CSS の初期値 `left: 50%`）を
+起点に補間が始まる。
+
+実測（幅 412px、ゲージの帯は 380px なので中央は 190px）:
+
+```
+ 60ms  style.left=75.8687%  computed=190px   ← 反映されていない
+ 85ms  style.left=76.0011%  computed=199px   ← 中央から動き出す
+```
+
+`getBoundingClientRect()` なら SVG でも効く。
+
+### 原因 2: 前の週が無いとき・同じ週のときも中央から動く
+
+`dispGage()` の最後は `setGagePosition()` を直接呼んでいる。このとき針の
+`left` は CSS の `50%` のままなので、transition が中央から掛かる。
+**同じ週のまま読み直す経路（予定を編集して戻る、ホームを押す、その週の
+別の日を開く）はすべてここを通る**ので、いちばん目につくのはこちら。
+
+前の週が無い／同じ週のときは、動かす先が無いので
+`placeGageWithoutTransition()` で置けばよい。
+
+### 気をつけること
+
+- **`offsetHeight` は `my.js` と `main.html` の他の場所でも使っている**
+  （`my.js:449` `:451`、`main.html:47` `:55`、`edit.html:87`）。
+  そちらは `<div>` などなので効いている。**まとめて置き換えない**
+- `#week_bar` は `#main`（読み込みが済むまで `visibility: hidden`）の
+  中にある。2 つを直せば、中央に出ること自体が無くなるはず
+
+### 確かめ方
+
+playwright で `getComputedStyle(el).left` を毎フレーム読み、3 つの経路
+（初回・同じ週をもう一度・隣の週）で中央 (50%) を通らないことを見る。
+測り方は `archives/agents/TODO-060/` の依頼書に残す。
 
 ---
 
