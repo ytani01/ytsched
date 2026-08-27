@@ -30,6 +30,8 @@ CHROMIUM = "/usr/bin/chromium"
 
 URL_PREFIX = "/ytsched"
 
+CONF_FNAME = "conf.json"
+
 # 週の内容が 1 画面に収まる高さ。TODO-049 の退行は「1 画面に収まって
 # いるか」を先に見ていたせいで起きたので、収まる大きさで見ないと
 # 再現しない
@@ -133,6 +135,31 @@ def _monday_of(date):
     return date - datetime.timedelta(days=date.weekday())
 
 
+def write_conf(datadir, conf):
+    """``conf.json`` を書く（テストの下ごしらえ用。``tests/test_web.py``
+    と同じ形）。
+
+    ``server`` フィクスチャがアプリを起動したあとに書いてよい
+    （``conf.json`` はリクエストのたびに読み直される）。
+    """
+    import json
+
+    (datadir / CONF_FNAME).write_text(
+        json.dumps(conf, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def _tap(page, locator):
+    """マウスでタップ相当の操作をする（``pointerdown`` → ``pointerup``、
+    位置は動かさない。TODO-084）。"""
+    box = locator.bounding_box()
+    x = box["x"] + box["width"] / 2
+    y = box["y"] + box["height"] / 2
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.up()
+
+
 def test_home_button_moves_the_view(page, server):
     """ホームボタンで、URL だけでなく画面も今日へ動く（TODO-049）。
 
@@ -188,6 +215,82 @@ def test_back_button_moves_a_week(page, server):
         lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
         timeout=10000,
     )
+
+
+def test_double_tap_starts_auto_page_turn(page, server, tmp_path):
+    """ダブルタップすると、入力を止めても週が送られ続ける（TODO-084）。
+
+    ``AutoTurnMsec`` を下限（300）にして待つ時間を短くする。
+    """
+    write_conf(tmp_path / "data", {"AutoTurnMsec": "300", "LoadMonths": "2"})
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    forward = page.locator("#forward_button")
+    _tap(page, forward)
+    _tap(page, forward)  # 350msec 以内の 2 回目でダブルタップになる
+
+    # 何も操作しなくても、自動送りで週が進み続ける
+    expected = monday + datetime.timedelta(days=7 * 5)
+    page.wait_for_function(
+        "(monday) => document.querySelector('.my-week-cur')"
+        ".dataset.monday === monday",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+
+
+def test_tap_again_stops_auto_page_turn(page, server, tmp_path):
+    """自動送り中にもう一度タップすると止まる（TODO-084）。"""
+    write_conf(tmp_path / "data", {"AutoTurnMsec": "300", "LoadMonths": "2"})
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    forward = page.locator("#forward_button")
+    _tap(page, forward)
+    _tap(page, forward)  # ダブルタップで自動送りが始まる
+
+    expected = monday + datetime.timedelta(days=7 * 3)
+    page.wait_for_function(
+        "(monday) => document.querySelector('.my-week-cur')"
+        ".dataset.monday === monday",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+
+    _tap(page, forward)  # 次のタップで止める（週は送らない）
+    stopped_at = page.locator(".my-week-cur").get_attribute("data-monday")
+
+    # 止めたあと、``AutoTurnMsec`` の何倍か待っても週が変わらない
+    page.wait_for_timeout(1200)
+    assert (
+        page.locator(".my-week-cur").get_attribute("data-monday")
+        == stopped_at
+    )
+
+
+def test_swipe_from_button_does_not_move_a_week(page, server):
+    """ボタンの上から始めた横の払いは、週送りとして拾わない（TODO-084）。
+
+    ``swipe.js`` が拾ってしまうと、シングルタップの 1 週送りと
+    二重に効いてしまう。
+    """
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    box = page.locator("#forward_button").bounding_box()
+    x = box["x"] + box["width"] / 2
+    y = box["y"] + box["height"] / 2
+
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + 150, y, steps=5)  # 30px 以上、右へ払う
+    page.mouse.up()
+
+    page.wait_for_timeout(500)
+    assert page.locator(".my-week-cur").get_attribute(
+        "data-monday"
+    ) == monday.strftime("%Y-%m-%d")
 
 
 def _mark(page):
@@ -256,6 +359,10 @@ def test_week_move_reloads_outside_the_loaded_range(page, server):
         )
         if i < 5:
             assert _marked(page), f"{i} 回目でページが読み直された"
+        # 350msec 以内に次のクリックが入るとダブルタップと見なされ、
+        # 自動ページ送りが始まってしまう（TODO-084）。それを避けるため、
+        # 次のクリックまで間を空ける
+        page.wait_for_timeout(400)
 
     assert not _marked(page), "範囲の外へ出ても読み直されなかった"
 

@@ -106,6 +106,130 @@ const changeSearchN = (val) => {
   doPost(url_prefix, {date: document.getElementById("cur_day").value, search_n: val} );
 };
 
+// フッターの ◀▶ のダブルタップで、自動ページ送りを始める (TODO-084)。
+// ボタンは ``onmousedown`` を持たず ``data-page-turn="-1"/"1"`` を持つ
+// だけなので、ボタンがまだ DOM に無い時点でこのスクリプトが評価されても
+// 困らないよう、``pointerdown``/``pointerup`` を window に委譲して拾う
+
+// ページ送りボタンを押した位置と時刻 (押していなければ null)
+let pageTurnStart = null;
+
+// 直前にタップしたボタンの向きと時刻 (ダブルタップの判定に使う)
+let lastPageTurnDirection = null;
+let lastPageTurnTapMsec = 0;
+
+// 自動ページ送りの setInterval の id (走っていなければ null)
+let autoTurnTimerId = null;
+
+// ダブルタップと見なす間隔 (msec)。homeButtonHdr() のダブルクリック判定
+// (350) と揃える
+const PAGE_TURN_DOUBLE_TAP_MSEC = 350;
+
+// ボタンの上から始めた横の払いを、週送りとして拾わないための、
+// 動いたと見なす最小の距離 (px)
+const PAGE_TURN_MOVE_PX = 30;
+
+/** 走っていれば自動ページ送りを止める。走っていなければ何もしない。 */
+const stopAutoPageTurn = () => {
+  if ( autoTurnTimerId === null ) {
+    return;
+  }
+  clearInterval(autoTurnTimerId);
+  autoTurnTimerId = null;
+};
+
+/**
+ * 自動ページ送りを始める。
+ *
+ * ``auto_turn_msec`` ごとに ``moveToMonday()`` を呼ぶだけ。読み込んだ
+ * 範囲の外へ出ると ``moveToMonday()`` が ``doGet()`` してページごと
+ * 読み直すので、そこで自動的に止まる (window ごと作り直されるため)。
+ *
+ * @param {number} direction
+ */
+const startAutoPageTurn = (direction) => {
+  stopAutoPageTurn();
+  autoTurnTimerId = setInterval(() => {
+    moveToMonday(direction, url_prefix);
+  }, auto_turn_msec);
+};
+
+/**
+ * ページ送りボタンを押したときの、位置と時刻を覚える。
+ *
+ * ボタンの外を押したときは、走っていた自動ページ送りを止める
+ * (画面の他の場所をタップ・クリックしたら止める、の分岐。capture で
+ * 拾う)。
+ */
+const pageTurnPointerDownHdr = (event) => {
+  const el = event.target && event.target.closest
+        ? event.target.closest("[data-page-turn]")
+        : null;
+
+  if ( ! el ) {
+    pageTurnStart = null;
+    stopAutoPageTurn();
+    return;
+  }
+
+  pageTurnStart = {x: event.clientX, y: event.clientY, t: Date.now()};
+};
+
+/**
+ * ページ送りボタンを離したときに決める。
+ *
+ * - 自動ページ送りが走っていれば、止めるだけ (週は送らない)
+ * - 押した位置から ``PAGE_TURN_MOVE_PX`` 以上動いていれば、何もしない
+ *   (ボタンの上から始めた横の払いを、週送りとして拾わないため)
+ * - それ以外は 1 週送る。直前のタップが同じボタンで
+ *   ``PAGE_TURN_DOUBLE_TAP_MSEC`` 以内なら、続けて自動ページ送りを
+ *   始める
+ */
+const pageTurnPointerUpHdr = (event) => {
+  const start = pageTurnStart;
+  pageTurnStart = null;
+  if ( ! start ) {
+    return;
+  }
+
+  const el = event.target && event.target.closest
+        ? event.target.closest("[data-page-turn]")
+        : null;
+  if ( ! el ) {
+    return;
+  }
+
+  if ( autoTurnTimerId !== null ) {
+    stopAutoPageTurn();
+    return;
+  }
+
+  const dx = event.clientX - start.x;
+  const dy = event.clientY - start.y;
+  if ( Math.hypot(dx, dy) >= PAGE_TURN_MOVE_PX ) {
+    return;
+  }
+
+  const direction = Number(el.dataset.pageTurn);
+  moveToMonday(direction, url_prefix);
+
+  const now = Date.now();
+  if ( lastPageTurnDirection === direction
+       && now - lastPageTurnTapMsec < PAGE_TURN_DOUBLE_TAP_MSEC ) {
+    startAutoPageTurn(direction);
+    lastPageTurnDirection = null;
+    lastPageTurnTapMsec = 0;
+    return;
+  }
+  lastPageTurnDirection = direction;
+  lastPageTurnTapMsec = now;
+};
+
+/** 途中で割り込まれたとき (念のため。swipe.js の touchCancelHdr と同じ考え方) */
+const pageTurnPointerCancelHdr = () => {
+  pageTurnStart = null;
+};
+
 window.addEventListener('load', onloadHdr);
 // キーボードでの操作は一覧だけ (TODO-050)
 window.addEventListener('keydown', keyHdr);
@@ -127,3 +251,18 @@ window.addEventListener('touchcancel', touchCancelHdr, {passive: true});
 window.addEventListener('mousedown', mouseDownHdr, true);
 window.addEventListener('mousemove', mouseMoveHdr);
 window.addEventListener('mouseup', mouseUpHdr);
+// フッターの ◀▶ のダブルタップで自動ページ送り (TODO-084)。
+// pointerdown は capture で拾う (画面の他の場所を押したら止める分岐が、
+// ボタン側の分岐より先に効いてよい)
+window.addEventListener('pointerdown', pageTurnPointerDownHdr, true);
+window.addEventListener('pointerup', pageTurnPointerUpHdr);
+window.addEventListener('pointercancel', pageTurnPointerCancelHdr);
+// 止まる条件: ボタンをもう一度タップ (pageTurnPointerUpHdr) / 画面の
+// 他の場所をタップ (pageTurnPointerDownHdr) / キーを押した / 画面が
+// 隠れた
+window.addEventListener('keydown', stopAutoPageTurn);
+document.addEventListener('visibilitychange', () => {
+  if ( document.hidden ) {
+    stopAutoPageTurn();
+  }
+});

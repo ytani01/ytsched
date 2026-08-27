@@ -6,6 +6,7 @@
    // main-page.js から使う。テンプレートの値はここでしか取れない
    const search_str0 = '{{ search_str }}';
    const today_str = '{{ today }}';
+   const auto_turn_msec = {{ auto_turn_msec }};
   </script>
   <script type="text/javascript"
           src="{{ static_url('js/main-page.js') }}"></script>
@@ -258,17 +259,18 @@
         </label>
       </div><!-- col -->
 
-      <!-- back -->
+      <!-- back (ダブルタップで自動ページ送り。TODO-084。
+           リスナーの登録は main-page.js) -->
       <div id="back_button" class="col-1 p-0 text-center my-btn"
-        onmousedown="moveToMonday(-1, '{{ url_prefix }}');">
+        data-page-turn="-1">
         <svg class="my-icon my-icon-lg">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-left"></use>
         </svg>
       </div><!-- col -->
 
-      <!-- forward -->
+      <!-- forward (ダブルタップで自動ページ送り。TODO-084) -->
       <div id="forward_button" class="col-1 p-0 text-center my-btn"
-        onmousedown="moveToMonday(1, '{{ url_prefix }}');">
+        data-page-turn="1">
         <svg class="my-icon my-icon-lg">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-right"></use>
         </svg>

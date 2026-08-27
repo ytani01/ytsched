@@ -21,7 +21,9 @@
   出した `SchedLoader`（`sched_load.py`）・`SchedUpdater`
   （`sched_update.py`）のテスト（TODO-087・TODO-088）
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /
-  `EditHandler` へ実際にリクエストを送るテスト
+  `EditHandler` へ実際にリクエストを送るテスト。`conf.json` の
+  `AutoTurnMsec`（既定値・範囲の外・数字でない値が既定値へ落ちること・
+  `conf.json` が書き換わらないこと）もここで見る（TODO-084）
 - `test_webapp.py` — `WebServer` の組み立てそのもののテスト
 - `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
   移行のテスト
@@ -29,7 +31,10 @@
 - `test_browser.py` — chromium を実際に動かして、`static/js/` の
   スクリプトの動きを見るテスト（TODO-056）。ホームボタンと週送りを押して、URL だけで
   なく画面が変わったかまで確かめる。ブラウザが無ければ skip する。
-  週送りが**ページを読み直さずに済んでいるか**もここで見る（TODO-069）
+  週送りが**ページを読み直さずに済んでいるか**もここで見る（TODO-069）。
+  フッターの ◀▶ については、ダブルタップで自動ページ送りが始まること・
+  次のタップで止まること・ボタンの上からの横払いでは週が動かないこと
+  の 3 本を足した（TODO-084）
 - `make_test_data.py` — 移行元（旧形式）の合成テストデータを
   `tests/data/old_format/` に生成するスクリプト。個人の予定そのものは
   リポジトリに入れられないため、構造だけを写して中身を架空にした

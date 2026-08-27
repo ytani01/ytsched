@@ -66,6 +66,23 @@ class MainHandler(HandlerBase):
     #: ヶ月を週の数に直すときの、1 ヶ月の日数 (TODO-069)
     DAYS_PER_MONTH = 30
 
+    # ``AutoTurnMsec`` を読むのも MainHandler だけ (TODO-084)
+    CONF_KEY_AUTO_TURN_MSEC = "AutoTurnMsec"
+
+    #: フッターの ◀▶ をダブルタップしたときの、自動ページ送りの間隔
+    #: (msec)。``conf.json`` の ``AutoTurnMsec`` で変えられる (TODO-084)
+    DEF_AUTO_TURN_MSEC = 700
+    #: 下限を週切り替えのアニメーション (``week.js`` の
+    #: ``SWIPE_SLIDE_MSEC`` = 200 と、その後始末の +100) より短くしない。
+    #: それより短い間隔だと ``slideWeekWrap()`` の呼び出しが重なって、
+    #: 送り先へ移らずに週が飛ばされる (TODO-084)。
+    #: ふだんは ``transitionend`` が 200 msec ごろに来るので 100 msec
+    #: ほど余裕があり、300 とぶつかるのは ``transitionend`` が来ずに
+    #: 後始末のタイマー (200+100) へ落ちたときだけ。そのときも飛ぶのは
+    #: 1 回で、次の回からは元に戻る (TODO-084 reviewer の確認 1)
+    AUTO_TURN_MSEC_MIN = 300
+    AUTO_TURN_MSEC_MAX = 10000
+
     def initialize(self, sd: SchedData) -> None:
         """``sd`` を受け取り、更新の実行役 (``SchedUpdater``) と
         読み込みの実行役 (``SchedLoader``) を作る (TODO-087・TODO-088)。
@@ -262,6 +279,13 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"load_months={load_months}")
 
         #
+        # フッターの ◀▶ をダブルタップしたときの自動ページ送りの間隔
+        # (TODO-084)
+        #
+        auto_turn_msec = self.get_auto_turn_msec()
+        self.__log.debug(f"auto_turn_msec={auto_turn_msec}")
+
+        #
         # load ToDo
         #
         todo_sde, todo_today_sde = self._loader.load_todo(
@@ -323,6 +347,7 @@ class MainHandler(HandlerBase):
             search_n=search_n,
             sde_align=sde_align,
             sd=self._sd,
+            auto_turn_msec=auto_turn_msec,
         )
 
     def mk_weeks(
@@ -441,55 +466,78 @@ class MainHandler(HandlerBase):
             max(self.TODO_DAYS.values()),
         )
 
-    def str2load_months(self, value: str) -> int:
-        """DOM に持たせる前後の月数にする (TODO-069)。
+    def get_conf_int(
+        self, key: str, default: int, min_value: int, max_value: int
+    ) -> int:
+        """``conf.json`` から整数の設定値を読む (TODO-069・TODO-084)。
 
-        ``convert_value()`` に渡す変換関数。数字にならない値も、
-        ``LOAD_MONTHS_MIN``〜``LOAD_MONTHS_MAX`` の外も ``ValueError``。
+        ``LoadMonths``/``AutoTurnMsec`` に共通の読み方。**他の設定と
+        違い、リクエストの引数では変えられない。** 画面から変えるもの
+        ではなく、利用者が ``conf.json`` へ手で書く値なので、
+        ``get_conf_arg()`` を通さず読むだけにする（``set_conf()`` しない
+        ので、手で書いた値は消えない）。
+
+        読めない値 (数字にならない、範囲の外) は警告を 1 行出して
+        ``default`` へ落とす。不正な引数の扱い (TODO-027) と同じ。
 
         Parameters
         ----------
-        value: str
+        key: str
+            ``conf.json`` のキー
+        default: int
+        min_value: int
+        max_value: int
 
         Returns
         -------
         int
 
         """
-        return handler_util.check_int_range(
-            self.CONF_KEY_LOAD_MONTHS,
-            int(value),
-            self.LOAD_MONTHS_MIN,
-            self.LOAD_MONTHS_MAX,
-        )
+        value = self.get_conf(key)
+        if value is None:
+            return default
+
+        def convert(v: str) -> int:
+            return handler_util.check_int_range(
+                key, int(v), min_value, max_value
+            )
+
+        converted = handler_util.convert_value(key, value, convert)
+        if converted is None:
+            return default
+
+        return converted
 
     def get_load_months(self) -> int:
         """DOM に持たせる前後の月数を ``conf.json`` から読む (TODO-069)。
 
-        **他の設定と違い、リクエストの引数では変えられない。**
-        画面から変えるものではなく、利用者が ``conf.json`` へ手で
-        書く値なので、``get_conf_arg()`` を通さず読むだけにする
-        （``set_conf()`` しないので、手で書いた値は消えない）。
+        Returns
+        -------
+        int
 
-        読めない値 (数字にならない、範囲の外) は警告を 1 行出して
-        既定値へ落とす。不正な引数の扱い (TODO-027) と同じ。
+        """
+        return self.get_conf_int(
+            self.CONF_KEY_LOAD_MONTHS,
+            self.DEF_LOAD_MONTHS,
+            self.LOAD_MONTHS_MIN,
+            self.LOAD_MONTHS_MAX,
+        )
+
+    def get_auto_turn_msec(self) -> int:
+        """自動ページ送りの間隔 (msec) を ``conf.json`` から読む
+        (TODO-084)。
 
         Returns
         -------
         int
 
         """
-        value = self.get_conf(self.CONF_KEY_LOAD_MONTHS)
-        if value is None:
-            return self.DEF_LOAD_MONTHS
-
-        converted = handler_util.convert_value(
-            self.CONF_KEY_LOAD_MONTHS, value, self.str2load_months
+        return self.get_conf_int(
+            self.CONF_KEY_AUTO_TURN_MSEC,
+            self.DEF_AUTO_TURN_MSEC,
+            self.AUTO_TURN_MSEC_MIN,
+            self.AUTO_TURN_MSEC_MAX,
         )
-        if converted is None:
-            return self.DEF_LOAD_MONTHS
-
-        return converted
 
     @classmethod
     def months2weeks(cls, months: int) -> int:

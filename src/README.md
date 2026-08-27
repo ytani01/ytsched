@@ -151,8 +151,9 @@ classDiagram
   共通部分。リクエストのたびにデータディレクトリ直下の設定ファイル
   `conf.json` を読み書きする（`load_conf()` / `save_conf()` /
   `get_conf()` / `set_conf()`）。JSON のオブジェクト 1 つで、値は
-  すべて文字列（TODO-032）。**`LoadMonths` を除いて**、人が手で編集する
-  ファイルではない（`LoadMonths` については `MainHandler` の項を参照）。
+  すべて文字列（TODO-032）。**`LoadMonths` と `AutoTurnMsec` を除いて**、
+  人が手で編集するファイルではない（この 2 つについては `MainHandler`
+  の項を参照）。
   読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
   でないキー）は、警告を 1 行出して無視する。
   `SchedData` は `tornado.web.Application` の URL 登録時に渡し、
@@ -174,9 +175,14 @@ classDiagram
   **返す HTML には、前後 1 ヶ月ぶんの週も一緒に入れる**（TODO-069）。
   ブラウザはこの中を動くかぎりページを読み直さない。何ヶ月ぶんかは
   `conf.json` の `LoadMonths` で変えられる（既定 1、範囲 0〜24）。
-  **これだけは利用者が手で書く設定**で、画面から変える UI は無く、
-  アプリは読むだけ（`get_load_months()`）なので手で書いた値は消えない。
-  検索モードでは週の区切りに合わないので 1 週だけ。
+  フッターの ◀▶ をダブルタップしたときの自動ページ送りの間隔（msec）は
+  `conf.json` の `AutoTurnMsec` で変えられる（既定 700、範囲
+  300〜10000。TODO-084）。**この 2 つは利用者が手で書く設定**で、
+  画面から変える UI は無く、アプリは読むだけ（`get_load_months()`・
+  `get_auto_turn_msec()`）なので手で書いた値は消えない。どちらも
+  読み方は同じなので、共通の `get_conf_int(key, default, min_value,
+  max_value)` にまとめてある。検索モードでは週の区切りに合わないので
+  1 週だけ。
   **URL に持たせるのは日付だけ**（`?date=2026-08-24`）。検索語・
   絞り込み・ToDo の日数・目標件数は `conf.json` に保存する。
   それらを送るときは、ブックマークや履歴に残らないよう `POST` を通す
@@ -311,6 +317,27 @@ flowchart TD
   のは呼び出し側（`scrollToDate()` / `popstateHdr()`）の役目
 - **DOM に持っているデータは古くなる。** ホームボタンのダブルタップが、
   手で取り直す道（1 回のタップは今日の週へ移るだけ）
+
+### フッターの ◀▶ とダブルタップ（TODO-084）
+
+フッターの ◀▶ は `onmousedown` を持たず、`data-page-turn="-1"` /
+`"1"` を持つだけ。リスナーの登録とハンドラは `main-page.js` にあり、
+`window` で `pointerdown` / `pointerup` を拾って `closest()` で判定する
+（`swipe.js` の `mouseDownHdr()` と同じ形）。`main-page.js` は
+`<header>` の中で読まれ、フッターのボタンより先に評価されるので、
+ボタン要素へ直に付けられないため。
+
+- シングルタップは、これまでどおり `moveToMonday()` で 1 週送る
+- 同じボタンを 350msec 以内にもう一度タップすると（ダブルタップ）、
+  `setInterval(..., auto_turn_msec)` で `moveToMonday()` を繰り返す
+  自動ページ送りが始まる
+- 止まるのは次の 4 つ。もう一度タップ・画面の他の場所をタップ・
+  キー操作・画面が隠れたとき（`visibilitychange`）。読み込んだ範囲の
+  外へ出て `doGet()` に倒れたときも、ページごと読み直すので止まる
+- **ボタンの上から始めたスワイプ・ドラッグは、週送りとして拾わない。**
+  `swipe.js` の `touchStartHdr()` / `mouseDownHdr()` が
+  `[data-page-turn]` を見送り、`main-page.js` 側も押した位置から 30px
+  以上動いていたら何もしない
 
 ## フィルタ・検索文字列の扱い
 

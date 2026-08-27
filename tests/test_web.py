@@ -826,6 +826,53 @@ class TestInvalidArgs(WebTestBase):
         assert conf["LoadMonths"] == "2"
         assert conf["ToDo_Days"] == "7"
 
+    #
+    # AutoTurnMsec (TODO-084)
+    #
+    def test_auto_turn_msec_default(self):
+        """既定値が、``main-page.js`` へ渡す定数に入る。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert (
+            f"const auto_turn_msec = {MainHandler.DEF_AUTO_TURN_MSEC};"
+            in body
+        )
+
+    def test_auto_turn_msec_from_conf(self):
+        """``conf.json`` の値が、定数に入る。"""
+        write_conf(self.datadir, {"AutoTurnMsec": "500"})
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert "const auto_turn_msec = 500;" in body
+
+    def test_broken_auto_turn_msec_falls_back_to_the_default(self):
+        """数字にならない値も、範囲の外も既定値へ落とす。"""
+        for value in ("abc", "100", "99999"):
+            write_conf(self.datadir, {"AutoTurnMsec": value})
+
+            body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+            assert (
+                f"const auto_turn_msec = {MainHandler.DEF_AUTO_TURN_MSEC};"
+                in body
+            ), value
+
+    def test_auto_turn_msec_is_not_overwritten(self):
+        """手で書いた値は ``conf.json`` から消えない (``LoadMonths`` と同じ)。
+
+        画面から変える設定ではないので、アプリは読むだけで
+        ``set_conf()`` しない。他の設定を保存したときに巻き添えで
+        消えないことまで見る。
+        """
+        write_conf(self.datadir, {"AutoTurnMsec": "500"})
+
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
+
+        conf = read_conf(self.datadir)
+        assert conf["AutoTurnMsec"] == "500"
+        assert conf["ToDo_Days"] == "7"
+
     def test_search_mode_has_only_one_week(self):
         """検索モードでは週の区切りに合わないので 1 つだけ。"""
         body = self.get_body(

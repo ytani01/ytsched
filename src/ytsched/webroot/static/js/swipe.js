@@ -145,6 +145,9 @@ const swipeFinish = (dx, dy, elapsed_msec) => {
  *   (戻る/進む) に取られるので、こちらでも拾うと二重に効く
  * - **入力欄の上で始まったもの。** 検索欄の中で文字を選ぼうとした
  *   ときに週が変わらないように
+ * - **ページ送りボタン (``[data-page-turn]``) の上で始まったもの。**
+ *   ボタン側は ``pointerdown``/``pointerup`` (main-page.js) で拾うので、
+ *   ここで拾うと週送りが二重に効く (TODO-084)
  */
 const touchStartHdr = (event) => {
     lastTouchMsec = Date.now();
@@ -156,7 +159,8 @@ const touchStartHdr = (event) => {
     }
 
     const el = event.target;
-    if ( el && el.closest && el.closest("input, textarea, select") ) {
+    if ( el && el.closest
+         && el.closest("input, textarea, select, [data-page-turn]") ) {
         return;
     }
 
@@ -253,6 +257,9 @@ const touchCancelHdr = () => {
  * - **左ボタン以外。**
  * - **入力欄・ラベル・リンクの上。** 検索欄で文字を選べるように。
  *   ラベルはメニューの開閉 (``menu-sw``) に使っている
+ * - **ページ送りボタン (``[data-page-turn]``) の上。** ``pointerdown``
+ *   を邪魔しないよう、``stopPropagation()``/``preventDefault()`` の前で
+ *   返す (TODO-084)
  */
 const mouseDownHdr = (event) => {
     if ( Date.now() - lastTouchMsec < MOUSE_AFTER_TOUCH_MSEC ) {
@@ -276,7 +283,7 @@ const mouseDownHdr = (event) => {
     if ( ! el || ! el.closest ) {
         return;
     }
-    if ( el.closest("input, textarea, select, label, a") ) {
+    if ( el.closest("input, textarea, select, label, a, [data-page-turn]") ) {
         return;
     }
 
