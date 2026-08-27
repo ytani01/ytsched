@@ -63,6 +63,11 @@ class MainHandler(HandlerBase):
     # ``LoadMonths`` を読むのは MainHandler だけ (TODO-081)
     CONF_KEY_LOAD_MONTHS = "LoadMonths"
 
+    # 以下も MainHandler だけが読み書きする (TODO-082)
+    CONF_KEY_TODO_DAYS = "ToDo_Days"
+    CONF_KEY_FILTER_STR = "FilterStr"
+    CONF_KEY_SEARCH_N = "SearchN"
+
     TODO_DAYS: ClassVar[dict[str, int]] = {
         "off": -1,
         "today": 0,

@@ -67,8 +67,8 @@ mise run shot -- --open                    # 画面を撮る
 
 ```sh
 uv run pytest tests
-uv run ruff format --line-length 78 src tests tools
-uv run ruff check --fix --extend-select I src tests tools
+uv run ruff format src tests tools
+uv run ruff check --fix src tests tools
 uv run basedpyright src tests tools
 uv run mypy src tests tools
 ```

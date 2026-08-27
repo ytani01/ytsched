@@ -380,10 +380,6 @@ class SchedDataFile:
 
         self.pathname = self.date2path(self.date, self.topdir)
 
-        pl = self.pathname.split("/")
-        self.filename = pl.pop()
-        self.dirname = "/".join(pl)
-
         self.is_holiday = False
 
         # 読めずに飛ばした行を、生のバイト列のまま持つ。

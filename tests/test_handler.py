@@ -55,7 +55,7 @@ def test_load_conf_no_file(datadir):
     handler = make_handler(make_app(datadir), HandlerBase)
 
     assert handler._conf == {}
-    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) is None
+    assert handler.get_conf("ToDo_Days") is None
 
 
 def test_load_conf(datadir):
@@ -65,8 +65,8 @@ def test_load_conf(datadir):
 
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "365"
-    assert handler.get_conf(HandlerBase.CONF_KEY_FILTER_STR) == "会議"
+    assert handler.get_conf("ToDo_Days") == "365"
+    assert handler.get_conf("FilterStr") == "会議"
     assert handler.get_conf("NoSuchKey") is None
 
 
@@ -84,23 +84,23 @@ def test_conf_round_trip(datadir):
     app = make_app(datadir)
 
     handler = make_handler(app, HandlerBase)
-    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, "30")
-    handler.set_conf(HandlerBase.CONF_KEY_SEARCH_N, "5")
+    handler.set_conf("ToDo_Days", "30")
+    handler.set_conf("SearchN", "5")
 
     handler2 = make_handler(app, HandlerBase)
-    assert handler2.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "30"
-    assert handler2.get_conf(HandlerBase.CONF_KEY_SEARCH_N) == "5"
+    assert handler2.get_conf("ToDo_Days") == "30"
+    assert handler2.get_conf("SearchN") == "5"
 
 
 def test_set_conf_overwrite(datadir):
     app = make_app(datadir)
 
     handler = make_handler(app, HandlerBase)
-    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, "30")
-    handler.set_conf(HandlerBase.CONF_KEY_TODO_DAYS, "7")
+    handler.set_conf("ToDo_Days", "30")
+    handler.set_conf("ToDo_Days", "7")
 
     handler2 = make_handler(app, HandlerBase)
-    assert handler2.get_conf(HandlerBase.CONF_KEY_TODO_DAYS) == "7"
+    assert handler2.get_conf("ToDo_Days") == "7"
 
 
 def test_load_conf_empty_value(datadir):

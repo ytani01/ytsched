@@ -26,9 +26,7 @@ src/ytsched/
 ```
 
 CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形式からの
-移行）のほかに、`x_data1` というデバッグ用のサブコマンドが残っている
-（指定した 1 日分のデータを標準出力へダンプするだけで、`webapp` の
-動作には関係ない）。
+移行）の 2 つがある。
 
 `-h` / `--help`、`-d` / `--debug`、`-V` / `-v` / `--version` は、
 `click_utils.py` の `click_common_opts()` がグループと全サブコマンドに

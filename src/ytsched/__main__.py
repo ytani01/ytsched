@@ -2,47 +2,22 @@
 # (c) 2026 ytani01
 #
 """
-main for musicbox package
+main for ytsched package
 """
-
-import datetime
 
 import click
 
-from . import (
-    SchedDataFile,
-    WebServer,
-    __prog_name__,
-    __version__,
-)
+from . import __prog_name__, __version__
 from .click_utils import click_common_opts
 from .migrate import Migrator
 from .mylog import getLogger, loggerInit
+from .webapp import WebServer
+from .ytsched import SchedDataFile
 
 __author__ = "ytani01"
 __date__ = "2021/01"
 
 _log = getLogger("main")
-
-
-class DataFileApp:
-    __log = getLogger(__qualname__)
-
-    def __init__(self, yyyy, mm, dd, topdir=""):
-        self.__log.debug(f"yyyy/mm/dd={yyyy}/{mm}/{dd}")
-        self.__log.debug(f"topdir={topdir}")
-
-        self.sdf = SchedDataFile(datetime.date(yyyy, mm, dd), topdir=topdir)
-
-    def main(self):
-        self.__log.debug(f"sdf.sde={self.sdf.sde}")
-
-        if self.sdf.sde:
-            for sde in sorted(self.sdf.sde, key=lambda x: x.get_timestr()):
-                print(sde)
-                print(f"{sde.mk_dataline()}")
-        else:
-            print("===== No data =====")
 
 
 def _is_debug(ctx, debug):
@@ -60,7 +35,7 @@ def _is_debug(ctx, debug):
 @click.group(
     invoke_without_command=True,
     help="""
-sample package
+YT scheduler
 """,
 )
 @click_common_opts(__version__)
@@ -75,35 +50,6 @@ def cli(ctx, debug):
 
     if subcmd is None:
         print(ctx.get_help())
-
-
-@cli.command(
-    help="""
-test """
-)
-@click.argument("year", type=int, default=2021)
-@click.argument("month", type=int, default=1)
-@click.argument("day", type=int, default=1)
-@click.option(
-    "--datadir",
-    "--data",
-    "datadir",
-    type=click.Path(exists=True),
-    default=SchedDataFile.DEF_TOP_DIR,
-    help=f"data directory, default='{SchedDataFile.DEF_TOP_DIR}'",
-)
-@click_common_opts(__version__)
-def x_data1(ctx, year, month, day, datadir, debug):
-    """data"""
-    debug = _is_debug(ctx, debug)
-    loggerInit(debug=debug)
-
-    app = DataFileApp(year, month, day, datadir)
-    try:
-        app.main()
-    finally:
-        _log.debug("finally")
-        _log.info("end")
 
 
 @cli.command(
@@ -191,7 +137,7 @@ Web server"""
     "-l",
     "size_limit",
     type=int,
-    default=100 * 1024 * 1024,
+    default=WebServer.DEF_SIZE_LIMIT,
     help=f"upload size limit, default={WebServer.DEF_SIZE_LIMIT}",
 )
 @click_common_opts(__version__)

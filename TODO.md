@@ -1,56 +1,15 @@
 # TODO
 
-**残っている項目: TODO-082・TODO-083。**
-これまでに 81 件を決着させた。
+**残っている項目: TODO-083。**
+これまでに 82 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-084` から**（TODO-071 は欠番）。
 
 着手する項目は利用者が指定する。
 
-TODO-082・083 は、基本設計のレビュー（2026-08-27）で挙がった 11 件を
-振り分けたもの（TODO-077〜081 は決着済み）。中身は [`docs/design-review.md`](docs/design-review.md)
+TODO-083 は、基本設計のレビュー（2026-08-27）で挙がった 11 件を
+振り分けたうちの残り（TODO-077〜082 は決着済み）。中身は [`docs/design-review.md`](docs/design-review.md)
 にある。**着手するときは、まずそちらの該当する節を読むこと。**
-
----
-
-## TODO-082. import の意図と実態のズレ、使われていない属性、定数の置き場所、細かい 5 件を片付ける
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | implementer + verifier |
-
-- [ ] `__init__.py` の import をやめるか、`migrate.py` のコメントを直すか決める
-- [ ] 使われていない属性 3 つと、それを固定しているテスト
-- [ ] `CONF_KEY_*` 3 つを `MainHandler` へ移す
-- [ ] `__main__.py` の docstring とヘルプの文字列、`x_data1` の扱い
-- [ ] `webapp` の `--size_limit` の既定値を `DEF_SIZE_LIMIT` にする
-- [ ] ruff の設定を `mise.toml` から `pyproject.toml` へ移す
-- [ ] `SchedDataFile.__init__` のパスの分解を `os.path` にする
-
-`migrate.py` は「`handler.py` を import すると移行ツールが tornado に
-依存してしまう」と書いてあるのに、`__init__.py` が `MainHandler` と
-`WebServer` を import しているので、`ytsched migrate` は結局 tornado を
-読み込む。**決めること:** `__init__.py` の import をやめるか、
-コメントを実情に合わせるか。
-
-使われていない属性は `HandlerBase._app` / `_req`、
-`SchedDataFile.filename` / `dirname`、`SchedData.get_keys()`。
-どれもテストがアサートしているので、消すならテストも一緒に消す。
-
-`CONF_KEY_TODO_DAYS` / `CONF_KEY_FILTER_STR` / `CONF_KEY_SEARCH_N` は
-`HandlerBase` にありながら `MainHandler` からしか使っていない。
-TODO-081 で `CONF_KEY_LOAD_MONTHS` だけを移し、残りはここで扱うと決めた。
-`CONF_KEY_SEARCH_STR` は `EditHandler.get()` でも読んでいるので
-`HandlerBase` のままにする。
-
-`x_data1` はデバッグ用と `src/README.md` にあるが、`ytsched --help` には
-他の 2 つと並んで出る。**残すか消すかを決める。**
-
-ruff は `ignore` だけが `pyproject.toml` にあり、`--line-length 78` と
-`--extend-select I` は `mise.toml` のコマンド行にある。**移すのは
-置き場所だけで、規則を増やすかどうかは別の項目にする。**
-
-詳しくは `docs/design-review.md` の H・J・K。
 
 ---
 
@@ -82,6 +41,7 @@ TODO-056 で入れたブラウザのテストで、退行を捕まえられる�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-082.** import の意図と実態のズレ、未使用の属性、定数の置き場所を片付ける](archives/todo/TODO-082.%20import%20の意図と実態のズレ、未使用の属性、定数の置き場所を片付ける.md)
 - [**TODO-081.** ハンドラの役割と、依存の渡し方を整理する](archives/todo/TODO-081.%20ハンドラの役割と、依存の渡し方を整理する.md)
 - [**TODO-080.** キャッシュがファイルの更新に追随しないのを直す](archives/todo/TODO-080.%20キャッシュがファイルの更新に追随しないのを直す.md)
 - [**TODO-079.** 表示の条件をまとめて `load_sched()` の引数を減らす](archives/todo/TODO-079.%20表示の条件をまとめて%20load_sched%20の引数を減らす.md)

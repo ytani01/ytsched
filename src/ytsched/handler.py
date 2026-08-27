@@ -24,10 +24,7 @@ class HandlerBase(tornado.web.RequestHandler):
 
     CONF_FNAME = "conf.json"
     CONF_ENCODE = "utf-8"
-    CONF_KEY_TODO_DAYS = "ToDo_Days"
-    CONF_KEY_FILTER_STR = "FilterStr"
     CONF_KEY_SEARCH_STR = "SearchStr"
-    CONF_KEY_SEARCH_N = "SearchN"
 
     HTML_MAIN = "main.html"
     HTML_EDIT = "edit.html"
@@ -43,9 +40,6 @@ class HandlerBase(tornado.web.RequestHandler):
 
         self.__log.debug(f"app={app}")
         self.__log.debug(f"req={req}")
-
-        self._app = app
-        self._req = req
 
         # 属性への代入は明示のまま(型チェッカが属性を追えなくなるため)
         self._title = app.settings.get("title")

@@ -444,8 +444,6 @@ def test_sde_init_date_none_is_today():
 def test_date2path(tmp_path):
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
     assert sdf.pathname == f"{tmp_path}/2021/03/01.jsonl"
-    assert sdf.dirname == f"{tmp_path}/2021/03"
-    assert sdf.filename == "01.jsonl"
 
 
 def test_date2path_todo(tmp_path):

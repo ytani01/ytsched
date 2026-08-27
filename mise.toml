@@ -20,10 +20,10 @@ alias = "uppj"
 description = "format (ruff)"
 run = '''
 echo "# ruff format"
-uv run ruff format --line-length 78 src tests tools
+uv run ruff format src tests tools
 
 echo "# ruff check"
-uv run ruff check --fix --extend-select I src tests tools
+uv run ruff check --fix src tests tools
 '''
 
 [tasks.typecheck]
