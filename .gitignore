@@ -64,6 +64,9 @@ env/
 .abbrev_defs
 .dir-locals.el
 
+# markdown-mode のプレビューが作る一時ファイル（README.md → README.html）
+/README.html
+
 # Org-mode
 .org-id-locations
 *_archive
