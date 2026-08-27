@@ -20,7 +20,8 @@ const loadingSpinner = (on) => {
  * ``load``が起きないので、``doGet()``などで出したスピナーが
  * 出たままになる (TODO-068)。``pageshow``で消す。
  *
- * ``ytState.elLoadingSpinner``は各ページの ``onloadHdr()``が入れているが、
+ * ``ytState.elLoadingSpinner``は各ページの ``load`` ハンドラ
+ * (``onloadHdr()`` / ``onloadEdit()``)が入れているが、
  * 復元されたときの値を当てにせず、ここで取り直す。
  */
 window.addEventListener("pageshow", (event) => {

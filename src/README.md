@@ -25,7 +25,7 @@ src/ytsched/
   webroot/
     templates/      # tornado のテンプレート（base/main/edit/sde.html）
     static/         # CSS・アイコン・manifest.json・favicon
-      js/           # ブラウザ側のスクリプト 8 本（後述）
+      js/           # ブラウザ側のスクリプト 9 本（後述）
 ```
 
 CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形式からの
@@ -254,7 +254,7 @@ sequenceDiagram
 
 ## ブラウザ側のスクリプト
 
-`static/js/` に 8 本ある（TODO-083）。ES モジュールではなく素の
+`static/js/` に 9 本ある（TODO-083・TODO-089）。ES モジュールではなく素の
 `<script>` で、関数と定数はグローバルに置いたまま。テンプレートの
 `onmousedown="doGet(...)"` と、`tests/test_browser.py` の
 `page.evaluate("days2xPercent(0)")` が、どちらもグローバルの名前を直に
@@ -270,10 +270,12 @@ sequenceDiagram
 | `keyboard.js` | ソフトキーボードへの追従と、キー操作 |
 | `swipe.js` | 左右のスワイプとマウスのドラッグ |
 | `main-page.js` | 一覧画面（`main.html`）だけで使う初期化とハンドラ |
+| `edit-page.js` | 編集画面（`edit.html`）だけで使う初期化とハンドラ |
 
-`base.html` が `main-page.js` 以外の 7 本を読む。`main-page.js` は
-`main.html` が自分で読む（`base.html` に入れると、編集画面でも
-`onloadHdr()` が走ってしまう）。
+`base.html` が `main-page.js` と `edit-page.js` 以外の 7 本を読む。
+`main-page.js` は `main.html` が、`edit-page.js` は `edit.html` が
+それぞれ自分で読む（`base.html` に入れると、もう一方の画面でも
+`onloadHdr()` / `onloadEdit()` が走ってしまう）。
 
 **ファイルをまたぐ状態は `state.js` の `ytState` にまとめてある**
 （`elLoadingSpinner` / `elMain` / `elGaugeR0` / `elWeekWrap` /

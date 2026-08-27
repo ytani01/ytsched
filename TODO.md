@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-089..TODO-095**
-これまでに 87 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-090..TODO-095**
+これまでに 88 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-097` から**。
 
@@ -42,24 +42,6 @@ TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 1
 - 消した予定をゴミ箱から復活できるようにする。
 - 書き換えた予定も、ゴミ箱から復旧できるようにする。
 - ゴミ箱に同じIDの予定が複数あるときは、内容を確認して選択できるようにする。
-
----
-
-## TODO-089. `edit.html` の JavaScript を `edit-page.js` へ出す
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | implementer + verifier |
-
-- [ ] `edit-page.js` を作り、`main-page.js` と同じ形にする（テンプレートの値だけ `<script>` に残す）
-- [ ] `onloadHdr()` が `main-page.js` と同じ名前で中身が違うのを解く
-- [ ] 使われていないもの（コメントアウトされた `resize`、存在しない `rotationchange`）を消す
-
-基本設計のレビュー（2026-08-27）の M。TODO-083 が「範囲外」として
-持ち越した件。`main.html` の 120 行は `main-page.js` へ出たが、
-`edit.html` の 100 行はそのまま残っている。`submitCmd()` /
-`changeElDate()` / `changeDetailHeight()` はテンプレートの値を使って
-いないので、そのまま外へ出せる。
 
 ---
 
@@ -247,6 +229,7 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-089.** `edit.html` の JavaScript を `edit-page.js` へ出す](archives/todo/TODO-089.%20edit.html%20の%20JavaScript%20を%20edit-page.js%20へ出す.md)
 - [**TODO-096.** Android の Firefox でアイコンが黒く塗りつぶされる](archives/todo/TODO-096.%20Android%20の%20Firefox%20でアイコンが黒く塗りつぶされる.md)
 - [**TODO-084.** フッターの ◀▶ をダブルタップして自動ページ送り](archives/todo/TODO-084.%20フッターの%20◀▶%20をダブルタップして自動ページ送り.md)
 - [**TODO-088.** 一覧の組み立てと検索を分ける](archives/todo/TODO-088.%20一覧の組み立てと検索を分ける.md)
