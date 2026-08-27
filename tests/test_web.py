@@ -20,6 +20,7 @@ from loguru import logger
 from ytsched import handler_util
 from ytsched.edit_handler import EditHandler
 from ytsched.main_handler import MainHandler
+from ytsched.sched_update import SchedUpdater
 from ytsched.ytsched import SchedDataFile
 
 DATE1 = datetime.date(2021, 3, 1)
@@ -1319,7 +1320,7 @@ class TestUpdate(WebTestBase):
         self.write_data(DATE1, [DATALINE1, DATALINE2])
 
         with mock.patch.object(
-            MainHandler, "cmd_add", side_effect=RuntimeError("boom")
+            SchedUpdater, "cmd_add", side_effect=RuntimeError("boom")
         ):
             res = self.fetch(
                 URL_PREFIX + "/",

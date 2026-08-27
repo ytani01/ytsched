@@ -13,7 +13,8 @@ src/ytsched/
   ytsched.py       # データモデル: SchedDataEnt / SchedDataFile / SchedData
   handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、conf.json の読み書き）
   handler_util.py  # 引数と設定値の変換・検証（self を使わない純粋な関数）
-  main_handler.py  # MainHandler（一覧表示・追加/修正/削除の実行）
+  main_handler.py  # MainHandler（一覧表示と、追加/修正/削除の受け取り）
+  sched_update.py  # SchedUpdater（追加/修正/削除の実行。tornado を知らない）
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
   migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行と、設定ファイルの JSON 化（`ytsched migrate`）
@@ -123,12 +124,18 @@ classDiagram
         +get()
         +post()
     }
+    class SchedUpdater {
+        +exec_update(form)
+        +cmd_add()
+        +cmd_del()
+    }
     class WebServer {
         +main()
     }
     RequestHandler <|-- HandlerBase
     HandlerBase <|-- MainHandler
     HandlerBase <|-- EditHandler
+    MainHandler ..> SchedUpdater : cmd の実行
     WebServer ..> MainHandler : "/", url_prefix, url_prefix/
     WebServer ..> EditHandler : url_prefix/edit, url_prefix/edit/
 ```
@@ -149,7 +156,7 @@ classDiagram
   `check_date()` / `date_range()` / `check_int_range()`。
   TODO-027・TODO-081）
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
-  実行（`cmd=add/fix/update/del`）を兼ねる。**`GET` が描画、`POST` が
+  受け取り（`cmd=add/fix/update/del`）を兼ねる。**`GET` が描画、`POST` が
   実行**で、`post()` は描かずに `redirect()` する（POST-Redirect-GET、
   TODO-050）。リロードで再送信にならないようにするため。`cmd` を
   実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
@@ -166,6 +173,14 @@ classDiagram
   絞り込み・ToDo の日数・目標件数は `conf.json` に保存する。
   それらを送るときは、ブックマークや履歴に残らないよう `POST` を通す
   （`nav.js` の `doPost()`。表示を変えるだけの移動は `doGet()`）
+- **`SchedUpdater`**（`sched_update.py`）が `cmd` の実行そのものを担う
+  （TODO-087）。**tornado を知らない**ので、ハンドラを組み立てずに
+  呼べる。フォームの値は `MainHandler` が取り出して `SchedUpdateForm`
+  1 つに詰めて渡す。**読めない値（不正な日付・時刻）で 400 にするのも、
+  見つからない `sde_id` で 404 にするのも `MainHandler` 側**
+  （`SchedUpdater.get_modified_sde()` は `None` を返すだけ）。400 は
+  書き込みが 1 つも起きる前に投げる（TODO-027）ので、値の取り出しは
+  `SchedUpdater` を呼ぶより先に済ませる
 - **`EditHandler`**（`edit_handler.py`）が編集画面を出す。`date` /
   `sde_id` の決め方（引数 → クエリ文字列 → 既定値の順）は docstring に
   書いてある。フォームの隠しフィールド `orig_date`（更新・削除のときに

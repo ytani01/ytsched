@@ -20,7 +20,8 @@ import tornado.web
 from . import handler_util
 from .handler import HandlerBase
 from .mylog import getLogger
-from .ytsched import SchedDataEnt, normalize
+from .sched_update import SchedUpdateForm, SchedUpdater
+from .ytsched import SchedData, SchedDataEnt, normalize
 
 
 @dataclasses.dataclass
@@ -91,6 +92,13 @@ class MainHandler(HandlerBase):
     #: ヶ月を週の数に直すときの、1 ヶ月の日数 (TODO-069)
     DAYS_PER_MONTH = 30
 
+    def initialize(self, sd: SchedData) -> None:
+        """``sd`` を受け取り、更新の実行役 (``SchedUpdater``) を作る
+        (TODO-087)。
+        """
+        super().initialize(sd)
+        self._updater = SchedUpdater(sd)
+
     def post(self):
         """POST。値を保存して ``cmd`` を実行し、GET へ飛ばす (TODO-050)。
 
@@ -111,7 +119,7 @@ class MainHandler(HandlerBase):
         #
         # ``conf.json`` へ保存される値を読む (``get()`` と同じ変換)
         #
-        search_str = self.get_conf_arg(
+        _ = self.get_conf_arg(
             "search_str",
             self.CONF_KEY_SEARCH_STR,
             "",
@@ -143,7 +151,7 @@ class MainHandler(HandlerBase):
         #
         # command (add/fix/update/del)
         #
-        modified_date, edit_url = self.exec_cmd(search_str)
+        modified_date, edit_url = self.exec_cmd()
 
         if edit_url:
             self.redirect(edit_url)
@@ -560,15 +568,8 @@ class MainHandler(HandlerBase):
 
         return default
 
-    def exec_cmd(
-        self, search_str: str
-    ) -> tuple[datetime.date | None, str | None]:
+    def exec_cmd(self) -> tuple[datetime.date | None, str | None]:
         """``cmd`` (add/fix/update/del) を実行する。
-
-        Parameters
-        ----------
-        search_str: str
-            ``update`` のあと、編集画面へ引き継ぐ
 
         Returns
         -------
@@ -584,7 +585,8 @@ class MainHandler(HandlerBase):
         if cmd not in ["add", "fix", "update", "del"]:
             return None, None
 
-        modified_date, modified_sde_id = self.exec_update(cmd)
+        form = self.get_update_form(cmd)
+        modified_date, modified_sde_id = self._updater.exec_update(form)
         self.__log.debug(
             f"modified_date={modified_date}, modified_sde_id={modified_sde_id}"
         )
@@ -593,7 +595,16 @@ class MainHandler(HandlerBase):
             self.__log.debug(f"modified_date={modified_date}")
             return modified_date, None
 
-        sde = self.get_modified_sde(cmd, modified_date, modified_sde_id)
+        sde = self._updater.get_modified_sde(modified_date, modified_sde_id)
+        if sde is None:
+            # 更新したはずのデータが見つからない (TODO-016)
+            raise tornado.web.HTTPError(
+                404,
+                "sde not found: date=%s, sde_id=%s (cmd=%s)",
+                modified_date,
+                modified_sde_id,
+                cmd,
+            )
 
         todo_flag = sde.is_todo()
         if todo_flag:
@@ -617,42 +628,75 @@ class MainHandler(HandlerBase):
 
         return modified_date, None
 
-    def get_modified_sde(
-        self,
-        cmd: str,
-        modified_date: datetime.date | None,
-        modified_sde_id: str | None,
-    ) -> SchedDataEnt:
-        """更新したデータを読み直す。
+    def get_update_form(self, cmd: str) -> SchedUpdateForm:
+        """フォームの引数を取り出して ``SchedUpdateForm`` に詰める
+        (TODO-087)。
 
-        見つからなければ 404 (TODO-016)。
+        ``orig_date`` → ``date`` → 時刻 → その他、の順は変えない
+        (空でないのに読めない値を、書き込みが 1 つも起きる前に 400 で
+        断るため。TODO-027)。
 
         Parameters
         ----------
         cmd: str
-        modified_date: datetime.date | None
-        modified_sde_id: str | None
 
         Returns
         -------
-        SchedDataEnt
+        SchedUpdateForm
 
         """
-        sdf = self._sd.get_sdf(modified_date)
-        sde = sdf.get_sde(modified_sde_id)
-        self.__log.debug(f"sde={sde}")
+        # get orig_date
+        # ``get_date_arg()``/``get_time_arg()`` は、空でないのに読めない
+        # 値を 400 で断る。書き込みが 1 つも起きる前に弾くために、
+        # ``cmd_del()``/``cmd_add()`` より先に呼んでおく (TODO-027)
+        orig_date = self.get_date_arg("orig_date")
+        self.__log.debug(f"orig_date={orig_date}")
 
-        if sde is None:
-            # 更新したはずのデータが見つからない (TODO-016)
-            raise tornado.web.HTTPError(
-                404,
-                "sde not found: date=%s, sde_id=%s (cmd=%s)",
-                modified_date,
-                modified_sde_id,
-                cmd,
-            )
+        # get (new) date
+        date = self.get_date_arg("date")
+        self.__log.debug(f"date={date}")
 
-        return sde
+        # get times
+        time_start = self.get_time_arg("time_start")
+        time_end = self.get_time_arg("time_end")
+        self.__log.debug(f"time_start, time_end: {time_start}-{time_end}")
+
+        # get sde_type, title, place
+        sde_type = self.get_argument("sde_type", "")
+        title = self.get_argument("title", "")
+        place = self.get_argument("place", "")
+        self.__log.debug(f"[{sde_type}]{title}@{place}")
+
+        # get detail
+        detail = self.get_argument("detail", "")
+        self.__log.debug(f"detail:'{detail}'")
+
+        # set deadline_*
+        (
+            deadline_date_str,
+            deadline_time_start_str,
+            deadline_time_end_str,
+        ) = self.get_deadline_str()
+
+        # sde_id
+        sde_id: str | None = self.get_argument("sde_id")
+        self.__log.debug(f"sde_id={sde_id}")
+
+        return SchedUpdateForm(
+            cmd=cmd,
+            sde_id=sde_id,
+            orig_date=orig_date,
+            date=date,
+            time_start=time_start,
+            time_end=time_end,
+            sde_type=sde_type,
+            title=title,
+            place=place,
+            detail=detail,
+            deadline_date_str=deadline_date_str,
+            deadline_time_start_str=deadline_time_start_str,
+            deadline_time_end_str=deadline_time_end_str,
+        )
 
     def get_date(self, modified_date: datetime.date | None) -> datetime.date:
         """表示する日付を決める。
@@ -1068,115 +1112,6 @@ class MainHandler(HandlerBase):
 
         return search_re.search(sde.search_str()) is not None
 
-    def exec_update(
-        self, cmd: str
-    ) -> tuple[datetime.date | None, str | None]:
-        """
-        Parameters
-        ----------
-        cmd: str
-
-        Returns
-        -------
-        date: datetime.date | None
-            更新された日付。ToDo の場合は None
-        modified_sde_id: str | None
-            更新されたスケジュールID。``del`` の場合は None
-        """
-        self.__log.debug("")
-
-        # get orig_date
-        # ``get_date_arg()``/``get_time_arg()`` は、空でないのに読めない
-        # 値を 400 で断る。書き込みが 1 つも起きる前に弾くために、
-        # ``cmd_del()``/``cmd_add()`` より先に呼んでおく (TODO-027)
-        orig_date = self.get_date_arg("orig_date")
-        self.__log.debug(f"orig_date={orig_date}")
-
-        # get (new) date
-        date = self.get_date_arg("date")
-        self.__log.debug(f"date={date}")
-
-        # get times
-        time_start = self.get_time_arg("time_start")
-        time_end = self.get_time_arg("time_end")
-        self.__log.debug(f"time_start, time_end: {time_start}-{time_end}")
-
-        # get sde_type, title, place
-        sde_type = self.get_argument("sde_type", "")
-        title = self.get_argument("title", "")
-        place = self.get_argument("place", "")
-        self.__log.debug(f"[{sde_type}]{title}@{place}")
-
-        # get detail
-        detail = self.get_argument("detail", "")
-        self.__log.debug(f"detail:'{detail}'")
-
-        # set deadline_*
-        (
-            deadline_date_str,
-            deadline_time_start_str,
-            deadline_time_end_str,
-        ) = self.get_deadline_str()
-
-        if deadline_date_str and not SchedDataEnt.type_is_todo(sde_type):
-            #
-            # ToDoが完了した場合
-            #
-            date, time_start, time_end, detail = self.fix_todo_done(
-                deadline_date_str,
-                deadline_time_start_str,
-                deadline_time_end_str,
-                detail,
-            )
-
-        # sde_id
-        sde_id: str | None = self.get_argument("sde_id")
-        self.__log.debug(f"sde_id={sde_id}")
-
-        # exec cmd
-        self.__log.debug(f"EXEC: {cmd}")
-
-        new_sde = None
-        modified_sde_id = None
-
-        if cmd in ["add"]:
-            sde_id = None
-
-        # ``cmd_del()``/``cmd_add()`` は変更を覚えるだけで保存しない。
-        # 同じファイルへの保存が 1 回で済むよう、ここでまとめて
-        # 保存する (TODO-077)。
-        #
-        # ``finally`` にしてあるのは、``SchedData`` がアプリ全体で 1 つ
-        # だからで、途中で例外が出たときに変更の印を残したまま抜けると、
-        # **次の関係の無いリクエストの保存に紛れ込む**。
-        # 途中まで保存されるのは、保存を分ける前と同じ挙動
-        try:
-            if cmd in ["del", "fix", "update"]:
-                self.cmd_del(orig_date, sde_id)
-
-            if cmd in ["add", "fix", "update"]:
-                new_sde = self.cmd_add(
-                    sde_id,
-                    date,
-                    time_start,
-                    time_end,
-                    sde_type,
-                    title,
-                    place,
-                    detail,
-                )
-        finally:
-            self._sd.save()
-
-        if new_sde:
-            modified_sde_id = new_sde.sde_id
-            date = new_sde.date
-            if new_sde.is_todo():
-                date = None
-
-        self.__log.debug(f"date={date}, modified_sde_id={modified_sde_id}")
-        return date, modified_sde_id
-
     def get_date_arg(self, arg_name: str) -> datetime.date | None:
         """フォームの引数を日付として取り出す（空なら ``None``）。
 
@@ -1278,114 +1213,3 @@ class MainHandler(HandlerBase):
             deadline_time_start_str,
             deadline_time_end_str,
         )
-
-    def fix_todo_done(
-        self,
-        deadline_date_str: str,
-        deadline_time_start_str: str,
-        deadline_time_end_str: str,
-        detail: str,
-    ) -> tuple[datetime.date, datetime.time, datetime.time | None, str]:
-        """ToDoが完了した場合の補正。
-
-        ``date``, ``time_start``を現在日時にして、``detail``の先頭に
-        元の締切を書き足す。
-
-        Parameters
-        ----------
-        deadline_date_str: str
-        deadline_time_start_str: str
-        deadline_time_end_str: str
-        detail: str
-
-        Returns
-        -------
-        date: datetime.date
-        time_start: datetime.time
-        time_end: datetime.time | None
-        detail: str
-
-        """
-        date = datetime.date.today()
-        self.__log.debug(f"[fix] date={date}")
-
-        time_start = datetime.datetime.now().time()
-        # msec を切り捨てる
-        time_start = datetime.time.fromisoformat(
-            time_start.strftime(SchedDataEnt.TIME_FORMAT)
-        )
-        self.__log.debug(f"[fix] time_start={time_start}")
-        time_end = None
-
-        deadline_date = deadline_date_str.replace("-", "/")
-        deadline_time = f"{deadline_time_start_str}{deadline_time_end_str}"
-        # 時刻が無ければ、区切りの空白も付けない (TODO-028)
-        deadline_line = f"〆{deadline_date}"
-        if deadline_time:
-            deadline_line += f" {deadline_time}"
-
-        detail = f"{deadline_line}\n{detail}"
-        self.__log.debug(f"[fix] detail={detail}")
-
-        return date, time_start, time_end, detail
-
-    def cmd_add(
-        self,
-        sde_id,
-        date,
-        time_start,
-        time_end,
-        sde_type,
-        title,
-        place,
-        detail,
-    ):
-        """
-        Parameters
-        ----------
-        sde_id: str
-        date: datetime.date
-        time_start, time_end:
-        sde_type: str
-        title: str
-        place: str
-        detail: str
-
-        Returns
-        -------
-        new_sde: SchedDataEnt
-
-        """
-        self.__log.debug(f"sde_id={sde_id}, date={date}")
-
-        new_sde = SchedDataEnt(
-            sde_id,
-            date,
-            time_start,
-            time_end,
-            sde_type,
-            title,
-            place,
-            detail,
-        )
-        if new_sde.is_todo():
-            self._sd.add_sde(None, new_sde)
-        else:
-            # ``date`` が空でも ``SchedDataEnt`` 側で今日に補正される。
-            # 書き込み先も ``new_sde.date`` に合わせる (TODO-016)
-            self._sd.add_sde(new_sde.date, new_sde)
-
-        return new_sde
-
-    def cmd_del(self, date, sde_id):
-        """
-        Parameters
-        ----------
-        date: datetime.date
-
-        sde_id: str
-
-        """
-        self.__log.debug(f"date={date}, sde_id={sde_id}")
-
-        self._sd.del_sde(date, sde_id)

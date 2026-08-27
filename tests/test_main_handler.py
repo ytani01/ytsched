@@ -45,6 +45,7 @@ from test_web import (
 
 from ytsched import handler_util
 from ytsched.main_handler import MainHandler, SchedLoadCond
+from ytsched.sched_update import SchedUpdater
 from ytsched.ytsched import SchedData
 
 CONF_FNAME = "conf.json"
@@ -430,13 +431,13 @@ class TestExecUpdateDeadline(WebTestBase):
         ``cmd_add()`` の引数で見る。
         """
         calls = []
-        orig = MainHandler.cmd_add
+        orig = SchedUpdater.cmd_add
 
-        def spy(handler, *args):
+        def spy(updater, *args):
             calls.append(args)
-            return orig(handler, *args)
+            return orig(updater, *args)
 
-        return calls, mock.patch.object(MainHandler, "cmd_add", spy)
+        return calls, mock.patch.object(SchedUpdater, "cmd_add", spy)
 
     def test_deadline_fixes_date_and_time_start(self):
         """``date`` は今日、``time_start`` は秒以下を落とした現在時刻。
