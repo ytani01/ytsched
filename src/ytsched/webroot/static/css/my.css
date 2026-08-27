@@ -475,7 +475,7 @@ textarea {
    左右の 16px は、両端のラベル (±30y) が半分はみ出すぶんの逃げ
    (TODO-061 で 12px から広げた。幅 360px で ±30y が画面の端に
    接していた) */
-.my-gage-bar {
+.my-gauge-bar {
     position: relative;
     height: 33px;
     margin: 0 16px;
@@ -485,12 +485,12 @@ textarea {
 /* タップ・クリックできることが分かるように (TODO-074)。
    ボタンと同じ黄色にすると帯が一色に塗り潰され、押している間だけ
    目盛りと針が読めなくなるので、薄い半透明の白にしてある */
-.my-gage-bar:active {
+.my-gauge-bar:active {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* 目盛りの軸 */
-.my-gage-axis {
+.my-gauge-axis {
     position: absolute;
     left: 0;
     right: 0;
@@ -501,7 +501,7 @@ textarea {
 }
 
 /* 今週のしるし (中央に固定) */
-.my-gage-base {
+.my-gauge-base {
     position: absolute;
     top: 15px;
     left: 50%;
@@ -516,7 +516,7 @@ textarea {
    針と文字をこの入れ物にまとめ、動かすのはこの 1 つだけにする。
    幅は針 (12px) に合わせてあり、それより広い文字は、この中で
    中央 (left: 50%) を基準に置く */
-.my-gage-r {
+.my-gauge-r {
     position: absolute;
     top: 0;
     left: 50%;
@@ -524,24 +524,24 @@ textarea {
     height: 20px;
     transform: translateX(-50%);
     /* 週を切り替えたときに、針が動くのが見えるようにする (TODO-049)。
-       ページを読み直した直後は、前の週の位置へ ``.my-gage-r-no-transition``
+       ページを読み直した直後は、前の週の位置へ ``.my-gauge-r-no-transition``
        で一度置いてから、この transition を効かせて今の週へ動かす
-       (JavaScript 側は ``dispGage()``) */
+       (JavaScript 側は ``dispGauge()``) */
     transition: left 0.3s ease-out;
 }
 
-/* ``.my-gage-r`` と同じ詳細度 (クラス 1 つ) だと、ソース順でしか
+/* ``.my-gauge-r`` と同じ詳細度 (クラス 1 つ) だと、ソース順でしか
    勝てず、``my.css`` を並べ替えたときに無言で効かなくなる。
-   ``.my-gage-r`` を重ねてクラス 2 つぶんの詳細度にし、順序に
+   ``.my-gauge-r`` を重ねてクラス 2 つぶんの詳細度にし、順序に
    依らず打ち消せるようにする (TODO-049 reviewer 指摘 2) */
-.my-gage-r.my-gage-r-no-transition {
+.my-gauge-r.my-gauge-r-no-transition {
     transition: none;
 }
 
 /* 針の上に出す、今週からの週の差 (TODO-066)。
    入れ物 (12px) より広いので、中央を基準に左右へはみ出させる。
-   今週のときは ``±0``。文字は ``setGagePosition()`` が入れる */
-.my-gage-r-label {
+   今週のときは ``±0``。文字は ``setGaugePosition()`` が入れる */
+.my-gauge-r-label {
     position: absolute;
     bottom: 11px;
     left: 50%;
@@ -552,7 +552,7 @@ textarea {
 }
 
 /* 針そのもの (TODO-043 の三角形) */
-.my-gage-r-needle {
+.my-gauge-r-needle {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -565,7 +565,7 @@ textarea {
    ``x-small`` (10px) では、幅 360px で ``+1w`` と ``+1m`` の隙間が
    1px しかなく読めなかったので 8px に落とした (TODO-061)。
    目盛りは 14 個のまま間引かない */
-.my-gage-label {
+.my-gauge-label {
     position: absolute;
     top: 22px;
     font-size: 10px;

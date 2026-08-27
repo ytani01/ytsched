@@ -354,7 +354,7 @@ def _center_x(page, selector):
     return box["x"] + box["width"] / 2
 
 
-def test_gage_label_moves_with_the_needle(page, server):
+def test_gauge_label_moves_with_the_needle(page, server):
     """週の差のラベルが、針と一緒に動く（TODO-066）。
 
     ラベルは針の入れ物の中にあるので、針が動けばラベルも同じだけ動く。
@@ -365,37 +365,37 @@ def test_gage_label_moves_with_the_needle(page, server):
 
     _open(page, server, far.strftime("%Y-%m-%d"))
 
-    label = page.locator("#gage_r_label")
+    label = page.locator("#gauge_r_label")
     label.wait_for(state="visible", timeout=10000)
 
     # 針が動き終わるのを待つ（transition は 0.3s）
     page.wait_for_function(
-        "() => document.getElementById('gage_r_label').textContent.trim() === '+3w'",
+        "() => document.getElementById('gauge_r_label').textContent.trim() === '+3w'",
         timeout=10000,
     )
     page.wait_for_timeout(500)
 
     # 針より右にいる（今週は中央）
-    assert _center_x(page, "#gage_r") > page.viewport_size["width"] / 2
+    assert _center_x(page, "#gauge_r") > page.viewport_size["width"] / 2
 
     # ラベルの中心が、針の中心とそろっている
     assert (
         abs(
-            _center_x(page, "#gage_r_label")
-            - _center_x(page, ".my-gage-r-needle")
+            _center_x(page, "#gauge_r_label")
+            - _center_x(page, ".my-gauge-r-needle")
         )
         < 2
     )
 
 
-def test_gage_label_is_plus_minus_zero_in_this_week(page, server):
+def test_gauge_label_is_plus_minus_zero_in_this_week(page, server):
     """今週のときは ``±0``（TODO-066）。"""
     today = datetime.date.today()
 
     _open(page, server, today.strftime("%Y-%m-%d"))
 
     page.wait_for_function(
-        "() => document.getElementById('gage_r_label').textContent.trim()"
+        "() => document.getElementById('gauge_r_label').textContent.trim()"
         " === '\\u00b10'",
         timeout=10000,
     )
@@ -415,7 +415,7 @@ def test_x_percent2days_inverts_days2x_percent(page, server):
         assert got == pytest.approx(days, abs=1e-6), f"days={days}"
 
 
-def test_gage_bar_click_moves_to_the_tapped_week(page, server):
+def test_gauge_bar_click_moves_to_the_tapped_week(page, server):
     """ゲージの帯をクリックすると、その位置に応じた週へ移る（TODO-074）。
 
     3 週間先 (21 日) が指す位置を ``days2xPercent()`` で計算し、その
@@ -429,7 +429,7 @@ def test_gage_bar_click_moves_to_the_tapped_week(page, server):
     target_days = 21
     x_percent = page.evaluate("(d) => days2xPercent(d)", target_days)
 
-    box = page.locator(".my-gage-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").bounding_box()
     assert box is not None
     click_x = box["x"] + box["width"] * (50 + x_percent) / 100
     click_y = box["y"] + box["height"] / 2

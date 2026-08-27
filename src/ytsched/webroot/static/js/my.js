@@ -4,7 +4,7 @@
 
 let elLoadingSpinner;
 let elMain;
-let elGageR0;
+let elGaugeR0;
 // 前週・今週・次週をまとめたラッパー (TODO-057)。指の追従・週送りの
 // アニメーションで動かす
 let elWeekWrap;
@@ -41,10 +41,10 @@ window.addEventListener("pageshow", (event) => {
 // 横ゲージ (TODO-058)。``main_handler.py`` の ``DAYS_YEAR`` と同じ値
 const DAYS_YEAR = 365.25;
 const DAYS_MONTH = DAYS_YEAR / 12;
-const DAYS_GAGE_MAX = DAYS_YEAR * 30;
+const DAYS_GAUGE_MAX = DAYS_YEAR * 30;
 // 中心の近くをどれだけ詰めるか (TODO-059)。``main_handler.py`` の
-// ``DAYS_GAGE_K`` と同じ値
-const DAYS_GAGE_K = 10.0;
+// ``DAYS_GAUGE_K`` と同じ値
+const DAYS_GAUGE_K = 10.0;
 
 /**
  * 今週の中心からの左右のずれを、ゲージの幅に対する割合 (%) で返す。
@@ -57,8 +57,8 @@ const DAYS_GAGE_K = 10.0;
  */
 const days2xPercent = (days) => {
     // console.log(`days=${days}`);
-    let xPercent = 50.0 * Math.log10(1 + Math.abs(days) / DAYS_GAGE_K)
-          / Math.log10(1 + DAYS_GAGE_MAX / DAYS_GAGE_K);
+    let xPercent = 50.0 * Math.log10(1 + Math.abs(days) / DAYS_GAUGE_K)
+          / Math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K);
     xPercent = Math.min(xPercent, 50.0);
 
     if (days < 0) {
@@ -70,7 +70,7 @@ const days2xPercent = (days) => {
 /**
  * ``days2xPercent()`` の逆算 (TODO-074)。ゲージの帯をタップしたときに、
  * その位置 (中央からの割合 %) から、今週の月曜との日数の差を出すために使う。
- * 同じ式・同じ定数 (``DAYS_GAGE_K`` / ``DAYS_GAGE_MAX``) の逆関数で、
+ * 同じ式・同じ定数 (``DAYS_GAUGE_K`` / ``DAYS_GAUGE_MAX``) の逆関数で、
  * 頭打ちは無い (``xPercent`` は呼び出し側で -50〜+50 に収まっている前提)。
  *
  * @param {number} xPercent
@@ -80,8 +80,8 @@ const days2xPercent = (days) => {
 const xPercent2days = (xPercent) => {
     const abs_xPercent = Math.abs(xPercent);
     const exponent = abs_xPercent / 50.0
-          * Math.log10(1 + DAYS_GAGE_MAX / DAYS_GAGE_K);
-    const abs_days = DAYS_GAGE_K * (Math.pow(10, exponent) - 1);
+          * Math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K);
+    const abs_days = DAYS_GAUGE_K * (Math.pow(10, exponent) - 1);
 
     if (xPercent < 0) {
         return -abs_days;
@@ -112,7 +112,7 @@ const mondayOf = (date_str) => {
  * 週数 (``+3w``)、1 ヶ月から 1 年までは月数 (``+1.2m``)、1 年からは
  * 年数 (``+1.2y``)。月と年は小数点以下 1 桁。
  *
- * Python 側 (``main_handler.py`` の ``calc_gage_label()``) と同じ
+ * Python 側 (``main_handler.py`` の ``calc_gauge_label()``) と同じ
  * 区切り・同じ書き方にしてある。サーバが埋めるのは読み込んだ直後の
  * 一度だけで、あとはここが書き換えるため、食い違うと針が動く前後で
  * 文字が変わって見える。
@@ -121,7 +121,7 @@ const mondayOf = (date_str) => {
  *
  * @return {String} label
  */
-const gageDiffLabel = (days) => {
+const gaugeDiffLabel = (days) => {
     if (days === 0) {
         return "\u00b10";
     }
@@ -141,29 +141,29 @@ const gageDiffLabel = (days) => {
 /**
  * 針の位置 (``left``) を計算してセットする。``transition`` は
  * 掛けたまま (TODO-049)。針の上のラベル (今週からの差) も、
- * ここで書き換える。位置は入れ物 (``#gage_r``) が持っているので、
+ * ここで書き換える。位置は入れ物 (``#gauge_r``) が持っているので、
  * ラベルは黙って一緒に動く (TODO-066)。
  *
  * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい。
  *   月曜へ丸めてから、今週の月曜との差を見る)
  */
-const setGagePosition = (date_str) => {
+const setGaugePosition = (date_str) => {
     const monday = mondayOf(date_str);
     const this_monday = mondayOf(getLocaltimeDateString(new Date()));
     const top_rel_days = calcDays(this_monday, monday);
 
-    elGageR0.style.left = `${50 + days2xPercent(top_rel_days)}%`;
+    elGaugeR0.style.left = `${50 + days2xPercent(top_rel_days)}%`;
 
     // どちらも月曜なので、7 で割り切れる
-    const elLabel = document.getElementById("gage_r_label");
+    const elLabel = document.getElementById("gauge_r_label");
     if (elLabel) {
-        elLabel.textContent = gageDiffLabel(Math.round(top_rel_days / 7) * 7);
+        elLabel.textContent = gaugeDiffLabel(Math.round(top_rel_days / 7) * 7);
     }
 };
 
 // 直前に見ていた週の月曜 (TODO-049)。ページを読み直したあと、
 // この位置からいまの週へ針を動かして見せるために使う
-const GAGE_MONDAY_KEY = "ytsched_gage_monday";
+const GAUGE_MONDAY_KEY = "ytsched_gauge_monday";
 
 /**
  * ``sessionStorage`` から直前の週の月曜を読む。
@@ -175,26 +175,26 @@ const GAGE_MONDAY_KEY = "ytsched_gage_monday";
  *
  * @return {String | null}
  */
-const getGageMonday = () => {
+const getGaugeMonday = () => {
     try {
-        return sessionStorage.getItem(GAGE_MONDAY_KEY);
+        return sessionStorage.getItem(GAUGE_MONDAY_KEY);
     } catch (e) {
-        console.log(`getGageMonday: ${e}`);
+        console.log(`getGaugeMonday: ${e}`);
         return null;
     }
 };
 
 /**
  * ``sessionStorage`` へ今の週の月曜を書く。書けなくても黙って諦める
- * (TODO-049。理由は ``getGageMonday()`` を参照)。
+ * (TODO-049。理由は ``getGaugeMonday()`` を参照)。
  *
  * @param {String} monday_str   'YYYY-mm-dd'
  */
-const setGageMonday = (monday_str) => {
+const setGaugeMonday = (monday_str) => {
     try {
-        sessionStorage.setItem(GAGE_MONDAY_KEY, monday_str);
+        sessionStorage.setItem(GAUGE_MONDAY_KEY, monday_str);
     } catch (e) {
-        console.log(`setGageMonday: ${e}`);
+        console.log(`setGaugeMonday: ${e}`);
     }
 };
 
@@ -204,17 +204,17 @@ const setGageMonday = (monday_str) => {
  * レイアウトを確定させるのに ``getBoundingClientRect()`` を使う
  * (TODO-060)。確定しないまま ``transition`` が戻ると、CSS の初期値
  * (``left: 50%``、つまり中央) から補間が始まってしまう。
- * ``#gage_r`` が ``<svg>`` だったころは ``offsetHeight`` が
+ * ``#gauge_r`` が ``<svg>`` だったころは ``offsetHeight`` が
  * ``undefined`` を返してレイアウトが確定せず、これで踏んだ
  * (いまは針とラベルをまとめた ``<div>``。TODO-066)。
  *
  * @param {String} date_str   'YYYY-mm-dd'
  */
-const placeGageWithoutTransition = (date_str) => {
-    elGageR0.classList.add("my-gage-r-no-transition");
-    setGagePosition(date_str);
-    elGageR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
-    elGageR0.classList.remove("my-gage-r-no-transition");
+const placeGaugeWithoutTransition = (date_str) => {
+    elGaugeR0.classList.add("my-gauge-r-no-transition");
+    setGaugePosition(date_str);
+    elGaugeR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
+    elGaugeR0.classList.remove("my-gauge-r-no-transition");
 };
 
 /**
@@ -225,46 +225,46 @@ const placeGageWithoutTransition = (date_str) => {
  * 今の週へ動かす (TODO-049)。ページを読み直すたびに呼ばれるので、
  * ``transition`` だけでは針の初期値が "auto" のままで補間が起きず、
  * 動いて見えない。``sessionStorage`` が使えない環境でも、針の位置を
- * 合わせること自体は続ける (``getGageMonday()``/``setGageMonday()``
+ * 合わせること自体は続ける (``getGaugeMonday()``/``setGaugeMonday()``
  * が例外を握りつぶす)。
  *
  * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
  */
-const dispGage = (date_str) => {
-    // 検索モードでは週バーごと帯が出ないので、gage_r が無い (TODO-058)
-    if ( ! elGageR0 ) {
+const dispGauge = (date_str) => {
+    // 検索モードでは週バーごと帯が出ないので、gauge_r が無い (TODO-058)
+    if ( ! elGaugeR0 ) {
         return;
     }
 
     if ( ! date_str ) {
-        elGageR0.style.display = "none";
+        elGaugeR0.style.display = "none";
         return;
     }
 
     const monday_str = getLocaltimeDateString(mondayOf(date_str));
-    const prev_monday_str = getGageMonday();
-    setGageMonday(monday_str);
+    const prev_monday_str = getGaugeMonday();
+    setGaugeMonday(monday_str);
 
     if (prev_monday_str && prev_monday_str !== monday_str) {
-        placeGageWithoutTransition(prev_monday_str);
+        placeGaugeWithoutTransition(prev_monday_str);
         requestAnimationFrame(() => {
-            setGagePosition(monday_str);
+            setGaugePosition(monday_str);
         });
         return;
     }
 
-    // 動かす先が無いので、そのまま置く。``setGagePosition()`` を直に
+    // 動かす先が無いので、そのまま置く。``setGaugePosition()`` を直に
     // 呼ぶと、針の ``left`` が CSS の初期値 (``left: 50%``) のままな
     // ので、中央から目的地まで transition が掛かる (TODO-060)
-    placeGageWithoutTransition(monday_str);
+    placeGaugeWithoutTransition(monday_str);
 };
 
 /**
- * ゲージの帯 (``.my-gage-bar``) をタップ・クリックしたら、その位置が
+ * ゲージの帯 (``.my-gauge-bar``) をタップ・クリックしたら、その位置が
  * 指す週の月曜へ移る (TODO-074)。ドラッグでの追従は無く、タップした
  * 瞬間の位置だけを見る。範囲の頭打ちも無い (逆算した先へそのまま飛ぶ)。
  *
- * ``.my-gage-bar`` に ``onmousedown`` 属性で登録してある。ここが
+ * ``.my-gauge-bar`` に ``onmousedown`` 属性で登録してある。ここが
  * 呼ばれるまでの経路は、既存のボタン (``moveToMonday()`` など) と同じ
  * (``mouseDownHdr()`` / ``mouseUpHdr()`` を参照)。マウスは、押した位置
  * から動かずに離すとクリックと見なされ、``mouseUpHdr()`` がここへ
@@ -274,7 +274,7 @@ const dispGage = (date_str) => {
  * 素通りして同じ経路を通る (``mouseDownHdr()`` の
  * ``MOUSE_AFTER_TOUCH_MSEC`` を参照)。どちらの経路でも
  * ``target``/``currentTarget`` が指す要素は食い違うことがあるので、
- * それには頼らず ``.my-gage-bar`` 自体を取り直す (検索モードでは
+ * それには頼らず ``.my-gauge-bar`` 自体を取り直す (検索モードでは
  * 週バーごと出ないので見つからない。TODO-058 と同じ前提)。
  *
  * 帯の左端を 0%・右端を 100% として、中央 (50%) からの割合を
@@ -282,8 +282,8 @@ const dispGage = (date_str) => {
  *
  * @param {Event} event
  */
-const gageBarClickHdr = (event) => {
-    const el_bar = document.querySelector(".my-gage-bar");
+const gaugeBarClickHdr = (event) => {
+    const el_bar = document.querySelector(".my-gauge-bar");
     if ( ! el_bar ) {
         return;
     }
@@ -782,7 +782,7 @@ const setActiveWeek = (offset, push_flag = true) => {
         pushDateInUrl(monday);
     }
 
-    dispGage(monday);
+    dispGauge(monday);
     scrollToId(`date-${monday}`, "top", "instant");
 
     return true;

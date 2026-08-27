@@ -551,9 +551,9 @@ class TestWeekBar(WebTestBase):
             return None
         return m.group(0)
 
-    def gage_label(self, body):
+    def gauge_label(self, body):
         """針の上のラベル（今週からの差）を返す。無ければ ``None``。"""
-        m = re.search(r'id="gage_r_label"[^>]*>(.*?)</div>', body, re.DOTALL)
+        m = re.search(r'id="gauge_r_label"[^>]*>(.*?)</div>', body, re.DOTALL)
         if m is None:
             return None
         return html.unescape(m.group(1)).strip()
@@ -574,7 +574,7 @@ class TestWeekBar(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=today.isoformat())
 
-        assert self.gage_label(body) == "\u00b10"
+        assert self.gauge_label(body) == "\u00b10"
 
     def test_week_diff_is_displayed(self):
         """今週から離れていれば、その差を出す。"""
@@ -585,7 +585,7 @@ class TestWeekBar(WebTestBase):
 
             body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
 
-            assert self.gage_label(body) == expected
+            assert self.gauge_label(body) == expected
 
     def test_unit_switches_to_months_and_years(self):
         """1 ヶ月からは月数、1 年からは年数（TODO-072）。"""
@@ -596,7 +596,7 @@ class TestWeekBar(WebTestBase):
 
             body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
 
-            assert self.gage_label(body) == expected
+            assert self.gauge_label(body) == expected
 
     def test_no_week_bar_in_search_mode(self):
         """検索モードでは帯を出さない。

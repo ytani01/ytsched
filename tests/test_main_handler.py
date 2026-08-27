@@ -43,7 +43,7 @@ from test_web import (
     week_panel,
 )
 
-from ytsched.main_handler import MainHandler, calc_gage_label
+from ytsched.main_handler import MainHandler, calc_gauge_label
 from ytsched.ytsched import SchedData
 
 CONF_FNAME = "conf.json"
@@ -58,7 +58,7 @@ def test_cookie_todo_days_is_removed():
     assert not hasattr(MainHandler, "COOKIE_TODO_DAYS")
 
 
-def test_calc_gage_label_rounds_to_monday():
+def test_calc_gauge_label_rounds_to_monday():
     """差は、どちらも月曜へ丸めてから数える（TODO-055）。
 
     ``2021-03-01`` は月曜、``2021-03-07`` は日曜で、同じ週。
@@ -67,18 +67,18 @@ def test_calc_gage_label_rounds_to_monday():
     sunday = datetime.date(2021, 3, 7)
 
     # 同じ週なら、週の中のどの日どうしでも ±0
-    assert calc_gage_label(monday, monday) == "\u00b10"
-    assert calc_gage_label(sunday, monday) == "\u00b10"
-    assert calc_gage_label(monday, sunday) == "\u00b10"
+    assert calc_gauge_label(monday, monday) == "\u00b10"
+    assert calc_gauge_label(sunday, monday) == "\u00b10"
+    assert calc_gauge_label(monday, sunday) == "\u00b10"
 
     # 日曜から次の月曜は 1 日しか離れていないが、週としては +1
-    assert calc_gage_label(sunday + datetime.timedelta(1), sunday) == "+1w"
+    assert calc_gauge_label(sunday + datetime.timedelta(1), sunday) == "+1w"
 
-    assert calc_gage_label(monday + datetime.timedelta(21), monday) == "+3w"
-    assert calc_gage_label(monday - datetime.timedelta(7), monday) == "-1w"
+    assert calc_gauge_label(monday + datetime.timedelta(21), monday) == "+3w"
+    assert calc_gauge_label(monday - datetime.timedelta(7), monday) == "-1w"
 
 
-def test_calc_gage_label_switches_unit():
+def test_calc_gauge_label_switches_unit():
     """1 ヶ月からは月数、1 年からは年数（TODO-072）。
 
     1 ヶ月は 365.25 / 12 = 30.4375 日なので、4 週 (28 日) はまだ週数、
@@ -88,7 +88,9 @@ def test_calc_gage_label_switches_unit():
     monday = datetime.date(2021, 3, 1)
 
     def label(weeks):
-        return calc_gage_label(monday + datetime.timedelta(weeks * 7), monday)
+        return calc_gauge_label(
+            monday + datetime.timedelta(weeks * 7), monday
+        )
 
     # 1 ヶ月の手前までは週数
     assert label(4) == "+4w"

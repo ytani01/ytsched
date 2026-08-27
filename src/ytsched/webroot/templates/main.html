@@ -68,15 +68,15 @@
      const body_h = document.body.clientHeight;
      const win_h = document.documentElement.clientHeight;
 
-     elGageR0 = document.getElementById("gage_r"); // declared in my.js
+     elGaugeR0 = document.getElementById("gauge_r"); // declared in my.js
 
      if ( body_h < win_h ) {
        console.log(`body_h=${body_h} < win_h=${win_h}`);
-       // ゲージの都合で画面が出ないのはおかしいので、dispGage() より
+       // ゲージの都合で画面が出ないのはおかしいので、dispGauge() より
        // 先に visible にする (TODO-049 reviewer 指摘 1)
        elMain.style.visibility = "visible";
        const date_from_str = document.getElementById("date_from").value;
-       dispGage(date_from_str);
+       dispGauge(date_from_str);
        return;
      }
 
@@ -93,7 +93,7 @@
      // 週表示になり、スクロールでの追加読み込みが無くなったので、
      // 検索の有無によらず一度だけゲージを合わせる (TODO-049)
      const date_from_str = document.getElementById("date_from").value;
-     dispGage(date_from_str);
+     dispGauge(date_from_str);
    }; // onloadHdr()
    
    const changeSearchN = (val) => {
@@ -142,23 +142,23 @@
          週の月曜へ移る (TODO-074)。日付セルなどと同じ onmousedown で
          登録し、mouseDownHdr()/mouseUpHdr() (my.js) にドラッグと
          クリックの区別を任せる -->
-    <div class="my-gage-bar" onmousedown="gageBarClickHdr(event);">
-      <div class="my-gage-axis"></div>
-      <div class="my-gage-base"></div>
+    <div class="my-gauge-bar" onmousedown="gaugeBarClickHdr(event);">
+      <div class="my-gauge-axis"></div>
+      <div class="my-gauge-base"></div>
       <!-- 針と、今週からの差 (TODO-066)。
            差は針の位置そのものを読む数字なので、針の上に置いて一緒に
-           動かす。位置は ``#gage_r`` がまとめて持ち、文字は
-           JavaScript の ``setGagePosition()`` が書き換える。
+           動かす。位置は ``#gauge_r`` がまとめて持ち、文字は
+           JavaScript の ``setGaugePosition()`` が書き換える。
            ここが埋めるのは、読み込んだ直後の一度だけ。
            単位は週・月・年で切り替わる (TODO-072) -->
-      <div id="gage_r" class="my-gage-r">
-        <div id="gage_r_label" class="my-gage-r-label">{{ gage_label }}</div>
-        <svg class="my-gage-r-needle" viewBox="0 0 12 8">
+      <div id="gauge_r" class="my-gauge-r">
+        <div id="gauge_r_label" class="my-gauge-r-label">{{ gauge_label }}</div>
+        <svg class="my-gauge-r-needle" viewBox="0 0 12 8">
           <polygon points="0,0 12,0 6,8" />
         </svg>
       </div>
-      {% for d in gage %}
-      <div class="my-gage-label"
+      {% for d in gauge %}
+      <div class="my-gauge-label"
         style="left:{{ '%.2f' % (50 + d['x_percent']) }}%">{{ d['label'] }}</div>
       {% end %}
     </div>
