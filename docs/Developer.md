@@ -133,8 +133,8 @@ mise run shot -- --open -p todo046
 を見ること。
 
 `test_browser.py` だけはブラウザを起動する（TODO-056）。`pytest` は
-`my.js` を実行しないので、JavaScript の不具合はそれ以外のテストでは
-捕まらない。
+`static/js/` のスクリプトを実行しないので、JavaScript の不具合は
+それ以外のテストでは捕まらない。
 
 - **他のテストと同じ `mise run test` で一緒に走る。** playwright は
   dev 依存に入れてあるので、`uv sync` のほかに用意するものは無い

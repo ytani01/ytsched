@@ -24,8 +24,8 @@
 - `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
   移行のテスト
 - `test_mylog.py` — `mylog.py` のテスト
-- `test_browser.py` — chromium を実際に動かして、`my.js` の動きを
-  見るテスト（TODO-056）。ホームボタンと週送りを押して、URL だけで
+- `test_browser.py` — chromium を実際に動かして、`static/js/` の
+  スクリプトの動きを見るテスト（TODO-056）。ホームボタンと週送りを押して、URL だけで
   なく画面が変わったかまで確かめる。ブラウザが無ければ skip する。
   週送りが**ページを読み直さずに済んでいるか**もここで見る（TODO-069）
 - `make_test_data.py` — 移行元（旧形式）の合成テストデータを
@@ -46,7 +46,8 @@
 
 `test_browser.py` だけは、`ytsched webapp` を起動して chromium で
 操作する（TODO-056）。他のテストが使う `tornado.testing` は HTML を
-返すところまでしか見ないので、**`my.js` の不具合は原理的に捕まらない**。
+返すところまでしか見ないので、**ブラウザ側の JavaScript の不具合は
+原理的に捕まらない**。
 実際 TODO-049 でホームボタンに持ち込んだ不具合（今日から離れた週で
 押すと、URL だけが今日に書き換わって画面は前の週のまま）は、
 テストが 1 件も落ちないまま利用者が見つけた。

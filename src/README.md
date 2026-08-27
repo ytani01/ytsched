@@ -22,7 +22,8 @@ src/ytsched/
   __main__.py      # click による CLI（`ytsched` コマンド）
   webroot/
     templates/      # tornado のテンプレート（base/main/edit/sde.html）
-    static/         # CSS・JS・アイコン・manifest.json・favicon
+    static/         # CSS・アイコン・manifest.json・favicon
+      js/           # ブラウザ側のスクリプト 8 本（後述）
 ```
 
 CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形式からの
@@ -164,7 +165,7 @@ classDiagram
   **URL に持たせるのは日付だけ**（`?date=2026-08-24`）。検索語・
   絞り込み・ToDo の日数・目標件数は `conf.json` に保存する。
   それらを送るときは、ブックマークや履歴に残らないよう `POST` を通す
-  （`my.js` の `doPost()`。表示を変えるだけの移動は `doGet()`）
+  （`nav.js` の `doPost()`。表示を変えるだけの移動は `doGet()`）
 - **`EditHandler`**（`edit_handler.py`）が編集画面を出す。`date` /
   `sde_id` の決め方（引数 → クエリ文字列 → 既定値の順）は docstring に
   書いてある。フォームの隠しフィールド `orig_date`（更新・削除のときに
@@ -214,11 +215,43 @@ sequenceDiagram
     Template-->>Browser: HTML
 ```
 
+## ブラウザ側のスクリプト
+
+`static/js/` に 8 本ある（TODO-083）。ES モジュールではなく素の
+`<script>` で、関数と定数はグローバルに置いたまま。テンプレートの
+`onmousedown="doGet(...)"` と、`tests/test_browser.py` の
+`page.evaluate("days2xPercent(0)")` が、どちらもグローバルの名前を直に
+呼ぶため。
+
+| ファイル | 中身 |
+|---|---|
+| `state.js` | ファイルをまたぐ状態（`ytState`） |
+| `spinner.js` | 読み込み中のスピナー |
+| `gauge.js` | ヘッダの横ゲージ（目盛り・針・タップ） |
+| `nav.js` | URL の組み立て、`doGet()` / `doPost()`、スクロール |
+| `week.js` | 週の差し替えとアニメーション（`moveToMonday()`） |
+| `keyboard.js` | ソフトキーボードへの追従と、キー操作 |
+| `swipe.js` | 左右のスワイプとマウスのドラッグ |
+| `main-page.js` | 一覧画面（`main.html`）だけで使う初期化とハンドラ |
+
+`base.html` が `main-page.js` 以外の 7 本を読む。`main-page.js` は
+`main.html` が自分で読む（`base.html` に入れると、編集画面でも
+`onloadHdr()` が走ってしまう）。
+
+**ファイルをまたぐ状態は `state.js` の `ytState` にまとめてある**
+（`elLoadingSpinner` / `elMain` / `elGaugeR0` / `elWeekWrap` /
+`activeWeekOffset`）。1 つのファイルの中で閉じている状態（`swipeStart`
+など）は、そのファイルのトップレベルに置いたまま。以前は `main.html` の
+`<script>` がグローバル変数へ直に代入していて、それがファイルを分け
+にくくしていた（TODO-083）。テンプレートの値は、`main.html` に残した
+2 つの定数（`search_str0`・`today_str`）と、`base.html` の `url_prefix`
+から渡す。
+
 ## 週の移動（ブラウザ側）
 
 前後 1 ヶ月ぶんの週が最初から DOM にあるので、**週送りはページを
 読み直さず、DOM の中で見せる週を差し替えるだけ**（TODO-069）。
-スワイプ・メニューバーの◀▶・キーの←→は、どれも `my.js` の
+スワイプ・メニューバーの◀▶・キーの←→は、どれも `week.js` の
 `moveToMonday()` を通る。
 
 ```mermaid

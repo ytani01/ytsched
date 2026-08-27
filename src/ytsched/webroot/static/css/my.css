@@ -865,7 +865,7 @@ textarea {
 
 /*
  * ソフトキーボードの上に追従させる目印 (TODO-039)。
- * 見た目は変えない。位置調整は my.js の followKeyboard() が
+ * 見た目は変えない。位置調整は keyboard.js の followKeyboard() が
  * transform で行う。
  */
 .my-follow-keyboard {
