@@ -1,11 +1,23 @@
 # TODO
 
-**残っている項目: TODO-071,084,085,086**
+**残っている項目: TODO-071, TODO-084..TODO-095**
 これまでに 83 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-087` から**。
+**番号は `TODO-096` から**。
 
-着手する項目は利用者が指定する。
+TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 16 件）を
+9 項目にまとめたもの。中身は
+[`docs/design-review.md`](docs/design-review.md) にある。
+
+着手する項目は利用者が指定する。**並び順に優先度の意味は無い**が、
+次の 3 つだけは前後がある。これ以外の項目は、どの順でもよい。
+
+- **TODO-087 → TODO-088** — どちらも `main_handler.py` を大きく動かす。
+  更新の実行を出したあとのほうが、残りが見やすい
+- **TODO-088 → TODO-071** — 検索の組み立てを分けてから、検索期間の変更に
+  入るほうが手戻りが少ない
+- **TODO-088 → TODO-091** — `weeks` の `monday` が検索モードで `None` に
+  なる件は、TODO-088 で片付く
 
 ---
 
@@ -44,6 +56,205 @@
 - 消した予定をゴミ箱から復活できるようにする。
 - 書き換えた予定も、ゴミ箱から復旧できるようにする。
 - ゴミ箱に同じIDの予定が複数あるときは、内容を確認して選択できるようにする。
+
+---
+
+## TODO-087. 更新の実行を `MainHandler` から出す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] `post()` `exec_cmd()` `exec_update()` `cmd_add()` `cmd_del()` `fix_todo_done()` 一式を `main_handler.py` の外へ移す
+- [ ] フォームの値は、ハンドラ側で取り出して 1 つの dataclass に詰めて渡す
+
+基本設計のレビュー（[`docs/design-review.md`](docs/design-review.md) の A）。
+TODO-077 が「`exec_update()` 一式の置き場所は、TODO-081 のあとで
+考え直す」として持ち越した件。
+
+`MainHandler` は 1,391 行あり、更新の実行・一覧の組み立て・引数の変換の
+3 つがほぼ同じ大きさ（約 490 / 510 / 300 行）で並んでいる。更新の実行を
+出せば、`cmd_add()` / `cmd_del()` / `fix_todo_done()` は tornado を
+知らずに済む。
+
+---
+
+## TODO-088. 一覧の組み立てと検索を分ける
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] `load_sched()` を「1 週ぶんを組み立てる」と「検索結果を集める」に分ける
+- [ ] `search_mode` の分岐（`get()` に 1 か所、`load_sched()` に 4 か所）を減らす
+- [ ] `SchedLoadCond` の `search_re` / `search_n` を検索側の持ち物にする
+
+基本設計のレビュー（`docs/design-review.md` の B）。
+
+`load_sched()` は「月曜から 7 日ぶんを並べる」と「さかのぼって当たった日
+だけ残す」という別々のことを、同じ `while` の中で分岐しながらやっている。
+同じ前提がテンプレートとブラウザ側にも散っていて、検索は実質もう 1 つの
+画面になっている。`get()` が 175 行あるのも、この分岐のため。
+
+---
+
+## TODO-089. `edit.html` の JavaScript を `edit-page.js` へ出す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] `edit-page.js` を作り、`main-page.js` と同じ形にする（テンプレートの値だけ `<script>` に残す）
+- [ ] `onloadHdr()` が `main-page.js` と同じ名前で中身が違うのを解く
+- [ ] 使われていないもの（コメントアウトされた `resize`、存在しない `rotationchange`）を消す
+
+基本設計のレビュー（`docs/design-review.md` の M）。TODO-083 が
+「範囲外」として持ち越した件。`main.html` の 120 行は `main-page.js` へ
+出たが、`edit.html` の 100 行はそのまま残っている。
+
+---
+
+## TODO-090. 依存の渡し方と、キャッシュ・`conf.json` の扱いを揃える
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] `title` / `author` / `version` / `url_prefix` / `datadir` を、`app.settings.get()` から `initialize()` の引数へ移す（D）
+- [ ] `webapp.py` の URL 登録に 5 回並ぶ `{"sd": self._sd}` をまとめる（D・P）
+- [ ] `conf.json` も、キャッシュ + 変更の検出で読み、1 リクエストにつき 1 回だけ書く（E）
+- [ ] `post()` と `get()` に並ぶ 4 つの `get_conf_arg()` を 1 つのメソッドにまとめ、名前も読むだけでないことが分かるものにする（C）
+- [ ] `get_sdf()` の読み直しで、`_dirty_sdf` に載っている日は読み直さないと決めて、そう書く（F）
+
+基本設計のレビュー（`docs/design-review.md` の C・D・E・F と、P の
+`webapp.py` の件）。**5 つとも「設定とキャッシュを、どこが持ってどう
+書くか」という 1 つの話なので、まとめて扱う。**
+
+TODO-081 で `SchedData` は `initialize()` で受け取る形になったが、
+残りの 5 つは `app.settings.get()` のままで型はどれも `Any`。
+`self._datadir` は `os.path.join()` に渡るので、設定が欠けていれば
+`TypeError` になるが型チェッカは何も言わない。渡すものが増えると、
+`webapp.py` の 5 行にそのまま効く。
+
+`conf.json` は、データファイルが TODO-080（読み直し）・TODO-077（書き込みを
+最後に 1 回）で直ったのに対して、リクエストのたびに読み `set_conf()` の
+たびに全体を書いている。`get()` で 4 つの設定値が同時に変われば 4 回書く。
+その 4 つを呼んでいるのが C で、`post()` の 3 つは戻り値を `_ =` で捨て、
+「読むと `conf.json` へ保存される」という副作用のためだけに呼んでいる。
+
+F は、1 リクエストの中で同じ日を 2 回引き、その間に外部がそのファイルを
+書き換えると、`_dirty_sdf` の古いインスタンスが読み直した内容を消す件。
+単一ユーザなのでまず起きないが、TODO-080 と TODO-077 の 2 つの仕組みが
+互いを見ていない。**`conf.json` をキャッシュする（E）ときに、同じことを
+決めることになる**ので、ここで一緒に片付ける。
+
+---
+
+## TODO-091. `SchedData` の渡し方と、表示に渡す値の dataclass 化
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] テンプレートへ `sd` そのものを渡すのをやめる（`cache_size` だけ渡す。画面に出し続けるかも決める）
+- [ ] `load_sched()` が返す `list[dict]` と、`get()` が作る `weeks` を dataclass にする
+
+基本設計のレビュー（`docs/design-review.md` の G・H）。
+
+`sd=self._sd` は、データを持つオブジェクトがそのままテンプレートに入る
+唯一の経路で、テンプレートからはどのメソッドも呼べる。使っているのは
+`get_cache_size()` 1 つだけ。
+
+入力側の条件は TODO-079 で `SchedLoadCond` になったが、出力側は dict の
+まま。`weeks` は検索モードで `monday` が `None` になるため
+`list[dict[str, object]]` で受けている。
+
+---
+
+## TODO-092. テンプレートの掃除
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] `sde.html` の先頭に、`main.html` から受け取る 10 個の変数をコメントで並べる（I）
+- [ ] ToDo の色分けの判定を `SchedDataEnt` へ移す（J）
+- [ ] どこからも読まれない hidden input・クエリ・変数を消す（K）
+- [ ] `year`+`month`+`day` の経路と `ymd2date()` / `str2ymd_date()` を、テストごと消す（L）
+
+基本設計のレビュー（`docs/design-review.md` の I・J・K・L）。
+
+J は、期限の近さを見る判定がテンプレートにあり、「1 週間以内」の 7 が
+直接書いてある。`is_todo()` などは `SchedDataEnt` にあるのに、この 2 つ
+だけ置き場所が違う。
+
+K で消すのは `main.html:77` の `cur_day`、`main.html:79` の `search_n`、
+`sde.html:83-85` の `cur_date` / `date_from` / `date_to`、`sde_count`、
+`base.html:2` の `now`。
+
+**L は消すと決めた（2026-08-28）。** TODO-050 で日付は
+`date=YYYY-mm-dd` に一本化されており、テンプレートにも `static/js/` にも
+呼び出しが無い。`str2ymd_date()` の中の `check_int_range()` 3 つも一緒に
+消す（関数そのものは `str2todo_days()` などが使う）。
+
+---
+
+## TODO-093. ブラウザ側の状態と、ファイル間の依存
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] いま見ている日付を `ytState` に持ち、hidden input はフォームで送るときに書くものと割り切る（N）
+- [ ] `#date_from` はゲージへ値を渡しているだけなので `data-*` 属性にする（N）
+- [ ] 各 `.js` の先頭に「外から使うもの」をコメントで並べる（O）
+
+基本設計のレビュー（`docs/design-review.md` の N・O）。
+
+TODO-083 で「ファイルをまたぐ状態は `ytState` に集める」と決めたが、
+集めたのは要素の参照 4 つと `activeWeekOffset` だけで、いま見ている
+日付は DOM の hidden input が持っている。
+
+O は、`base.html` の `<script>` の並びがそのまま仕様になっていて、
+順番を入れ替えても読み込み時には何も起きず、押したときに初めて壊れる。
+
+---
+
+## TODO-094. 細かいもの
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | verifier |
+
+- [ ] `SEARCH_MODE_DAYS`（365、`MainHandler`）と `SEARCH_MODE_MAX_DAYS`（1,825、`handler_util`）の名前を、意味の違いが分かるものにする
+- [ ] `mk_todo_by_date()` が `search_match()` をもう一度かけているのをやめる
+- [ ] CLI の `--size_limit` を `--size-limit` に揃える
+
+基本設計のレビュー（`docs/design-review.md` の P）のうち、直すもの。
+`webapp.py` の件は TODO-090 に入れた。
+
+前者は「1 件も当たらないときに諦める日数」、後者は「絶対の上限」で、
+名前が似ていて意味が違う。`mk_todo_by_date()` に渡ってくる `todo_sde` は
+`load_todo()` が同じ条件で絞ったあとのもの。
+
+**`--size-limit` に揃えると決めた（2026-08-28）。** 他は `--dry-run` /
+`--error-file` とハイフンで、これだけアンダースコア。
+
+---
+
+## TODO-095. ruff の規則を増やすか決める
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | main のみ |
+
+- [ ] `B`（bugbear）や `SIM` を足すかを決める
+
+基本設計のレビュー（`docs/design-review.md` の P）のうち、決めるだけの
+項目。ruff は既定の規則（`E4,E7,E9,F`）に `I` が乗っただけで、TODO-082 は
+置き場所を `pyproject.toml` へ移しただけ。規則を増やすかは決めていない。
+
+足すと決めたら、指摘の量を見てから直す項目を別に立てる。
 
 ---
 
