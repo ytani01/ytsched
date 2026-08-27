@@ -22,6 +22,11 @@
   - 検索機能、フィルター機能
   - スペースを気にせず、たくさん書き込める
 
+* フッターの ◀▶ をダブルタップすると、自動でページを送り続ける。
+
+  - もう一度タップするか、画面の他の場所をタップすると止まる。
+  - ページを送る間隔は調整可能。
+
 * フィルター機能
 
   - フィルター文字列にマッチするスケジュールのみ表示する。
@@ -203,29 +208,40 @@ sudo loginctl enable-linger $USER
 ```
 
 
+## 設定
+
+データディレクトリ直下の `conf.json` に入る。検索語や絞り込みなど、
+画面で操作した内容は自動的に保存されるので、ふだん触る必要はない。
+
+手で書くのは次の 2 つ。アプリは読むだけなので、書いた値が消えることは
+ない。値は**文字列で**書く。リクエストのたびに読み直すので、再起動は
+要らない。
+
+| キー | 既定 | 範囲 | 意味 |
+|------|------|------|------|
+| `LoadMonths` | 1 | 0〜24 | 前後何ヶ月ぶんの週を HTML に含めるか。多いほどページを読み直さずに動ける代わりに、最初の表示が重くなる |
+| `AutoTurnMsec` | 700 | 300〜10000 | 自動ページ送りの間隔（ミリ秒） |
+
+```json
+{"LoadMonths": "2", "AutoTurnMsec": "500"}
+```
+
+読めない値（数字にならない、範囲の外）は、警告を出して既定値で動く。
+
+
 ## 外部のライブラリ
 
 **使っていません。** 外部の CDN も読まないので、ネットワークが届かない
 環境でも表示は崩れません。
 
-以前は Bootstrap と Font Awesome を
-`src/ytsched/webroot/static/vendor/` へ同梱していましたが、どちらも
-やめました。
+CSS は `src/ytsched/webroot/static/css/my.css` 1 つだけです。土台の指定
+（`body` のフォント・文字色・行の高さ、`box-sizing` など）は Bootstrap
+5.3.8（MIT License）から写したもので、ライセンス文書は
+[docs/licenses/bootstrap-LICENSE](docs/licenses/bootstrap-LICENSE) に
+置いてあります。
 
-Bootstrap をやめたのは TODO-047 です。使っていたのはグリッドと
-余白まわりのクラスだけだったので、その値と、これまで Bootstrap に
-任せていた土台の指定（reboot。`body` のフォント・文字色・行の高さ、
-`box-sizing`、入力欄がフォントを継ぐ指定など）を Bootstrap 5.3.8
-（MIT License）から写して `static/css/my.css` に持たせています。
-写した旨は、そのファイルの先頭のコメントに書いてあります。ライセンス
-文書は [docs/licenses/bootstrap-LICENSE](docs/licenses/bootstrap-LICENSE)
-に残してあります。
-
-Font Awesome をやめたのは TODO-048 です。使っていたアイコンを自分で
-描き起こし、`src/ytsched/webroot/static/icons/icons.svg` に `<symbol>`
-22 個としてまとめました。画面からは `<use>` で参照しています。24x24 の
-座標に太さ 2 の線で描いた線画で、`stroke` は `currentColor` なので
-親の文字色に従います。**自作なので、帰属表示は要りません。**
+アイコンは自作の線画で、`src/ytsched/webroot/static/icons/icons.svg` に
+`<symbol>` としてまとめ、画面からは `<use>` で参照しています。
 
 
 ## スマホのホーム画面に追加する
