@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-089..TODO-096**
-これまでに 86 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-089..TODO-095**
+これまでに 87 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-097` から**。
 
@@ -242,40 +242,12 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 
 ---
 
-## TODO-096. Android の Firefox でアイコンが黒く塗りつぶされる
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | verifier + wording |
-
-- [ ] 線画のスタイルを `icons.svg` の `<style>` から `my.css` の `.my-icon` へ移す
-- [ ] `icons.svg` の `<defs><style>` を削除する
-
-Android の Firefox で、フッターの ◀ ▶ が黒い三角、虫めがねが黒い丸、
-消去キーが黒い矢印になる。漏斗と `angle-down` も黒い三角になる。
-いずれも「線画の輪郭パスが黒く塗られた形」で、`fill: none` と
-`stroke: currentColor` が効いていない見え方。
-
-`icons.svg` は線画のスタイルを、ファイルの中の `<style>` で
-`symbol` に当てている。外部ファイルを `<use href="...icons.svg#id">` で
-参照すると、中身は shadow tree になり、参照元のファイルにある `<style>` を
-適用するかどうかはブラウザによって差が出る。Firefox for Android では
-適用されず、`fill` が既定の黒、`stroke` 無しになる。
-
-`fill` / `stroke` / `stroke-width` は継承する CSS プロパティなので、
-参照する側の `<svg class="my-icon">` に指定すれば shadow tree の中まで
-届く。`.my-icon-9x` の `stroke-width: 1` は、既にこの仕組みで効いている。
-
-`circle-up-fill` と `dot-circle` の塗りは `fill="currentColor"
-stroke="none"` を要素に直接書いてあり、継承より優先されるので今のまま残る。
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-096.** Android の Firefox でアイコンが黒く塗りつぶされる](archives/todo/TODO-096.%20Android%20の%20Firefox%20でアイコンが黒く塗りつぶされる.md)
 - [**TODO-084.** フッターの ◀▶ をダブルタップして自動ページ送り](archives/todo/TODO-084.%20フッターの%20◀▶%20をダブルタップして自動ページ送り.md)
 - [**TODO-088.** 一覧の組み立てと検索を分ける](archives/todo/TODO-088.%20一覧の組み立てと検索を分ける.md)
 - [**TODO-087.** 更新の実行を `MainHandler` から出す](archives/todo/TODO-087.%20更新の実行を%20MainHandler%20から出す.md)

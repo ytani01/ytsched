@@ -418,12 +418,27 @@ textarea {
 
 /* 自作アイコン (``icons/icons.svg`` の ``<symbol>`` を ``<use>`` で
    参照する。TODO-048 で Font Awesome から差し替えた)。
-   ``my-icon`` が土台 (1em)、大きさ違いと回転はそれぞれ別クラスで足す */
+   ``my-icon`` が土台 (1em)、大きさ違いと回転はそれぞれ別クラスで足す。
+
+   線画の描き方 (``fill`` / ``stroke``) も、``icons.svg`` の中では
+   なくここで指定する。外部ファイルを ``<use>`` で参照すると中身は
+   shadow tree になり、参照先のファイルにある ``<style>`` を適用するか
+   どうかはブラウザによって差が出る (Android の Firefox では効かず、
+   ``fill`` が既定の黒になってアイコンが黒く塗りつぶされた。TODO-096)。
+   ここに書けば、``fill`` / ``stroke`` / ``stroke-width`` は継承する
+   プロパティなので shadow tree の中まで届く。
+   ``circle-up-fill`` と ``dot-circle`` の塗りは ``icons.svg`` の要素に
+   直接書いてあり、継承より優先されるのでこの指定に潰されない */
 .my-icon {
     width: 1em;
     height: 1em;
     vertical-align: -0.125em;
     overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .my-icon-lg {

@@ -2,25 +2,19 @@
 <!--
   画面で使うアイコン (TODO-048)。Font Awesome の代わりに自作したもの。
 
-  24x24 の座標に、太さ 2 の線で描いた線画。stroke="currentColor" /
-  fill="none" なので、親の文字色に従う。塗りつぶしを使っているのは
+  24x24 の座標に、太さ 2 の線で描いた線画。塗りつぶしを使っているのは
   dot-circle の中心と circle-up-fill の 2 つだけ。
+
+  線の描き方 (fill: none / stroke: currentColor / stroke-width: 2) は、
+  このファイルではなく my.css の .my-icon にある。ここに <style> を
+  置いても、外部ファイルを <use> で参照したときに適用しないブラウザが
+  あるため (TODO-096)。塗りつぶしの 2 つだけは、継承より優先させたいので
+  下の要素へ直接書いてある。
 
   参照のしかた:
     <svg class="my-icon"><use href=".../icons.svg#home"></use></svg>
 -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-  <defs>
-    <style>
-      symbol {
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-    </style>
-  </defs>
 
   <!-- 家: 今日へ戻る (main.html のメニューバー) -->
   <symbol id="home" viewBox="0 0 24 24">
