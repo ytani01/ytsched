@@ -1,11 +1,37 @@
 # TODO
 
-**残っている項目: 無し。**
+**残っている項目: TODO-076。**
 これまでに 75 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-076` から**（TODO-071 は欠番）。
+**番号は `TODO-077` から**（TODO-071 は欠番）。
 
 着手する項目は利用者が指定する。
+
+---
+
+## TODO-076. ゲージの綴りを `gage` から `gauge` に直す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | verifier + wording |
+
+- [ ] `src/` と `tests/` の `gage` / `Gage` / `GAGE` を `gauge` / `Gauge` / `GAUGE` に直す
+- [ ] lint・型チェック・テストが通ることを確かめる
+
+英語では gauge が正しい綴りで、gage は別の語。ゲージを入れた TODO-058
+から一貫して誤った綴りを使っている。対象は 110 か所・7 ファイル
+（`main_handler.py`、`my.js`、`main.html`、`my.css`、テスト 3 つ）。
+`docs/` には出現しない。
+
+- CSS のクラス名（`.my-gage-*`）、HTML の id（`#gage_r`）、Python の定数
+  （`GAGE`・`DAYS_GAGE_K`・`DAYS_GAGE_MAX`）、テスト名まで含めて揃える
+- `sessionStorage` のキー `ytsched_gage_monday` も変わる。既存セッションの
+  「前の週」が一度だけ失われ、針が中央から動き出すのが 1 回起きる。
+  移行の手当てはしない
+- **`archives/` は直さない**（366 か所）。現行仕様ではない記録で、当時の
+  コードの綴りをそのまま残す
+
+---
 
 ## 完了済み
 
