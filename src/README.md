@@ -15,6 +15,7 @@ src/ytsched/
   handler_util.py  # 引数と設定値の変換・検証（self を使わない純粋な関数）
   main_handler.py  # MainHandler（一覧表示と、追加/修正/削除の受け取り）
   sched_update.py  # SchedUpdater（追加/修正/削除の実行。tornado を知らない）
+  sched_load.py    # SchedLoader（一覧の組み立てと検索。tornado を知らない）
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
   migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行と、設定ファイルの JSON 化（`ytsched migrate`）
@@ -129,6 +130,11 @@ classDiagram
         +cmd_add()
         +cmd_del()
     }
+    class SchedLoader {
+        +load_todo()
+        +load_week()
+        +search()
+    }
     class WebServer {
         +main()
     }
@@ -136,6 +142,7 @@ classDiagram
     HandlerBase <|-- MainHandler
     HandlerBase <|-- EditHandler
     MainHandler ..> SchedUpdater : cmd の実行
+    MainHandler ..> SchedLoader : 一覧の組み立て
     WebServer ..> MainHandler : "/", url_prefix, url_prefix/
     WebServer ..> EditHandler : url_prefix/edit, url_prefix/edit/
 ```
@@ -161,8 +168,9 @@ classDiagram
   TODO-050）。リロードで再送信にならないようにするため。`cmd` を
   実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
   一覧に出すのは、**渡された日を含む週の月曜から日曜までの 7 日**
-  （`load_sched()`。TODO-049）。検索したときだけは週で区切らず、
-  条件に当たった日を古いほうへさかのぼって並べる。
+  （`SchedLoader.load_week()`。TODO-049）。検索したときだけは週で
+  区切らず、条件に当たった日を古いほうへさかのぼって並べる
+  （`SchedLoader.search()`）。
   **返す HTML には、前後 1 ヶ月ぶんの週も一緒に入れる**（TODO-069）。
   ブラウザはこの中を動くかぎりページを読み直さない。何ヶ月ぶんかは
   `conf.json` の `LoadMonths` で変えられる（既定 1、範囲 0〜24）。
@@ -181,6 +189,14 @@ classDiagram
   （`SchedUpdater.get_modified_sde()` は `None` を返すだけ）。400 は
   書き込みが 1 つも起きる前に投げる（TODO-027）ので、値の取り出しは
   `SchedUpdater` を呼ぶより先に済ませる
+- **`SchedLoader`**（`sched_load.py`）が一覧に出すスケジュールを
+  集める（TODO-088）。**通常モードの `load_week()`（月曜から 7 日を
+  そのまま並べる）と、検索モードの `search()`（当たった日だけを古い
+  ほうへさかのぼって集める）は別のメソッド**で、共通なのは 1 日ぶんを
+  集める `_load_day()` だけ。分ける前は 1 つの `while` の中に検索
+  かどうかの分岐が 4 か所あった。表示の条件は `SchedLoadCond`、
+  検索だけが使う条件（検索語と目標件数）は `SchedSearchCond` に
+  分けてある。`SchedUpdater` と同じく **tornado を知らない**
 - **`EditHandler`**（`edit_handler.py`）が編集画面を出す。`date` /
   `sde_id` の決め方（引数 → クエリ文字列 → 既定値の順）は docstring に
   書いてある。フォームの隠しフィールド `orig_date`（更新・削除のときに

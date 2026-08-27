@@ -44,7 +44,8 @@ from test_web import (
 )
 
 from ytsched import handler_util
-from ytsched.main_handler import MainHandler, SchedLoadCond
+from ytsched.main_handler import MainHandler
+from ytsched.sched_load import SchedLoadCond, SchedLoader, SchedSearchCond
 from ytsched.sched_update import SchedUpdater
 from ytsched.ytsched import SchedData
 
@@ -301,7 +302,7 @@ class TestSearchModeRange(WebTestBase):
         見ない。
         """
         day = datetime.timedelta(1)
-        limit = day * MainHandler.SEARCH_MODE_DAYS
+        limit = day * SchedLoader.SEARCH_MODE_DAYS
 
         self.write_hits(self.BASE)
         self.write_hits(self.BASE - limit)
@@ -860,27 +861,30 @@ class TestLoadSchedScan(WebTestBase):
     def call_load_sched(
         self, handler, search_str="", todo_days_value=365, date=None
     ):
-        """``load_todo()`` → ``load_sched()`` を、``get()`` と同じ順で。
+        """``load_todo()`` → ``load_week()``/``search()`` を、``get()``
+        と同じ順で。
 
         ``date`` を省くと ``BASE``（TODO-049）。
         """
+        loader = handler._loader
         search_re = re.compile(search_str) if search_str else None
-        todo_sde, todo_today_sde = handler.load_todo(
+        todo_sde, todo_today_sde = loader.load_todo(
             None, False, search_re, todo_days_value
         )
         cond = SchedLoadCond(
             filter_re=None,
             filter_neg=False,
-            search_re=search_re,
-            search_n=5,
             todo_days_value=todo_days_value,
-            todo_sde=todo_sde,
             todo_today_sde=todo_today_sde,
-            todo_by_date=handler.mk_todo_by_date(
+            todo_by_date=loader.mk_todo_by_date(
                 search_re, todo_days_value, todo_sde
             ),
         )
-        return handler.load_sched(date or self.BASE, cond)
+        if search_re is not None:
+            return loader.search(
+                date or self.BASE, cond, SchedSearchCond(search_re, 5)
+            )
+        return loader.load_week(date or self.BASE, cond)
 
     def open_every_day(self):
         """変更前と同じく「どの日も開きに行く」ようにするパッチ。"""
@@ -914,7 +918,7 @@ class TestLoadSchedScan(WebTestBase):
         ]
         # 1 件目が見つかったので、365 日前で打ち切られる
         assert date_from == self.BASE - datetime.timedelta(
-            MainHandler.SEARCH_MODE_DAYS
+            SchedLoader.SEARCH_MODE_DAYS
         )
         assert date_to == self.BASE
 
@@ -1002,20 +1006,20 @@ class TestLoadSchedScan(WebTestBase):
     def test_mk_todo_by_date_is_called_once_per_request(self):
         """``mk_todo_by_date()`` は週の数だけ呼び直さない（TODO-079）。
 
-        通常モードでは前後の週ぶん ``load_sched()`` が繰り返し呼ばれる
+        通常モードでは前後の週ぶん ``load_week()`` が繰り返し呼ばれる
         （TODO-069）が、``todo_by_date`` の集計は ``get()`` の中で
         1 回だけ作って使い回す。
         """
         self.write_mixed_data()
 
-        orig = MainHandler.mk_todo_by_date
+        orig = SchedLoader.mk_todo_by_date
         calls = []
 
         def spy(self, *args, **kwargs):
             calls.append(1)
             return orig(self, *args, **kwargs)
 
-        with mock.patch.object(MainHandler, "mk_todo_by_date", spy):
+        with mock.patch.object(SchedLoader, "mk_todo_by_date", spy):
             self.get_body(URL_PREFIX + "/", date=self.BASE.isoformat())
 
         assert len(calls) == 1

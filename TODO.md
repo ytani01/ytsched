@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-084..TODO-086, TODO-088..TODO-095**
-これまでに 84 件を決着させた。
+**残っている項目: TODO-071, TODO-084..TODO-086, TODO-089..TODO-095**
+これまでに 85 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-096` から**。
 
@@ -10,13 +10,9 @@ TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 1
 文書（`docs/design-review.md`）は、中身を各項目へ移したうえで削除した
 （git の履歴にある）。
 
-着手する項目は利用者が指定する。**並び順に優先度の意味は無い**が、
-次の 2 つだけは前後がある。これ以外の項目は、どの順でもよい。
-
-- **TODO-088 → TODO-071** — 検索の組み立てを分けてから、検索期間の変更に
-  入るほうが手戻りが少ない
-- **TODO-088 → TODO-091** — `weeks` の `monday` が検索モードで `None` に
-  なる件は、TODO-088 で片付く
+着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
+前後があった 3 つ（TODO-087 → TODO-088 → TODO-071・TODO-091）のうち、
+先に済ませるほうは決着したので、残りはどの順でもよい。
 
 ---
 
@@ -55,31 +51,6 @@ TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 1
 - 消した予定をゴミ箱から復活できるようにする。
 - 書き換えた予定も、ゴミ箱から復旧できるようにする。
 - ゴミ箱に同じIDの予定が複数あるときは、内容を確認して選択できるようにする。
-
----
-
-## TODO-088. 一覧の組み立てと検索を分ける
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
-
-- [ ] `load_sched()` を「1 週ぶんを組み立てる」と「検索結果を集める」に分ける
-- [ ] `search_mode` の分岐（`get()` に 1 か所、`load_sched()` に 4 か所）を減らす
-- [ ] `SchedLoadCond` の `search_re` / `search_n` を検索側の持ち物にする
-
-基本設計のレビュー（2026-08-27）の B。
-
-`load_sched()`（112 行）は「月曜から 7 日ぶんを並べる」と「最大 1,825 日
-さかのぼって、当たった日だけ残す」という別々のことを、同じ `while` の中で
-分岐しながらやっている。`search_mode` の分岐は `get()` に 1 か所、
-`load_sched()` に 4 か所。同じ前提はテンプレート（週バーを出すか、日付の
-欄を押したときの動き）とブラウザ側（`data-monday` が付かない、`gauge_r` が
-無い）にも散っていて、検索は実質もう 1 つの画面になっている。`get()` が
-175 行あるのも、この分岐と、引数 7 種の取り出しと、週の繰り返しと、21 個の
-値を渡す `render()` が 1 つのメソッドに同居しているため。
-`search_re` / `search_n` が検索側の持ち物になれば、通常モードの
-`SchedLoadCond` の条件は 4 つに減る。
 
 ---
 
@@ -146,7 +117,7 @@ F は、1 リクエストの中で同じ日を 2 回引き、その間に外部�
 | 見込み | Sonnet 5 / effort medium | implementer + verifier |
 
 - [ ] テンプレートへ `sd` そのものを渡すのをやめる（`cache_size` だけ渡す。画面に出し続けるかも決める）
-- [ ] `load_sched()` が返す `list[dict]` と、`get()` が作る `weeks` を dataclass にする
+- [ ] `load_week()` / `search()` が返す `list[dict]` と、`mk_weeks()` が作る `weeks` を dataclass にする
 
 基本設計のレビュー（2026-08-27）の G・H。
 
@@ -156,11 +127,14 @@ F は、1 リクエストの中で同じ日を 2 回引き、その間に外部�
 `get_sdf()` がキャッシュの上限と比べる 1 か所があるだけ）。
 
 入力側の条件は TODO-079 で `SchedLoadCond` になったが、出力側は dict の
-まま。`load_sched()` が返す `sched` は `date` / `is_holiday` / `sde` の
-3 キーを持つ `list[dict]`、`get()` が作る `weeks` は検索モードで `monday`
-が `None` になるため `list[dict[str, object]]` で受けている。テンプレート
-側は `sched_ent['date']`、`w['monday']` と文字列で引くので、キー名を変えて
-も型チェッカは気づかない。
+まま。`SchedLoader.load_week()` / `search()` が返す `sched` は `date` /
+`is_holiday` / `sde` の 3 キーを持つ `list[dict]`、`mk_weeks()` が作る
+`weeks` は `offset` / `monday` / `sched` を持つ `list[dict[str, object]]`。
+テンプレート側は `sched_ent['date']`、`w['monday']` と文字列で引くので、
+キー名を変えても型チェッカは気づかない。**`monday` が検索モードで
+`None` になる件は TODO-088 で片付いた**（いつでも実際の月曜が入り、
+`data-monday` を出すかどうかはテンプレートが `search_mode` で決める）
+ので、`monday` を省略できる型にしなくてよい。
 
 ---
 
@@ -245,7 +219,7 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 |------|------|------|
 | 見込み | Sonnet 5 / effort medium | verifier |
 
-- [ ] `SEARCH_MODE_DAYS`（365、`MainHandler`）と `SEARCH_MODE_MAX_DAYS`（1,825、`handler_util`）の名前を、意味の違いが分かるものにする
+- [ ] `SEARCH_MODE_DAYS`（365、`SchedLoader`）と `SEARCH_MODE_MAX_DAYS`（1,825、`handler_util`）の名前を、意味の違いが分かるものにする
 - [ ] `mk_todo_by_date()` が `search_match()` をもう一度かけているのをやめる
 - [ ] CLI の `--size_limit` を `--size-limit` に揃える
 
@@ -282,6 +256,7 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-088.** 一覧の組み立てと検索を分ける](archives/todo/TODO-088.%20一覧の組み立てと検索を分ける.md)
 - [**TODO-087.** 更新の実行を `MainHandler` から出す](archives/todo/TODO-087.%20更新の実行を%20MainHandler%20から出す.md)
 - [**TODO-083.** `my.js` と `main.html` の JavaScript を分ける](archives/todo/TODO-083.%20my.js%20と%20main.html%20の%20JavaScript%20を分ける.md)
 - [**TODO-082.** import の意図と実態のズレ、未使用の属性、定数の置き場所を片付ける](archives/todo/TODO-082.%20import%20の意図と実態のズレ、未使用の属性、定数の置き場所を片付ける.md)

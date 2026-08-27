@@ -17,7 +17,9 @@
 - `test_handler.py` — `HandlerBase`（`conf.json` の読み書き）のテスト
 - `test_handler_util.py` — `handler_util.py`（引数と設定値の変換・検証）の
   テスト（TODO-081）。ハンドラを組み立てずに、関数を直接呼んで確かめる
-- `test_main_handler.py` — `MainHandler` の個々のメソッドのテスト
+- `test_main_handler.py` — `MainHandler` の個々のメソッドと、そこから
+  出した `SchedLoader`（`sched_load.py`）・`SchedUpdater`
+  （`sched_update.py`）のテスト（TODO-087・TODO-088）
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /
   `EditHandler` へ実際にリクエストを送るテスト
 - `test_webapp.py` — `WebServer` の組み立てそのもののテスト

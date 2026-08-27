@@ -8,7 +8,6 @@ MainHandler
 __author__ = "ytani01"
 __date__ = "2021/01"
 
-import dataclasses
 import datetime
 import re
 import urllib.parse
@@ -20,34 +19,9 @@ import tornado.web
 from . import handler_util
 from .handler import HandlerBase
 from .mylog import getLogger
+from .sched_load import SchedLoadCond, SchedLoader, SchedSearchCond
 from .sched_update import SchedUpdateForm, SchedUpdater
-from .ytsched import SchedData, SchedDataEnt, normalize
-
-
-@dataclasses.dataclass
-class SchedLoadCond:
-    """``load_sched()`` が使う表示の条件をまとめたもの (TODO-079)。
-
-    ``MainHandler.get()`` は前後の週の数だけ ``load_sched()`` を
-    繰り返し呼ぶ (TODO-069) が、``date`` 以外の引数は毎回同じ値になる。
-    ここへまとめて 1 つの引数にする。``todo_by_date``
-    (``mk_todo_by_date()`` の結果) も持たせ、週ごとに作り直さず
-    1 回だけ集計する。
-    """
-
-    filter_re: re.Pattern[str] | None
-    filter_neg: bool
-    search_re: re.Pattern[str] | None
-    search_n: int
-    todo_days_value: int
-    todo_sde: list[SchedDataEnt]
-    todo_today_sde: list[SchedDataEnt]
-    todo_by_date: dict[datetime.date, list[SchedDataEnt]]
-
-    @property
-    def search_mode(self) -> bool:
-        """検索モードかどうか (不正な正規表現のときは検索しない)。"""
-        return self.search_re is not None
+from .ytsched import SchedData, normalize
 
 
 class MainHandler(HandlerBase):
@@ -57,8 +31,8 @@ class MainHandler(HandlerBase):
 
     __log = getLogger(__qualname__)
 
+    # SEARCH_MODE_DAYS は SchedLoader にある (TODO-088)。
     # SEARCH_MODE_MAX_DAYS は handler_util にある (TODO-081)
-    SEARCH_MODE_DAYS = 365
     DEF_SEARCH_N = 5
 
     # ``LoadMonths`` を読むのは MainHandler だけ (TODO-081)
@@ -93,11 +67,12 @@ class MainHandler(HandlerBase):
     DAYS_PER_MONTH = 30
 
     def initialize(self, sd: SchedData) -> None:
-        """``sd`` を受け取り、更新の実行役 (``SchedUpdater``) を作る
-        (TODO-087)。
+        """``sd`` を受け取り、更新の実行役 (``SchedUpdater``) と
+        読み込みの実行役 (``SchedLoader``) を作る (TODO-087・TODO-088)。
         """
         super().initialize(sd)
         self._updater = SchedUpdater(sd)
+        self._loader = SchedLoader(sd)
 
     def post(self):
         """POST。値を保存して ``cmd`` を実行し、GET へ飛ばす (TODO-050)。
@@ -289,7 +264,7 @@ class MainHandler(HandlerBase):
         #
         # load ToDo
         #
-        todo_sde, todo_today_sde = self.load_todo(
+        todo_sde, todo_today_sde = self._loader.load_todo(
             filter_re, filter_neg, search_re, todo_days_value
         )
 
@@ -299,47 +274,27 @@ class MainHandler(HandlerBase):
         cond = SchedLoadCond(
             filter_re=filter_re,
             filter_neg=filter_neg,
-            search_re=search_re,
-            search_n=search_n,
             todo_days_value=todo_days_value,
-            todo_sde=todo_sde,
             todo_today_sde=todo_today_sde,
-            todo_by_date=self.mk_todo_by_date(
+            todo_by_date=self._loader.mk_todo_by_date(
                 search_re, todo_days_value, todo_sde
             ),
         )
-        sched, date_from, date_to = self.load_sched(date, cond)
+        # 検索モードかどうかは ``search_re`` そのもので分ける
+        # (``search_mode`` と同じ条件。型チェッカもここで絞り込める)
+        if search_re is not None:
+            sched, date_from, date_to = self._loader.search(
+                date, cond, SchedSearchCond(search_re, search_n)
+            )
+        else:
+            sched, date_from, date_to = self._loader.load_week(date, cond)
 
         #
-        # 前後の週も一緒に描いて返す (TODO-057・TODO-069)
+        # 前後の週も一緒に描いて返す (TODO-057・TODO-069・TODO-088)
         #
-        # スワイプで指に追従させるため隣の週を出していたのを、前後
-        # ``load_months`` ヶ月ぶんへ広げた。ブラウザはこの中を動く
-        # かぎり、ページを読み直さない。
-        # 検索モードは週の区切りに合わないので、今の週だけ (1 要素)。
-        #
-        # ``monday`` は検索モードだけ None になるので、値の型を
-        # 揃えずに ``object`` で受ける (テンプレートへ渡すだけ)
-        weeks: list[dict[str, object]] = []
-        if search_mode:
-            # 検索モードの範囲は週の区切りに合わないので、月曜は
-            # 持たせない (TODO-069)。DOM の中で週を移ることも無い
-            weeks = [{"offset": 0, "monday": None, "sched": sched}]
-        else:
-            weeks_n = self.months2weeks(load_months)
-            for offset in range(-weeks_n, weeks_n + 1):
-                monday = date_from + datetime.timedelta(7 * offset)
-                if offset == 0:
-                    sched_offset = sched
-                else:
-                    sched_offset, _, _ = self.load_sched(monday, cond)
-                weeks.append(
-                    {
-                        "offset": offset,
-                        "monday": monday,
-                        "sched": sched_offset,
-                    }
-                )
+        weeks = self.mk_weeks(
+            date, cond, sched, date_from, search_mode, load_months
+        )
 
         #
         # render
@@ -369,6 +324,67 @@ class MainHandler(HandlerBase):
             sde_align=sde_align,
             sd=self._sd,
         )
+
+    def mk_weeks(
+        self,
+        date: datetime.date,
+        cond: SchedLoadCond,
+        sched: list[dict],
+        date_from: datetime.date,
+        search_mode: bool,
+        load_months: int,
+    ) -> list[dict[str, object]]:
+        """前後の週も一緒に描くための ``weeks`` を組み立てる
+        (TODO-057・TODO-069・TODO-088)。
+
+        スワイプで指に追従させるため隣の週を出していたのを、前後
+        ``load_months`` ヶ月ぶんへ広げた。ブラウザはこの中を動く
+        かぎり、ページを読み直さない。
+        検索モードは週の区切りに合わないので、今の週だけ (1 要素)。
+
+        検索モードでも ``monday`` には ``date`` を含む週の月曜を
+        入れておく (TODO-088)。``data-monday`` を出すかどうかは
+        テンプレート側で ``search_mode`` を見て決める。
+
+        Parameters
+        ----------
+        date: datetime.date
+        cond: SchedLoadCond
+        sched: list[dict]
+            いまの週 (検索モードでは検索結果) の ``sched``
+        date_from: datetime.date
+            通常モードでは、いまの週の月曜
+        search_mode: bool
+        load_months: int
+
+        Returns
+        -------
+        list[dict[str, object]]
+
+        """
+        if search_mode:
+            # 検索モードの範囲は週の区切りに合わないので、隣の週は
+            # 持たせない (TODO-069)。DOM の中で週を移ることも無い
+            monday = date - datetime.timedelta(date.weekday())
+            return [{"offset": 0, "monday": monday, "sched": sched}]
+
+        weeks: list[dict[str, object]] = []
+        weeks_n = self.months2weeks(load_months)
+        for offset in range(-weeks_n, weeks_n + 1):
+            monday = date_from + datetime.timedelta(7 * offset)
+            if offset == 0:
+                sched_offset = sched
+            else:
+                sched_offset, _, _ = self._loader.load_week(monday, cond)
+            weeks.append(
+                {
+                    "offset": offset,
+                    "monday": monday,
+                    "sched": sched_offset,
+                }
+            )
+
+        return weeks
 
     def str2ymd_date(self, value: str) -> datetime.date:
         """``year/month/day`` の形の文字列を日付にする (TODO-027)。
@@ -836,209 +852,6 @@ class MainHandler(HandlerBase):
 
         return search_re, bool(search_str) and search_re is None
 
-    def load_todo(
-        self,
-        filter_re: re.Pattern[str] | None,
-        filter_neg: bool,
-        search_re: re.Pattern[str] | None,
-        todo_days_value: int,
-    ) -> tuple[list[SchedDataEnt], list[SchedDataEnt]]:
-        """ToDo を読み込む。
-
-        Parameters
-        ----------
-        filter_re: re.Pattern[str] | None
-        filter_neg: bool
-        search_re: re.Pattern[str] | None
-        todo_days_value: int
-
-        Returns
-        -------
-        todo_sde: list[SchedDataEnt]
-            後に、日々のスケジュール``out_sde``に統合
-        todo_today_sde: list[SchedDataEnt]
-            期限は先だが、今日に表示すべきToDo
-
-        """
-        today = datetime.date.today()
-
-        todo_sdf = self._sd.get_sdf(None)
-        todo_sde = []
-        todo_today_sde = []
-        for sde in todo_sdf.sde:
-            if not self.filter_match(filter_re, filter_neg, sde):
-                continue
-
-            if not self.search_match(search_re, sde):
-                continue
-
-            todo_sde.append(sde)
-            self.__log.debug(f"sde={sde}")
-
-            if sde.date > today + datetime.timedelta(todo_days_value):
-                continue
-
-            if sde.date == today:
-                continue
-
-            todo_today_sde.append(sde)
-            self.__log.debug(f"sde={sde}")
-
-        return todo_sde, todo_today_sde
-
-    def mk_todo_by_date(
-        self,
-        search_re: re.Pattern[str] | None,
-        todo_days_value: int,
-        todo_sde: list[SchedDataEnt],
-    ) -> dict[datetime.date, list[SchedDataEnt]]:
-        """ToDo を期限の日付で引けるようにする (TODO-028)。
-
-        ``load_sched()`` は 1 日ずつさかのぼるので、日ごとに
-        ``todo_sde`` を全件見ると、日数 × 件数だけ照合が走る。
-        先に日付でまとめておけば 1 回で済む。並び順は ``todo_sde`` の
-        まま。``get()`` が ``SchedLoadCond`` を作るところで 1 回だけ
-        呼び、週の数だけ繰り返し呼ばないようにしている (TODO-079)。
-
-        ``todo_days_value`` が負のときは ToDo を混ぜないので、空の
-        ``dict`` を返す。
-
-        Parameters
-        ----------
-        search_re: re.Pattern[str] | None
-        todo_days_value: int
-        todo_sde: list[SchedDataEnt]
-
-        Returns
-        -------
-        dict[datetime.date, list[SchedDataEnt]]
-
-        """
-        by_date: dict[datetime.date, list[SchedDataEnt]] = {}
-
-        if todo_days_value < 0:
-            return by_date
-
-        for sde in todo_sde:
-            if not self.search_match(search_re, sde):
-                continue
-
-            by_date.setdefault(sde.date, []).append(sde)
-
-        return by_date
-
-    def load_sched(
-        self,
-        date: datetime.date,
-        cond: SchedLoadCond,
-    ) -> tuple[list[dict], datetime.date, datetime.date]:
-        """表示する日々のスケジュールを集める。
-
-        Parameters
-        ----------
-        date: datetime.date
-        cond: SchedLoadCond
-            表示の条件 (TODO-079)。``get()`` が前後の週の数だけ
-            呼び出すあいだ、``date`` 以外は同じ値になる
-
-        Returns
-        -------
-        sched: list[dict]
-        date_from: datetime.date
-            通常モードでは ``date`` を含む週の月曜 (TODO-049)。
-            検索モードでは、打ち切った日まで縮む
-        date_to: datetime.date
-            通常モードでは ``date_from`` の 6 日後 (日曜)
-
-        Notes
-        -----
-        検索モードでは最大 ``SEARCH_MODE_MAX_DAYS``(1825) 日をさかのぼる
-        ので、**データファイルが無い日は開きに行かない** (TODO-028)。
-        開いても中身が空の ``SchedDataFile`` になるだけで、``sched`` の
-        中身も ``search_count`` の数え方も変わらない。日付の欄そのものは
-        今までどおり出す (検索モードで 1 件も当たらない日を落とすのは、
-        下の ``if search_mode and not out_sde`` のほう)。
-
-        ``todo_sde`` の照合も、日ごとに全件見ずに、日付で引けるように
-        しておく (TODO-028)。``cond.todo_by_date`` がその結果で、
-        呼び出しごとに作り直さない (TODO-079)。
-
-        """
-        filter_re = cond.filter_re
-        filter_neg = cond.filter_neg
-        search_re = cond.search_re
-        search_mode = cond.search_mode
-        search_n = cond.search_n
-        todo_days_value = cond.todo_days_value
-        todo_today_sde = cond.todo_today_sde
-        todo_by_date = cond.todo_by_date
-
-        sched = []
-        monday = date - datetime.timedelta(date.weekday())
-        date_from = monday
-        date_to = monday + datetime.timedelta(6)
-
-        if search_mode:
-            date_from = date - datetime.timedelta(
-                handler_util.SEARCH_MODE_MAX_DAYS
-            )
-            date_from1 = date - datetime.timedelta(self.SEARCH_MODE_DAYS)
-            date_to = date
-
-        search_count = 0
-        date1 = date_to + self.DELTA_DAY1
-        while date1 > date_from:
-            if search_mode and search_count > 0:
-                if search_count >= search_n:
-                    date_from = date1
-                    break
-
-                if date1 <= date_from1:
-                    date_from = date1
-                    break
-
-            date1 -= self.DELTA_DAY1
-
-            # ファイルが無い日は開きに行かない (TODO-028)
-            sdf = None
-            if self._sd.sdf_exists(date1):
-                sdf = self._sd.get_sdf(date1)
-
-            out_sde = []
-            for sde in sdf.sde if sdf else []:
-                # self.__log.debug(f"sde={sde}")
-                if not self.filter_match(filter_re, filter_neg, sde):
-                    continue
-
-                if not self.search_match(search_re, sde):
-                    continue
-
-                out_sde.append(sde)
-                search_count += 1
-
-            if todo_days_value >= 0:
-                # todo_sde
-                out_sde.extend(todo_by_date.get(date1, []))
-
-                # todo_today_sde
-                if not search_mode and date1 == datetime.date.today():
-                    out_sde.extend(todo_today_sde)
-
-            if search_mode and not out_sde:
-                continue
-
-            out_sde = sorted(out_sde, key=lambda x: x.get_sortkey())
-
-            sched.append(
-                {
-                    "date": date1,
-                    "is_holiday": sdf.is_holiday if sdf else False,
-                    "sde": out_sde,
-                }
-            )
-
-        return sched[::-1], date_from, date_to
-
     def compile_re(self, pattern: str) -> re.Pattern[str] | None:
         """正規表現をコンパイルする。
 
@@ -1057,60 +870,6 @@ class MainHandler(HandlerBase):
         except re.error as ex:
             self.__log.warning(f"{type(ex).__name__}:{ex}:{pattern!a}")
             return None
-
-    def filter_match(
-        self,
-        filter_re: re.Pattern[str] | None,
-        filter_neg: bool,
-        sde: SchedDataEnt,
-    ) -> bool:
-        """``sde`` がフィルタに合うか。
-
-        ``filter_re`` が ``None``(不正な正規表現)のときは、
-        絞り込みを無視して常に ``True`` を返す。
-
-        Parameters
-        ----------
-        filter_re: re.Pattern[str] | None
-        filter_neg: bool
-            ``!`` 始まり(否定)かどうか
-        sde: SchedDataEnt
-
-        Returns
-        -------
-        bool
-
-        """
-        if filter_re is None:
-            return True
-
-        found = filter_re.search(sde.search_str()) is not None
-        return found != filter_neg
-
-    def search_match(
-        self,
-        search_re: re.Pattern[str] | None,
-        sde: SchedDataEnt,
-    ) -> bool:
-        """``sde`` が検索文字列に合うか。
-
-        ``search_re`` が ``None``(検索しない、または不正な正規表現)の
-        ときは、絞り込まずに常に ``True`` を返す。
-
-        Parameters
-        ----------
-        search_re: re.Pattern[str] | None
-        sde: SchedDataEnt
-
-        Returns
-        -------
-        bool
-
-        """
-        if search_re is None:
-            return True
-
-        return search_re.search(sde.search_str()) is not None
 
     def get_date_arg(self, arg_name: str) -> datetime.date | None:
         """フォームの引数を日付として取り出す（空なら ``None``）。
