@@ -9,7 +9,6 @@ __author__ = "ytani01"
 __date__ = "2021/01"
 
 import datetime
-import math
 import re
 import urllib.parse
 from collections.abc import Callable
@@ -20,99 +19,6 @@ import tornado.web
 from .handler import HandlerBase
 from .mylog import getLogger
 from .ytsched import SchedDataEnt, normalize
-
-
-def days2x_percent(days: float) -> float:
-    """今週の中心からの左右のずれを、ゲージの幅に対する割合 (%) で返す
-
-    対数なので、日数が小さいところほど目盛りの間隔が広がる。そのままだと
-    左右対称に置く ``-1w`` と ``+1w`` の間だけが広く空くので、
-    ``DAYS_GAUGE_K`` で割ってから対数を取って詰めている (TODO-059)。
-
-    Parameters
-    ----------
-    days: float
-
-    Returns
-    -------
-    x_percent: float
-
-    """
-    x_percent = (
-        50.0
-        * math.log10(1 + abs(days) / DAYS_GAUGE_K)
-        / math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K)
-    )
-    x_percent = min(x_percent, 50.0)
-
-    if days < 0:
-        return -x_percent
-    return x_percent
-
-
-DAYS_YEAR = 31 + 28.25 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31
-DAYS_MONTH = DAYS_YEAR / 12
-DAYS_GAUGE_MAX = DAYS_YEAR * 30
-
-
-def calc_gauge_label(date: datetime.date, today: datetime.date) -> str:
-    """針の上に出す、今週からの差の文字 (TODO-072)。
-
-    どちらも月曜へ丸めてから差を取る。同じ週なら ``±0``。1 ヶ月に
-    届かないうちは週数 (``+3w``)、1 ヶ月から 1 年までは月数
-    (``+1.2m``)、1 年からは年数 (``+1.2y``)。月と年は小数点以下 1 桁。
-
-    JavaScript 側 (``my.js`` の ``gaugeDiffLabel()``) と同じ区切り・
-    同じ書き方にしてある。読み込んだ直後の一度だけここが埋め、
-    あとは JavaScript が書き換えるため、食い違うと針が動く前後で
-    文字が変わって見える。
-
-    Parameters
-    ----------
-    date: datetime.date
-        表示している週の中の、どの日でもよい
-    today: datetime.date
-
-    Returns
-    -------
-    label: str
-
-    """
-    monday = date - datetime.timedelta(date.weekday())
-    this_monday = today - datetime.timedelta(today.weekday())
-    days = (monday - this_monday).days
-
-    if days == 0:
-        return "\u00b10"
-    if abs(days) < DAYS_MONTH:
-        return f"{days // 7:+d}w"
-    if abs(days) < DAYS_YEAR:
-        return f"{days / DAYS_MONTH:+.1f}m"
-    return f"{days / DAYS_YEAR:+.1f}y"
-
-
-# 中心の近くをどれだけ詰めるか (TODO-059)。大きいほど詰まる。10 のとき
-# ``-1w`` と ``+1w`` の間隔が 7.6%。**これより大きくすると、幅 360px で
-# ``1w`` と ``1m`` のラベルが重なる**（15 で重なることを実測した）ので、
-# 上げるときは実際の見え方を確かめること
-DAYS_GAUGE_K = 10.0
-
-GAUGE = [
-    {"label": "-30y", "x_percent": days2x_percent(-DAYS_YEAR * 30)},
-    {"label": "-10y", "x_percent": days2x_percent(-DAYS_YEAR * 10)},
-    {"label": "-3y", "x_percent": days2x_percent(-DAYS_YEAR * 3)},
-    {"label": "-1y", "x_percent": days2x_percent(-DAYS_YEAR)},
-    {"label": "-3m", "x_percent": days2x_percent(-DAYS_MONTH * 3)},
-    {"label": "-1m", "x_percent": days2x_percent(-DAYS_MONTH)},
-    {"label": "-1w", "x_percent": days2x_percent(-7)},
-    {"label": "+1w", "x_percent": days2x_percent(+7)},
-    {"label": "+1m", "x_percent": days2x_percent(+DAYS_MONTH)},
-    {"label": "+3m", "x_percent": days2x_percent(+DAYS_MONTH * 3)},
-    {"label": "+1y", "x_percent": days2x_percent(+DAYS_YEAR)},
-    {"label": "+3y", "x_percent": days2x_percent(+DAYS_YEAR * 3)},
-    {"label": "+10y", "x_percent": days2x_percent(+DAYS_YEAR * 10)},
-    {"label": "+30y", "x_percent": days2x_percent(+DAYS_YEAR * 30)},
-]
 
 
 class MainHandler(HandlerBase):
@@ -410,7 +316,6 @@ class MainHandler(HandlerBase):
             version=self._version,
             url_prefix=self._url_prefix,
             today=today,
-            gauge_label=calc_gauge_label(date, today),
             delta_day1=self.DELTA_DAY1,
             date=date,
             date_from=date_from,
@@ -427,7 +332,6 @@ class MainHandler(HandlerBase):
             search_n=search_n,
             sde_align=sde_align,
             sd=self._sd,
-            gauge=GAUGE,
         )
 
     def str2ymd_date(self, value: str) -> datetime.date:

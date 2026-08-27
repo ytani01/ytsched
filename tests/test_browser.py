@@ -401,6 +401,134 @@ def test_gauge_label_is_plus_minus_zero_in_this_week(page, server):
     )
 
 
+def test_gauge_diff_label_reflects_the_week_offset(page, server):
+    """今週から離れていれば、その差を出す（TODO-072）。
+
+    以前は ``tests/test_web.py`` の ``test_week_diff_is_displayed`` が
+    サーバ側の ``calc_gauge_label()`` の戻り値を HTML から見ていたが、
+    その関数を消した TODO-078 で、JavaScript 側の ``gaugeDiffLabel()``
+    を ``page.evaluate()`` で直に呼ぶ形へ移した。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    for weeks, expected in [(3, "+3w"), (-1, "-1w")]:
+        got = page.evaluate("(days) => gaugeDiffLabel(days)", weeks * 7)
+        assert got == expected, f"weeks={weeks}"
+
+
+def test_gauge_diff_label_switches_unit(page, server):
+    """1 ヶ月からは月数、1 年からは年数（TODO-072）。
+
+    以前は ``tests/test_web.py`` の
+    ``test_unit_switches_to_months_and_years`` が見ていたが、TODO-078 で
+    ``gaugeDiffLabel()`` を直に呼ぶ形へ移した。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    for weeks, expected in [(5, "+1.1m"), (-5, "-1.1m"), (53, "+1.0y")]:
+        got = page.evaluate("(days) => gaugeDiffLabel(days)", weeks * 7)
+        assert got == expected, f"weeks={weeks}"
+
+
+def test_days2x_percent_zero(page, server):
+    """0 のとき 0（TODO-078。以前は ``tests/test_handler.py`` の
+    ``test_days2x_percent_zero`` が Python 側で見ていた）。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    assert page.evaluate("days2xPercent(0)") == 0.0
+
+
+def test_days2x_percent_sign(page, server):
+    """符号が対称（TODO-078。以前は
+    ``tests/test_handler.py`` の ``test_days2x_percent_sign``）。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    plus7 = page.evaluate("days2xPercent(7)")
+    minus7 = page.evaluate("days2xPercent(-7)")
+    assert plus7 == pytest.approx(-minus7)
+    assert plus7 > 0
+    assert minus7 < 0
+
+
+def test_days2x_percent_is_monotonic(page, server):
+    """単調に増える（TODO-078。以前は
+    ``tests/test_handler.py`` の ``test_days2x_percent_is_monotonic``）。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    values = [
+        page.evaluate("(d) => days2xPercent(d)", d)
+        for d in [1, 3, 7, 30, 365]
+    ]
+    assert values == sorted(values)
+
+
+def test_days2x_percent_clamps_at_30y(page, server):
+    """±30y がゲージの端 (50) になる（TODO-078。以前は
+    ``tests/test_handler.py`` の ``test_days2x_percent_clamps_at_30y``）。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    days_year = page.evaluate("DAYS_YEAR")
+    assert page.evaluate(
+        "(d) => days2xPercent(d)", days_year * 30
+    ) == pytest.approx(50.0)
+    assert page.evaluate(
+        "(d) => days2xPercent(d)", -days_year * 30
+    ) == pytest.approx(-50.0)
+
+
+def test_days2x_percent_stays_clamped_beyond_30y(page, server):
+    """30y より先の日付でも、端 (50) で頭打ちのまま（TODO-078。以前は
+    ``tests/test_handler.py`` の
+    ``test_days2x_percent_stays_clamped_beyond_30y``）。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    days_year = page.evaluate("DAYS_YEAR")
+    assert page.evaluate(
+        "(d) => days2xPercent(d)", days_year * 60
+    ) == pytest.approx(50.0)
+    assert page.evaluate(
+        "(d) => days2xPercent(d)", -days_year * 60
+    ) == pytest.approx(-50.0)
+
+
+def _gauge_mark_left(page, label_text):
+    """``label_text`` の目盛りの ``left`` (%) を返す。無ければ ``None``。"""
+    left = page.evaluate(
+        """(text) => {
+            for (const el of document.querySelectorAll('.my-gauge-label')) {
+                if (el.textContent === text) {
+                    return el.style.left;
+                }
+            }
+            return null;
+        }""",
+        label_text,
+    )
+    if left is None:
+        return None
+    return float(left.rstrip("%"))
+
+
+def test_gauge_marks_are_drawn_at_the_same_position(page, server):
+    """目盛りが 14 個描かれ、``-1w``/``+1w`` の位置が変わっていない
+    （TODO-078）。
+
+    以前は ``main_handler.py`` の ``GAUGE`` をテンプレートが描いていた。
+    期待値は、JavaScript 側へ寄せる**前**の HTML から実測した
+    （``50 + days2x_percent(±7)`` を ``'%.2f'`` で丸めた値）。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    assert page.locator(".my-gauge-label").count() == 14
+    assert _gauge_mark_left(page, "-1w") == pytest.approx(46.21, abs=0.01)
+    assert _gauge_mark_left(page, "+1w") == pytest.approx(53.79, abs=0.01)
+
+
 def test_x_percent2days_inverts_days2x_percent(page, server):
     """``xPercent2days()`` が ``days2xPercent()`` の逆になっている
     （TODO-074）。往復させて元の日数に戻ることを見る。

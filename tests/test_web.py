@@ -540,8 +540,9 @@ class TestWeekBar(WebTestBase):
     """上部の週の帯（TODO-055）
 
     帯には横ゲージだけを出す。今週から何週離れているか（``+3w``）は、
-    ゲージの針の上にある（TODO-066）。目盛りのラベルにも ``+1w`` などと
-    同じ文字列があるので、針のラベルだけを取り出してから見る。
+    ゲージの針の上にある（TODO-066）。文字は JavaScript が読み込み時に
+    書き込むので（TODO-078）、それを見るテストは
+    ``tests/test_browser.py`` 側にある。
     """
 
     def week_bar(self, body):
@@ -550,13 +551,6 @@ class TestWeekBar(WebTestBase):
         if m is None:
             return None
         return m.group(0)
-
-    def gauge_label(self, body):
-        """針の上のラベル（今週からの差）を返す。無ければ ``None``。"""
-        m = re.search(r'id="gauge_r_label"[^>]*>(.*?)</div>', body, re.DOTALL)
-        if m is None:
-            return None
-        return html.unescape(m.group(1)).strip()
 
     def test_no_date_range_in_week_bar(self):
         """期間は帯に出さない（TODO-066。``DATE1`` は月曜）。
@@ -567,36 +561,6 @@ class TestWeekBar(WebTestBase):
 
         assert bar is not None
         assert "2021/03/01" not in bar
-
-    def test_this_week_shows_plus_minus_zero(self):
-        """今週のときは ``±0``（TODO-066）。"""
-        today = datetime.date.today()
-
-        body = self.get_body(URL_PREFIX + "/", date=today.isoformat())
-
-        assert self.gauge_label(body) == "\u00b10"
-
-    def test_week_diff_is_displayed(self):
-        """今週から離れていれば、その差を出す。"""
-        today = datetime.date.today()
-
-        for weeks, expected in [(3, "+3w"), (-1, "-1w")]:
-            date = today + datetime.timedelta(weeks * 7)
-
-            body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
-
-            assert self.gauge_label(body) == expected
-
-    def test_unit_switches_to_months_and_years(self):
-        """1 ヶ月からは月数、1 年からは年数（TODO-072）。"""
-        today = datetime.date.today()
-
-        for weeks, expected in [(5, "+1.1m"), (-5, "-1.1m"), (53, "+1.0y")]:
-            date = today + datetime.timedelta(weeks * 7)
-
-            body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
-
-            assert self.gauge_label(body) == expected
 
     def test_no_week_bar_in_search_mode(self):
         """検索モードでは帯を出さない。

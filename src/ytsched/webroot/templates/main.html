@@ -69,6 +69,8 @@
      const win_h = document.documentElement.clientHeight;
 
      elGaugeR0 = document.getElementById("gauge_r"); // declared in my.js
+     // 目盛りの位置は日付によらないので、ここで一度だけ描く (TODO-078)
+     dispGaugeMarks();
 
      if ( body_h < win_h ) {
        console.log(`body_h=${body_h} < win_h=${win_h}`);
@@ -149,18 +151,17 @@
            差は針の位置そのものを読む数字なので、針の上に置いて一緒に
            動かす。位置は ``#gauge_r`` がまとめて持ち、文字は
            JavaScript の ``setGaugePosition()`` が書き換える。
-           ここが埋めるのは、読み込んだ直後の一度だけ。
+           読み込み時に呼ばれる onloadHdr() の中で必ず一度は通るので、
+           ここは空のままでよい (TODO-078)。
            単位は週・月・年で切り替わる (TODO-072) -->
       <div id="gauge_r" class="my-gauge-r">
-        <div id="gauge_r_label" class="my-gauge-r-label">{{ gauge_label }}</div>
+        <div id="gauge_r_label" class="my-gauge-r-label"></div>
         <svg class="my-gauge-r-needle" viewBox="0 0 12 8">
           <polygon points="0,0 12,0 6,8" />
         </svg>
       </div>
-      {% for d in gauge %}
-      <div class="my-gauge-label"
-        style="left:{{ '%.2f' % (50 + d['x_percent']) }}%">{{ d['label'] }}</div>
-      {% end %}
+      <!-- 目盛り (.my-gauge-label) は、読み込み時に JavaScript の
+           dispGaugeMarks() が描く (TODO-078) -->
     </div>
   </div><!-- container -->
   {% end %}

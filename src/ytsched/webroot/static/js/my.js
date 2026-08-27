@@ -38,18 +38,17 @@ window.addEventListener("pageshow", (event) => {
     }
 });
 
-// 横ゲージ (TODO-058)。``main_handler.py`` の ``DAYS_YEAR`` と同じ値
+// 横ゲージ (TODO-058)。以前は ``main_handler.py`` にも同じ定数・同じ式が
+// あったが、二重に持つのをやめて JavaScript 側だけに寄せた (TODO-078)
 const DAYS_YEAR = 365.25;
 const DAYS_MONTH = DAYS_YEAR / 12;
 const DAYS_GAUGE_MAX = DAYS_YEAR * 30;
-// 中心の近くをどれだけ詰めるか (TODO-059)。``main_handler.py`` の
-// ``DAYS_GAUGE_K`` と同じ値
+// 中心の近くをどれだけ詰めるか (TODO-059)
 const DAYS_GAUGE_K = 10.0;
 
 /**
  * 今週の中心からの左右のずれを、ゲージの幅に対する割合 (%) で返す。
- * Python 側 (``main_handler.py`` の ``days2x_percent()``) と同じ式・
- * 同じ頭打ち (TODO-058)。
+ * 頭打ちあり (TODO-058)。
  *
  * @param {number} days
  *
@@ -89,6 +88,49 @@ const xPercent2days = (xPercent) => {
     return abs_days;
 };
 
+// ゲージの目盛りの一覧 (TODO-058)。以前は ``main_handler.py`` の
+// ``GAUGE`` がテンプレートへ渡していたが、同じ一覧を JavaScript 側だけに
+// 寄せた (TODO-078)
+const GAUGE_MARKS = [
+    { label: "-30y", days: -DAYS_YEAR * 30 },
+    { label: "-10y", days: -DAYS_YEAR * 10 },
+    { label: "-3y", days: -DAYS_YEAR * 3 },
+    { label: "-1y", days: -DAYS_YEAR },
+    { label: "-3m", days: -DAYS_MONTH * 3 },
+    { label: "-1m", days: -DAYS_MONTH },
+    { label: "-1w", days: -7 },
+    { label: "+1w", days: +7 },
+    { label: "+1m", days: +DAYS_MONTH },
+    { label: "+3m", days: +DAYS_MONTH * 3 },
+    { label: "+1y", days: +DAYS_YEAR },
+    { label: "+3y", days: +DAYS_YEAR * 3 },
+    { label: "+10y", days: +DAYS_YEAR * 10 },
+    { label: "+30y", days: +DAYS_YEAR * 30 },
+];
+
+/**
+ * ゲージの目盛り (``.my-gauge-label``) を ``.my-gauge-bar`` の中へ描く
+ * (TODO-078)。読み込み時に一度だけ呼べばよい (目盛りの位置は日付に
+ * よらない)。
+ *
+ * 検索モードでは週バーごと ``.my-gauge-bar`` が無いので、そのときは
+ * 何もしない。
+ */
+const dispGaugeMarks = () => {
+    const elGaugeBar = document.querySelector(".my-gauge-bar");
+    if ( ! elGaugeBar ) {
+        return;
+    }
+
+    for (const mark of GAUGE_MARKS) {
+        const elMark = document.createElement("div");
+        elMark.className = "my-gauge-label";
+        elMark.style.left = `${(50 + days2xPercent(mark.days)).toFixed(2)}%`;
+        elMark.textContent = mark.label;
+        elGaugeBar.appendChild(elMark);
+    }
+};
+
 /**
  * ``date_str`` を含む週の月曜 (Localtime) を返す (TODO-049)。
  *
@@ -112,10 +154,9 @@ const mondayOf = (date_str) => {
  * 週数 (``+3w``)、1 ヶ月から 1 年までは月数 (``+1.2m``)、1 年からは
  * 年数 (``+1.2y``)。月と年は小数点以下 1 桁。
  *
- * Python 側 (``main_handler.py`` の ``calc_gauge_label()``) と同じ
- * 区切り・同じ書き方にしてある。サーバが埋めるのは読み込んだ直後の
- * 一度だけで、あとはここが書き換えるため、食い違うと針が動く前後で
- * 文字が変わって見える。
+ * 以前は Python 側 (``main_handler.py`` の ``calc_gauge_label()``) にも
+ * 同じ区切り・同じ書き方の関数があったが、二重に持つのをやめて
+ * JavaScript 側だけに寄せた (TODO-078)。
  *
  * @param {number} days   今週の月曜からの日数 (7 の倍数)
  *
