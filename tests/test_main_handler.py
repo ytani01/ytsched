@@ -43,7 +43,7 @@ from test_web import (
     week_panel,
 )
 
-from ytsched.main_handler import MainHandler
+from ytsched.main_handler import MainHandler, SchedLoadCond
 from ytsched.ytsched import SchedData
 
 CONF_FNAME = "conf.json"
@@ -866,17 +866,19 @@ class TestLoadSchedScan(WebTestBase):
         todo_sde, todo_today_sde = handler.load_todo(
             None, False, search_re, todo_days_value
         )
-        return handler.load_sched(
-            date or self.BASE,
-            None,
-            False,
-            search_re,
-            search_re is not None,
-            5,
-            todo_days_value,
-            todo_sde,
-            todo_today_sde,
+        cond = SchedLoadCond(
+            filter_re=None,
+            filter_neg=False,
+            search_re=search_re,
+            search_n=5,
+            todo_days_value=todo_days_value,
+            todo_sde=todo_sde,
+            todo_today_sde=todo_today_sde,
+            todo_by_date=handler.mk_todo_by_date(
+                search_re, todo_days_value, todo_sde
+            ),
         )
+        return handler.load_sched(date or self.BASE, cond)
 
     def open_every_day(self):
         """変更前と同じく「どの日も開きに行く」ようにするパッチ。"""
@@ -994,3 +996,24 @@ class TestLoadSchedScan(WebTestBase):
         # ToDo と、ファイルがある 3 日ぶん（``BASE - 1`` は検索に
         # 当たらないが、ファイルはあるので開く）
         assert sd.get_cache_size() == 4
+
+    def test_mk_todo_by_date_is_called_once_per_request(self):
+        """``mk_todo_by_date()`` は週の数だけ呼び直さない（TODO-079）。
+
+        通常モードでは前後の週ぶん ``load_sched()`` が繰り返し呼ばれる
+        （TODO-069）が、``todo_by_date`` の集計は ``get()`` の中で
+        1 回だけ作って使い回す。
+        """
+        self.write_mixed_data()
+
+        orig = MainHandler.mk_todo_by_date
+        calls = []
+
+        def spy(self, *args, **kwargs):
+            calls.append(1)
+            return orig(self, *args, **kwargs)
+
+        with mock.patch.object(MainHandler, "mk_todo_by_date", spy):
+            self.get_body(URL_PREFIX + "/", date=self.BASE.isoformat())
+
+        assert len(calls) == 1

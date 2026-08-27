@@ -8,6 +8,7 @@ MainHandler
 __author__ = "ytani01"
 __date__ = "2021/01"
 
+import dataclasses
 import datetime
 import re
 import urllib.parse
@@ -19,6 +20,32 @@ import tornado.web
 from .handler import HandlerBase
 from .mylog import getLogger
 from .ytsched import SchedDataEnt, normalize
+
+
+@dataclasses.dataclass
+class SchedLoadCond:
+    """``load_sched()`` が使う表示の条件をまとめたもの (TODO-079)。
+
+    ``MainHandler.get()`` は前後の週の数だけ ``load_sched()`` を
+    繰り返し呼ぶ (TODO-069) が、``date`` 以外の引数は毎回同じ値になる。
+    ここへまとめて 1 つの引数にする。``todo_by_date``
+    (``mk_todo_by_date()`` の結果) も持たせ、週ごとに作り直さず
+    1 回だけ集計する。
+    """
+
+    filter_re: re.Pattern[str] | None
+    filter_neg: bool
+    search_re: re.Pattern[str] | None
+    search_n: int
+    todo_days_value: int
+    todo_sde: list[SchedDataEnt]
+    todo_today_sde: list[SchedDataEnt]
+    todo_by_date: dict[datetime.date, list[SchedDataEnt]]
+
+    @property
+    def search_mode(self) -> bool:
+        """検索モードかどうか (不正な正規表現のときは検索しない)。"""
+        return self.search_re is not None
 
 
 class MainHandler(HandlerBase):
@@ -252,17 +279,19 @@ class MainHandler(HandlerBase):
         #
         # load schedule data
         #
-        sched, date_from, date_to = self.load_sched(
-            date,
-            filter_re,
-            filter_neg,
-            search_re,
-            search_mode,
-            search_n,
-            todo_days_value,
-            todo_sde,
-            todo_today_sde,
+        cond = SchedLoadCond(
+            filter_re=filter_re,
+            filter_neg=filter_neg,
+            search_re=search_re,
+            search_n=search_n,
+            todo_days_value=todo_days_value,
+            todo_sde=todo_sde,
+            todo_today_sde=todo_today_sde,
+            todo_by_date=self.mk_todo_by_date(
+                search_re, todo_days_value, todo_sde
+            ),
         )
+        sched, date_from, date_to = self.load_sched(date, cond)
 
         #
         # 前後の週も一緒に描いて返す (TODO-057・TODO-069)
@@ -286,17 +315,7 @@ class MainHandler(HandlerBase):
                 if offset == 0:
                     sched_offset = sched
                 else:
-                    sched_offset, _, _ = self.load_sched(
-                        monday,
-                        filter_re,
-                        filter_neg,
-                        search_re,
-                        search_mode,
-                        search_n,
-                        todo_days_value,
-                        todo_sde,
-                        todo_today_sde,
-                    )
+                    sched_offset, _, _ = self.load_sched(monday, cond)
                 weeks.append(
                     {
                         "offset": offset,
@@ -819,7 +838,8 @@ class MainHandler(HandlerBase):
         ``load_sched()`` は 1 日ずつさかのぼるので、日ごとに
         ``todo_sde`` を全件見ると、日数 × 件数だけ照合が走る。
         先に日付でまとめておけば 1 回で済む。並び順は ``todo_sde`` の
-        まま。
+        まま。``get()`` が ``SchedLoadCond`` を作るところで 1 回だけ
+        呼び、週の数だけ繰り返し呼ばないようにしている (TODO-079)。
 
         ``todo_days_value`` が負のときは ToDo を混ぜないので、空の
         ``dict`` を返す。
@@ -851,28 +871,16 @@ class MainHandler(HandlerBase):
     def load_sched(
         self,
         date: datetime.date,
-        filter_re: re.Pattern[str] | None,
-        filter_neg: bool,
-        search_re: re.Pattern[str] | None,
-        search_mode: bool,
-        search_n: int,
-        todo_days_value: int,
-        todo_sde: list[SchedDataEnt],
-        todo_today_sde: list[SchedDataEnt],
+        cond: SchedLoadCond,
     ) -> tuple[list[dict], datetime.date, datetime.date]:
         """表示する日々のスケジュールを集める。
 
         Parameters
         ----------
         date: datetime.date
-        filter_re: re.Pattern[str] | None
-        filter_neg: bool
-        search_re: re.Pattern[str] | None
-        search_mode: bool
-        search_n: int
-        todo_days_value: int
-        todo_sde: list[SchedDataEnt]
-        todo_today_sde: list[SchedDataEnt]
+        cond: SchedLoadCond
+            表示の条件 (TODO-079)。``get()`` が前後の週の数だけ
+            呼び出すあいだ、``date`` 以外は同じ値になる
 
         Returns
         -------
@@ -893,12 +901,18 @@ class MainHandler(HandlerBase):
         下の ``if search_mode and not out_sde`` のほう)。
 
         ``todo_sde`` の照合も、日ごとに全件見ずに、日付で引けるように
-        しておく (TODO-028)。
+        しておく (TODO-028)。``cond.todo_by_date`` がその結果で、
+        呼び出しごとに作り直さない (TODO-079)。
 
         """
-        todo_by_date = self.mk_todo_by_date(
-            search_re, todo_days_value, todo_sde
-        )
+        filter_re = cond.filter_re
+        filter_neg = cond.filter_neg
+        search_re = cond.search_re
+        search_mode = cond.search_mode
+        search_n = cond.search_n
+        todo_days_value = cond.todo_days_value
+        todo_today_sde = cond.todo_today_sde
+        todo_by_date = cond.todo_by_date
 
         sched = []
         monday = date - datetime.timedelta(date.weekday())
