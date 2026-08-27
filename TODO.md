@@ -1,11 +1,196 @@
 # TODO
 
-**残っている項目: 無し。**
+**残っている項目: TODO-077〜TODO-083。**
 これまでに 76 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-077` から**（TODO-071 は欠番）。
+**番号は `TODO-084` から**（TODO-071 は欠番）。
 
 着手する項目は利用者が指定する。
+
+TODO-077〜083 は、基本設計のレビュー（2026-08-27）で挙がった 11 件を
+振り分けたもの。中身は [`docs/design-review.md`](docs/design-review.md)
+にある。**着手するときは、まずそちらの該当する節を読むこと。**
+
+---
+
+## TODO-077. `fix` で `.bak` が中間状態に上書きされるのを直す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] 1 回の修正で、データファイルの保存が 1 回になるようにする
+- [ ] `SchedData.add_sde()` / `del_sde()` から保存を切り離す
+- [ ] `exec_update()` 一式の置き場所を決める
+
+`exec_update()` は `fix` を `cmd_del()` → `cmd_add()` で実装していて、
+`SchedData` の `del_sde()` / `add_sde()` がそれぞれ `sdf.save()` を呼ぶ。
+同じ日のファイルが 1 回の修正で 2 回保存され、**2 回目の `.bak` が
+1 回目の結果（1 件消えた状態）を写す**。修正前の内容がどこにも残らない。
+
+一時ディレクトリで確認した（A・B の 2 件がある日で B を修正）。
+
+| | 中身 |
+|---|---|
+| 修正前のファイル | 予定A, 予定B |
+| 修正後の `.bak` | **予定A のみ** |
+
+**決めること:** `exec_update()` 一式（約 400 行）を `main_handler.py` から
+出すかどうか。出すなら `SchedData` を受け取るクラスにする案がある
+（`docs/design-review.md` の E）。**着手時に相談する。**
+`.bak` を直すだけなら、`main_handler.py` に置いたままでもできる。
+
+詳しくは `docs/design-review.md` の B・E。
+
+---
+
+## TODO-078. ゲージの計算を 1 か所にして、別ファイルへ分ける
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] Python と JavaScript のどちらに寄せるか決める
+- [ ] ゲージの計算を `main_handler.py` から出す
+- [ ] 目盛りの位置と、針の上の文字が、今までと同じであることを確かめる
+
+`main_handler.py` の `days2x_percent()` / `calc_gauge_label()` と
+定数 4 つが、`my.js` の `days2xPercent()` / `gaugeDiffLabel()` と
+同名の定数に、同じ式・同じ数値で二重にある。
+`calc_gauge_label()` の docstring 自身が「食い違うと針が動く前後で
+文字が変わって見える」と書いており、揃え続けるのが人の注意任せ。
+
+**決めること:** JavaScript 側に寄せて Python 側を消すか、両方残して
+数値が一致することを見るテストを置くか。**着手時に相談する。**
+前者なら、読み込んだ直後の一度だけサーバが埋めている針の上の文字を、
+JavaScript が描くように変える必要がある。
+
+Python 側に残す分は、ハンドラと関係が無い純粋な関数なので、
+`main_handler.py`（1,443 行）から別ファイルへ出す。
+
+詳しくは `docs/design-review.md` の A・E。
+
+---
+
+## TODO-079. 表示の条件をまとめて `load_sched()` の引数を減らす
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] 表示の条件を 1 つの dataclass にまとめる
+- [ ] `mk_todo_by_date()` を週ごとに作り直さないようにする
+
+**挙動は変えない。** TODO-021 で reviewer が挙げ、「挙動を変えない
+項目の範囲を超える」として残された 1 件。TODO-069 で週の数だけ
+繰り返し呼ぶようになり、9 個の引数のうち 8 個は毎回同じ値を渡している。
+`mk_todo_by_date()` も呼び出しごとに `todo_sde` を全件走査するので、
+前後 1 ヶ月（9 週）なら同じ集計を 9 回やっている。
+
+詳しくは `docs/design-review.md` の F。
+
+---
+
+## TODO-080. キャッシュがファイルの更新に追随しないのを直す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] 読み込んだときの `mtime` を持たせ、変わっていたら読み直す
+- [ ] `DEF_CACHE_SIZE`（20,000）を今の使い方に合わせて見直す
+
+`SchedData._sdf_cache` は `mtime` を見ないので、`ytsched migrate` や
+手でファイルを直しても、サーバが生きている間は古い内容を返し続ける。
+ホームボタンのダブルタップは DOM を取り直すだけで、サーバ側は古いまま。
+
+上限 20,000 件は、TODO-069 で 1 リクエスト 63 日ぶんを読むように
+なる前の数字で、実際にはまず捨てられない。
+
+詳しくは `docs/design-review.md` の C。
+
+---
+
+## TODO-081. ハンドラの役割と、依存の渡し方を整理する
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] 引数と設定値の変換・検証を `HandlerBase` から出す
+- [ ] `SchedData` を `initialize()` で渡すようにする
+- [ ] `CONF_KEY_LOAD_MONTHS` など、定数の置き場所のズレを直す
+
+**挙動は変えない。** `handler.py` にあるのは「`conf.json` の読み書き」
+「引数と設定値の変換・検証」「表示に使える日付の範囲」の 3 つで、
+後ろの 2 つは `self` をログにしか使わない純粋な関数。
+`RequestHandler` を継承していることと関係が無く、テストを書くのに
+ハンドラを組み立てる必要がある。
+
+依存は `tornado.web.Application` の設定に入れて
+`app.settings.get("sd")` で取り出しているため、`self._sd` の型が
+`Any` になり、型チェッカが `SchedData` として見られない。
+
+詳しくは `docs/design-review.md` の D・G。
+
+---
+
+## TODO-082. import の意図と実態のズレ、使われていない属性、細かい 5 件を片付ける
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] `__init__.py` の import をやめるか、`migrate.py` のコメントを直すか決める
+- [ ] 使われていない属性 3 つと、それを固定しているテスト
+- [ ] `__main__.py` の docstring とヘルプの文字列、`x_data1` の扱い
+- [ ] `webapp` の `--size_limit` の既定値を `DEF_SIZE_LIMIT` にする
+- [ ] ruff の設定を `mise.toml` から `pyproject.toml` へ移す
+- [ ] `SchedDataFile.__init__` のパスの分解を `os.path` にする
+
+`migrate.py` は「`handler.py` を import すると移行ツールが tornado に
+依存してしまう」と書いてあるのに、`__init__.py` が `MainHandler` と
+`WebServer` を import しているので、`ytsched migrate` は結局 tornado を
+読み込む。**決めること:** `__init__.py` の import をやめるか、
+コメントを実情に合わせるか。
+
+使われていない属性は `HandlerBase._app` / `_req`、
+`SchedDataFile.filename` / `dirname`、`SchedData.get_keys()`。
+どれもテストがアサートしているので、消すならテストも一緒に消す。
+
+`x_data1` はデバッグ用と `src/README.md` にあるが、`ytsched --help` には
+他の 2 つと並んで出る。**残すか消すかを決める。**
+
+ruff は `ignore` だけが `pyproject.toml` にあり、`--line-length 78` と
+`--extend-select I` は `mise.toml` のコマンド行にある。**移すのは
+置き場所だけで、規則を増やすかどうかは別の項目にする。**
+
+詳しくは `docs/design-review.md` の H・J・K。
+
+---
+
+## TODO-083. `my.js` と `main.html` の JavaScript を分ける
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] グローバルな状態（`elMain` `activeWeekOffset` など）の持ち方を決める
+- [ ] `my.js` を、コメントで分かれている 6 つに分ける
+- [ ] `main.html` の `<script>` の関数本体を `my.js` 側へ移す
+
+**挙動は変えない。** `my.js` 1,358 行がすべてトップレベルの
+`const`／`let` で、中身はスピナー / ゲージ / URL と遷移 / 週の管理 /
+キーボード / スワイプとマウスの 6 つにコメントで分かれている。
+`main.html` の先頭にも 120 行の `<script>` があり、`my.js` の
+グローバル変数を書き換えている（`// declared in my.js`）。
+これが分けにくくしている一番の理由なので、**先に状態の持ち方を決める。**
+
+TODO-056 で入れたブラウザのテストで、退行を捕まえられる。
+
+詳しくは `docs/design-review.md` の I。
+
+---
 
 ## 完了済み
 
