@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-089..TODO-095**
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-089..TODO-096**
 これまでに 86 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-096` から**。
+**番号は `TODO-097` から**。
 
 TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 16 件）を
 9 項目にまとめたもの。A〜P の記号は、そのレビューでの通し番号。レビューの
@@ -239,6 +239,35 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 置き場所を `pyproject.toml` へ移しただけ。規則を増やすかは決めていない。
 
 足すと決めたら、指摘の量を見てから直す項目を別に立てる。
+
+---
+
+## TODO-096. Android の Firefox でアイコンが黒く塗りつぶされる
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | verifier + wording |
+
+- [ ] 線画のスタイルを `icons.svg` の `<style>` から `my.css` の `.my-icon` へ移す
+- [ ] `icons.svg` の `<defs><style>` を削除する
+
+Android の Firefox で、フッターの ◀ ▶ が黒い三角、虫めがねが黒い丸、
+消去キーが黒い矢印になる。漏斗と `angle-down` も黒い三角になる。
+いずれも「線画の輪郭パスが黒く塗られた形」で、`fill: none` と
+`stroke: currentColor` が効いていない見え方。
+
+`icons.svg` は線画のスタイルを、ファイルの中の `<style>` で
+`symbol` に当てている。外部ファイルを `<use href="...icons.svg#id">` で
+参照すると、中身は shadow tree になり、参照元のファイルにある `<style>` を
+適用するかどうかはブラウザによって差が出る。Firefox for Android では
+適用されず、`fill` が既定の黒、`stroke` 無しになる。
+
+`fill` / `stroke` / `stroke-width` は継承する CSS プロパティなので、
+参照する側の `<svg class="my-icon">` に指定すれば shadow tree の中まで
+届く。`.my-icon-9x` の `stroke-width: 1` は、既にこの仕組みで効いている。
+
+`circle-up-fill` と `dot-circle` の塗りは `fill="currentColor"
+stroke="none"` を要素に直接書いてあり、継承より優先されるので今のまま残る。
 
 ---
 
