@@ -13,7 +13,7 @@ TODO-082・083 は、基本設計のレビュー（2026-08-27）で挙がった 
 
 ---
 
-## TODO-082. import の意図と実態のズレ、使われていない属性、細かい 5 件を片付ける
+## TODO-082. import の意図と実態のズレ、使われていない属性、定数の置き場所、細かい 5 件を片付ける
 
 |      | main | 担当 |
 |------|------|------|
@@ -21,6 +21,7 @@ TODO-082・083 は、基本設計のレビュー（2026-08-27）で挙がった 
 
 - [ ] `__init__.py` の import をやめるか、`migrate.py` のコメントを直すか決める
 - [ ] 使われていない属性 3 つと、それを固定しているテスト
+- [ ] `CONF_KEY_*` 3 つを `MainHandler` へ移す
 - [ ] `__main__.py` の docstring とヘルプの文字列、`x_data1` の扱い
 - [ ] `webapp` の `--size_limit` の既定値を `DEF_SIZE_LIMIT` にする
 - [ ] ruff の設定を `mise.toml` から `pyproject.toml` へ移す
@@ -35,6 +36,12 @@ TODO-082・083 は、基本設計のレビュー（2026-08-27）で挙がった 
 使われていない属性は `HandlerBase._app` / `_req`、
 `SchedDataFile.filename` / `dirname`、`SchedData.get_keys()`。
 どれもテストがアサートしているので、消すならテストも一緒に消す。
+
+`CONF_KEY_TODO_DAYS` / `CONF_KEY_FILTER_STR` / `CONF_KEY_SEARCH_N` は
+`HandlerBase` にありながら `MainHandler` からしか使っていない。
+TODO-081 で `CONF_KEY_LOAD_MONTHS` だけを移し、残りはここで扱うと決めた。
+`CONF_KEY_SEARCH_STR` は `EditHandler.get()` でも読んでいるので
+`HandlerBase` のままにする。
 
 `x_data1` はデバッグ用と `src/README.md` にあるが、`ytsched --help` には
 他の 2 つと並んで出る。**残すか消すかを決める。**
