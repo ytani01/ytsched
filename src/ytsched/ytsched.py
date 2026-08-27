@@ -390,6 +390,11 @@ class SchedDataFile:
         # ``save()`` がこれを末尾へ書き戻す（TODO-020）
         self.skipped_lines: list[bytes] = []
 
+        # 読み込んだ時点のファイルの状態。``is_stale()`` が
+        # 外部の変更（``ytsched migrate`` や手での書き換え）を
+        # 見分けるのに使う（TODO-080）
+        self._stat_key: tuple[float, int] | None = None
+
         self.sde = self.load()
 
     def __str__(self):
@@ -458,9 +463,18 @@ class SchedDataFile:
         try:
             with open(self.pathname, mode="rb") as f:
                 data = f.read()
+                st = os.fstat(f.fileno())
         except FileNotFoundError:
             self.__log.debug(f"{self.pathname}: not found .. ignored")
+            # ``None`` は「無い」ことを表す。あとでファイルができれば
+            # ``os.stat()`` の結果と食い違うので、``is_stale()`` が
+            # 読み直しが要ると判断できる（TODO-080）
+            self._stat_key = None
             return []
+
+        # 開いた fd から ``fstat()`` するので、読んだ内容とずれない
+        # （パス名で ``stat()`` し直すと、その間に書き換えられうる）。
+        self._stat_key = (st.st_mtime, st.st_size)
 
         out = []
         for i, raw_line in enumerate(self.split_lines(data), start=1):
@@ -481,6 +495,34 @@ class SchedDataFile:
             out.append(sde)
 
         return sorted(out, key=lambda x: x.get_sortkey())
+
+    def is_stale(self) -> bool:
+        """読み込んだあとに、ファイルが外部で書き換えられたか（TODO-080）。
+
+        ``os.stat()`` は 1 回だけ呼ぶ。ファイルが消えていたり
+        権限が無い場合は ``OSError`` を握りつぶし、「無くなった」も
+        変化ありとして扱う（呼び出し側を 500 にしないため）。
+
+        ``st_mtime``（float）だけでは、同じ秒の中で 2 回書かれると
+        値が変わらず見分けが付かないことがある。``st_size`` も
+        あわせて見ることで、内容が変わっていれば大抵は取りこぼさない
+        （中身の量が変わらない書き換えまでは見分けられないが、
+        毎回 ``os.stat()`` の他にハッシュを取るような重い方法は
+        取らない）。
+
+        Returns
+        -------
+        bool
+
+        """
+        try:
+            st = os.stat(self.pathname)
+        except OSError:
+            current_key = None
+        else:
+            current_key = (st.st_mtime, st.st_size)
+
+        return current_key != self._stat_key
 
     @staticmethod
     def split_lines(data: bytes) -> list[bytes]:
@@ -586,6 +628,10 @@ class SchedDataFile:
         **元のバイトのまま**書き戻す。デコードできない行もあるので、
         書き出しはバイナリで行う。空行は ``skipped_lines`` に
         入らないので、書き戻されない。
+
+        書いたあとの ``_stat_key`` はここで持ち直す（TODO-080）。
+        書いた内容はキャッシュ（``self.sde``）と同じはずなので、
+        ``get_sdf()`` がこのあと読み直すのは無駄になる。
         """
         self.__log.debug("")
 
@@ -604,6 +650,10 @@ class SchedDataFile:
                 f.write(line.encode(self.ENCODING) + b"\n")
 
             f.writelines(raw_line + b"\n" for raw_line in self.skipped_lines)
+
+            f.flush()
+            st = os.fstat(f.fileno())
+            self._stat_key = (st.st_mtime, st.st_size)
 
     def add_sde(self, sde: SchedDataEnt) -> None:
         """
@@ -672,7 +722,20 @@ class SchedData:
 
     __log = getLogger(__qualname__)
 
-    DEF_CACHE_SIZE = 20000
+    # main_handler.MainHandler の ``LoadMonths`` は既定 1、上限 24
+    # ヶ月（前後 2 年）。1 リクエストで読む日数は、月数を週数へ丸めて
+    # (``round(months * 30 / 7)``、``months2weeks()``) 前後に広げた
+    # 週数 * 7 日。上限いっぱい（24 ヶ月）だと
+    # ``round(24 * 30 / 7) = 103`` 週、前後で ``103 * 2 + 1 = 207``
+    # 週、``207 * 7 = 1449`` 日。ToDo（1 件）を足すと 1450 件で、これが
+    # 1 リクエストの間に捨てられてはいけない最小の数（TODO-080）。
+    # 検索モードはこれより多く開きうる。1 件も当たらないと最大
+    # ``SEARCH_MODE_MAX_DAYS``（1825）日ぶんさかのぼるため（ただし
+    # データファイルが無い日は開かない。TODO-028）。**大きいほうに
+    # 合わせて 2000 とする**（TODO-080）
+    # （main_handler 側の値が変わっても、ここでは追随しない。
+    # 依存させると循環参照になるため）
+    DEF_CACHE_SIZE = 2000
     CACHE_DISCARD_RATE = 0.1
 
     def __init__(
@@ -752,6 +815,12 @@ class SchedData:
         キャッシュがヒットすれば、そのデータを返す。
         ヒットしなければ、読み込む。
 
+        キャッシュがヒットしても、ファイルが読み込んだあとで
+        変わっていれば読み直す（``SchedDataFile.is_stale()``）。
+        ``ytsched migrate`` や手での書き換えに追随するため（TODO-080）。
+        ``save()`` した直後は、``SchedDataFile.save()`` が
+        ``_stat_key`` を持ち直しているので、ここでの読み直しは起きない。
+
         Parameters
         ----------
         date: datetime.date | None
@@ -768,7 +837,6 @@ class SchedData:
         try:
             # self.__log.debug(f"_sdf.keys={self.get_keys()}")
             sdf = self._sdf_cache.pop(date)
-            self._sdf_cache[date] = sdf
             # self.__log.debug(f"_sdf.keys={self.get_keys()}")
         except KeyError:
             self.__log.debug(f"cache miss: date={date}")
@@ -783,8 +851,13 @@ class SchedData:
                     # )
 
             sdf = SchedDataFile(date, self._topdir)
-            self._sdf_cache[date] = sdf
-            # self.__log.debug(f"_sdf.keys={self.get_keys()}")
+        else:
+            if sdf.is_stale():
+                self.__log.debug(f"reload (stale): date={date}")
+                sdf = SchedDataFile(date, self._topdir)
+
+        self._sdf_cache[date] = sdf
+        # self.__log.debug(f"_sdf.keys={self.get_keys()}")
 
         # if not sdf.sde:
         # self.__log.warning(f"{date} sdf.sde={sdf.sde}")

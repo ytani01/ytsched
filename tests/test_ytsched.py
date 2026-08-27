@@ -6,6 +6,7 @@
 import datetime
 import inspect
 import json
+import os
 import uuid
 from typing import Any
 from unittest import mock
@@ -1060,6 +1061,94 @@ def test_get_sdf_discard(tmp_path):
     assert sd.get_cache_size() == 10
     assert str(DATE1) not in sd.get_keys()
     assert str(DATE1 + datetime.timedelta(1)) in sd.get_keys()
+
+
+def test_get_sdf_reloads_when_file_changed_outside(tmp_path):
+    """外からファイルを書き換えたら、次の get_sdf() で読み直す(TODO-080)。"""
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sd = SchedData(str(tmp_path))
+
+    sdf1 = sd.get_sdf(DATE1)
+    assert len(sdf1.sde) == 1
+
+    # mtime の分解能で不安定にならないよう、明示的に時刻をずらす
+    st = os.stat(path)
+    path.write_text(
+        "".join(l + "\n" for l in [DATALINE1, mk_dataline(sde_id="id-2")]),
+        encoding="utf-8",
+    )
+    os.utime(path, (st.st_atime + 10, st.st_mtime + 10))
+
+    sdf2 = sd.get_sdf(DATE1)
+    assert sdf2 is not sdf1
+    assert len(sdf2.sde) == 2
+
+
+def test_get_sdf_does_not_reload_when_unchanged(tmp_path):
+    """書き換えていなければ、同じ ``SchedDataFile`` を返す(TODO-080)。"""
+    write_data(tmp_path, DATE1, [DATALINE1])
+    sd = SchedData(str(tmp_path))
+
+    sdf1 = sd.get_sdf(DATE1)
+    sdf2 = sd.get_sdf(DATE1)
+
+    assert sdf2 is sdf1
+
+
+def test_get_sdf_survives_file_removed(tmp_path):
+    """キャッシュに載ったあとでファイルが消えても落ちない(TODO-080)。"""
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sd = SchedData(str(tmp_path))
+
+    sdf1 = sd.get_sdf(DATE1)
+    assert len(sdf1.sde) == 1
+
+    path.unlink()
+
+    sdf2 = sd.get_sdf(DATE1)
+    assert sdf2.sde == []
+
+
+def test_get_sdf_reads_file_created_later(tmp_path):
+    """無かった日のファイルが、あとからできても読める(TODO-080)。"""
+    sd = SchedData(str(tmp_path))
+
+    sdf1 = sd.get_sdf(DATE1)
+    assert sdf1.sde == []
+
+    write_data(tmp_path, DATE1, [DATALINE1])
+
+    sdf2 = sd.get_sdf(DATE1)
+    assert len(sdf2.sde) == 1
+
+
+def test_get_sdf_no_reload_right_after_save(tmp_path):
+    """``save()`` の直後は、無駄な読み直しが起きない(TODO-080・TODO-077)。
+
+    ``save()`` のあとから見ていては遅い。新しく作るファイルは
+    ``add_sde()`` の時点でまだ無く、``_stat_key`` が ``None`` に
+    なっているので、**``save()`` の直後の 1 回目**が読み直しになる。
+    その 1 回目が見える位置に ``mock`` を置くこと。
+    """
+    sd = SchedData(str(tmp_path))
+    sd.add_sde(DATE1, mk_sde())
+
+    # ``add_sde()`` が作った SchedDataFile を、save() より前に押さえる
+    sdf1 = sd.get_sdf(DATE1)
+
+    with mock.patch.object(sdf1, "load", wraps=sdf1.load) as load:
+        sd.save()
+        sdf2 = sd.get_sdf(DATE1)
+
+    assert sdf2 is sdf1
+    load.assert_not_called()
+
+    # 既にあるファイルでも同じ
+    with mock.patch.object(sdf1, "load", wraps=sdf1.load) as load:
+        sdf3 = sd.get_sdf(DATE1)
+
+    assert sdf3 is sdf1
+    load.assert_not_called()
 
 
 def test_sched_data_get_sde(tmp_path):
