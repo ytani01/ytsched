@@ -1207,20 +1207,31 @@ class MainHandler(HandlerBase):
         if cmd in ["add"]:
             sde_id = None
 
-        if cmd in ["del", "fix", "update"]:
-            self.cmd_del(orig_date, sde_id)
+        # ``cmd_del()``/``cmd_add()`` は変更を覚えるだけで保存しない。
+        # 同じファイルへの保存が 1 回で済むよう、ここでまとめて
+        # 保存する (TODO-077)。
+        #
+        # ``finally`` にしてあるのは、``SchedData`` がアプリ全体で 1 つ
+        # だからで、途中で例外が出たときに変更の印を残したまま抜けると、
+        # **次の関係の無いリクエストの保存に紛れ込む**。
+        # 途中まで保存されるのは、保存を分ける前と同じ挙動
+        try:
+            if cmd in ["del", "fix", "update"]:
+                self.cmd_del(orig_date, sde_id)
 
-        if cmd in ["add", "fix", "update"]:
-            new_sde = self.cmd_add(
-                sde_id,
-                date,
-                time_start,
-                time_end,
-                sde_type,
-                title,
-                place,
-                detail,
-            )
+            if cmd in ["add", "fix", "update"]:
+                new_sde = self.cmd_add(
+                    sde_id,
+                    date,
+                    time_start,
+                    time_end,
+                    sde_type,
+                    title,
+                    place,
+                    detail,
+                )
+        finally:
+            self._sd.save()
 
         if new_sde:
             modified_sde_id = new_sde.sde_id

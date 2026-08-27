@@ -1076,16 +1076,23 @@ def test_sched_data_add_sde(tmp_path):
     sd = SchedData(str(tmp_path))
     sd.add_sde(DATE1, mk_sde())
 
-    assert (tmp_path / "2021/03/01.jsonl").exists()
+    # add_sde() は保存しない(TODO-077)
+    assert not (tmp_path / "2021/03/01.jsonl").exists()
     assert sd.get_sde(DATE1, "id-1") is not None
+
+    sd.save()
+    assert (tmp_path / "2021/03/01.jsonl").exists()
 
 
 def test_sched_data_add_sde_todo(tmp_path):
     sd = SchedData(str(tmp_path))
     sd.add_sde(None, mk_sde(sde_type="□買い物"))
 
-    assert (tmp_path / "ToDo.jsonl").exists()
+    assert not (tmp_path / "ToDo.jsonl").exists()
     assert sd.get_sde(None, "id-1") is not None
+
+    sd.save()
+    assert (tmp_path / "ToDo.jsonl").exists()
 
 
 def test_sched_data_del_sde(tmp_path):
@@ -1094,8 +1101,49 @@ def test_sched_data_del_sde(tmp_path):
     sd.del_sde(DATE1, "id-1")
 
     assert sd.get_sde(DATE1, "id-1") is None
+
+    sd.save()
     # 空になってもファイルは残る
     assert (tmp_path / "2021/03/01.jsonl").read_text(encoding="utf-8") == ""
+
+
+def test_sched_data_save_writes_once_per_date(tmp_path):
+    """同じ日に複数回 add_sde() しても save() は 1 回で済む(TODO-077)。"""
+    sd = SchedData(str(tmp_path))
+    sd.add_sde(DATE1, mk_sde(sde_id="id-1"))
+    sd.add_sde(DATE1, mk_sde(sde_id="id-2"))
+
+    sdf = sd.get_sdf(DATE1)
+
+    with mock.patch.object(sdf, "save", wraps=sdf.save) as save:
+        sd.save()
+
+    save.assert_called_once()
+
+
+def test_sched_data_save_after_cache_discard(tmp_path):
+    """キャッシュから捨てられた日の変更も、save() で保存される。
+
+    変更を「日付」で覚えると、捨てられたあとに日付から引き直した
+    ときに、変更の乗っていない別のインスタンスになる。
+    ``SchedDataFile`` そのものを覚えているので、そうならない
+    (TODO-077)。
+    """
+    # 捨てる件数は int(cache_size * CACHE_DISCARD_RATE) なので、
+    # 10 未満だと 1 件も捨てられない
+    sd = SchedData(str(tmp_path), cache_size=10)
+
+    for i in range(11):
+        date = DATE1 + datetime.timedelta(i)
+        sd.add_sde(date, mk_sde(sde_id=f"id-{i}", date=date))
+
+    # 最初の日は、途中でキャッシュから捨てられている
+    assert sd.get_cache_size() < 11
+
+    sd.save()
+
+    path = tmp_path / "2021/03/01.jsonl"
+    assert "id-0" in path.read_text(encoding="utf-8")
 
 
 def test_sdf_exists(tmp_path):

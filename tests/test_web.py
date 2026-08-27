@@ -1313,6 +1313,77 @@ class TestUpdate(WebTestBase):
             encoding="utf-8"
         )
 
+    def test_fix_keeps_backup_of_both_entries(self):
+        """同じ日に 2 件あるとき、片方を ``fix`` しても ``.bak`` に両方
+        残る(TODO-077)。
+
+        ``fix`` は ``cmd_del()`` → ``cmd_add()`` で実装されている。
+        del と add でそれぞれ ``save()`` すると、2 回目の ``.bak`` が
+        「1 件消えた直後」を写してしまい、修正前の内容がどこにも
+        残らなかった。
+        """
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="fix",
+            sde_id="id-2",
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+            time_start="13:00",
+            time_end="14:00",
+            sde_type="私用",
+            title="歯医者(変更)",
+            place="病院",
+            detail="detail2",
+        )
+
+        backup_lines = (
+            self.backup_path(DATE1).read_text(encoding="utf-8").splitlines()
+        )
+        backup_ids = {json.loads(line)["sde_id"] for line in backup_lines}
+        assert backup_ids == {"id-1", "id-2"}
+
+    def test_exec_update_saves_even_on_error(self):
+        """途中で例外が出ても、そのリクエストの中で保存する(TODO-077)。
+
+        ``SchedData`` はアプリ全体で 1 つなので、変更の印を残したまま
+        抜けると、**次の関係の無いリクエストの保存に紛れ込む**。
+        ``exec_update()`` は ``finally`` で保存する。
+        """
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        with mock.patch.object(
+            MainHandler, "cmd_add", side_effect=RuntimeError("boom")
+        ):
+            res = self.fetch(
+                URL_PREFIX + "/",
+                method="POST",
+                headers=FORM_HEADERS,
+                body=urlencode(
+                    {
+                        "cmd": "fix",
+                        "sde_id": "id-2",
+                        "orig_date": DATE1_STR,
+                        "date": DATE1_STR,
+                        "sde_type": "私用",
+                        "title": "歯医者",
+                    }
+                ),
+            )
+
+        assert res.code == 500
+
+        # 削除だけが済んだ状態が、このリクエストの中で書かれている
+        assert "id-2" not in self.data_path(DATE1).read_text(encoding="utf-8")
+        backup = self.backup_path(DATE1).read_text(encoding="utf-8")
+        assert "id-1" in backup
+        assert "id-2" in backup
+
+        # 印は残っていないので、次のリクエストが巻き添えにしない
+        sd = self._app.settings["sd"]
+        assert not sd._dirty_sdf
+
     def test_update_clears_search_str(self):
         """``cmd=update`` 経由でも、検索がクリアされる。"""
         sde_id = self.add_sde()

@@ -696,6 +696,13 @@ class SchedData:
             datetime.date | None, SchedDataFile
         ] = collections.OrderedDict()
 
+        # add_sde()/del_sde() で変更のあった SchedDataFile。
+        # save() でまとめて 1 回ずつ書き出す (TODO-077)。
+        # 日付ではなく SchedDataFile そのものを覚えるのは、save() まで
+        # の間にキャッシュから捨てられると、日付から引き直したときに
+        # 変更の乗っていない別のインスタンスになるため
+        self._dirty_sdf: dict[datetime.date | None, SchedDataFile] = {}
+
     def __str__(self):
         """__str__"""
         out_str = f"topdir:{self._topdir}, cache_size:{len(self._sdf_cache)}"
@@ -812,6 +819,13 @@ class SchedData:
 
     def add_sde(self, date: datetime.date | None, sde: SchedDataEnt) -> None:
         """
+        Notes
+        -----
+        呼んだだけでは保存されない。1 回の更新で同じファイルへの
+        保存が何度も走らないよう、保存は ``save()`` にまとめてある
+        (TODO-077)。呼び出し側は、一連の変更が終わったあとに
+        ``save()`` を呼ぶこと。
+
         Parameters
         ----------
         date: datetime.date | None
@@ -823,12 +837,17 @@ class SchedData:
 
         sdf = self.get_sdf(date)
         sdf.add_sde(sde)
-        sdf.save()
+        self._dirty_sdf[date] = sdf
 
     def del_sde(
         self, date: datetime.date | None = None, sde_id: str = ""
     ) -> None:
         """del_sde
+
+        Notes
+        -----
+        呼んだだけでは保存されない。理由は ``add_sde()`` と同じ
+        (TODO-077)。
 
         Parameters
         ----------
@@ -843,4 +862,20 @@ class SchedData:
 
         sdf = self.get_sdf(date)
         sdf.del_sde(sde_id)
-        sdf.save()
+        self._dirty_sdf[date] = sdf
+
+    def save(self) -> None:
+        """add_sde()/del_sde() で変更があったファイルを保存する。
+
+        変更があった ``SchedDataFile`` ごとに、1 回だけ ``save()``
+        を呼ぶ。同じ日に複数回 ``add_sde()``/``del_sde()`` を
+        呼んでいても、書き込みと ``.bak`` への退避は 1 回で済む
+        (TODO-077)。
+
+        """
+        self.__log.debug(f"dirty={list(self._dirty_sdf)}")
+
+        for sdf in self._dirty_sdf.values():
+            sdf.save()
+
+        self._dirty_sdf = {}
