@@ -9,7 +9,13 @@ import subprocess
 import sys
 
 import pytest
-from helpers import URL_PREFIX, make_app, make_handler, run_in_c_locale
+from helpers import (
+    URL_PREFIX,
+    app_sd,
+    make_app,
+    make_handler,
+    run_in_c_locale,
+)
 
 from ytsched.handler import HandlerBase
 
@@ -24,10 +30,13 @@ def datadir(tmp_path):
 
 
 def test_settings_are_read(datadir):
-    """``app.settings`` から読む値（TODO-021 のゴールデンマスターテスト）。
+    """``app.settings``／``initialize()`` から読む値
+    （TODO-021 のゴールデンマスターテスト）。
 
     ``HandlerBase.__init__`` を整理しても、この 7 つは変わらない。
     ``_days`` は TODO-049 で ``--days`` を消したときに落ちた。
+    ``_sd`` は TODO-081 で ``app.settings`` 経由から ``initialize()``
+    経由に変わったが、渡ってくる値は変わらない。
     """
     app = make_app(datadir)
 
@@ -38,7 +47,7 @@ def test_settings_are_read(datadir):
     assert handler._version == "0.0.0"
     assert handler._url_prefix == URL_PREFIX + "/"
     assert handler._datadir == str(datadir)
-    assert handler._sd is app.settings["sd"]
+    assert handler._sd is app_sd(app)
     assert handler._conf_file == os.path.join(str(datadir), CONF_FNAME)
 
 

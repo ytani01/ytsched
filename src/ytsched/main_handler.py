@@ -17,6 +17,7 @@ from typing import ClassVar
 
 import tornado.web
 
+from . import handler_util
 from .handler import HandlerBase
 from .mylog import getLogger
 from .ytsched import SchedDataEnt, normalize
@@ -55,9 +56,12 @@ class MainHandler(HandlerBase):
 
     __log = getLogger(__qualname__)
 
-    # SEARCH_MODE_MAX_DAYS は HandlerBase にある (TODO-027)
+    # SEARCH_MODE_MAX_DAYS は handler_util にある (TODO-081)
     SEARCH_MODE_DAYS = 365
     DEF_SEARCH_N = 5
+
+    # ``LoadMonths`` を読むのは MainHandler だけ (TODO-081)
+    CONF_KEY_LOAD_MONTHS = "LoadMonths"
 
     TODO_DAYS: ClassVar[dict[str, int]] = {
         "off": -1,
@@ -375,13 +379,13 @@ class MainHandler(HandlerBase):
         """
         year_str, month_str, day_str = value.split("/")
 
-        year = self.check_int_range(
+        year = handler_util.check_int_range(
             "year", int(year_str), datetime.MINYEAR, datetime.MAXYEAR
         )
-        month = self.check_int_range("month", int(month_str), 1, 12)
-        day = self.check_int_range("day", int(day_str), 1, 31)
+        month = handler_util.check_int_range("month", int(month_str), 1, 12)
+        day = handler_util.check_int_range("day", int(day_str), 1, 31)
 
-        return self.check_date(datetime.date(year, month, day))
+        return handler_util.check_date(datetime.date(year, month, day))
 
     def str2todo_days(self, value: str) -> int:
         """ToDo の期間 (日数) にする (TODO-027)。
@@ -401,7 +405,7 @@ class MainHandler(HandlerBase):
         int
 
         """
-        return self.check_int_range(
+        return handler_util.check_int_range(
             "todo_days",
             int(value),
             min(self.TODO_DAYS.values()),
@@ -423,7 +427,7 @@ class MainHandler(HandlerBase):
         int
 
         """
-        return self.check_int_range(
+        return handler_util.check_int_range(
             self.CONF_KEY_LOAD_MONTHS,
             int(value),
             self.LOAD_MONTHS_MIN,
@@ -450,7 +454,7 @@ class MainHandler(HandlerBase):
         if value is None:
             return self.DEF_LOAD_MONTHS
 
-        converted = self.convert_value(
+        converted = handler_util.convert_value(
             self.CONF_KEY_LOAD_MONTHS, value, self.str2load_months
         )
         if converted is None:
@@ -531,7 +535,7 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"{arg_name}={value!a}, {conf_key}={conf_value!a}")
 
         if value is not None and (empty_is_given or value):
-            converted = self.convert_value(arg_name, value, convert)
+            converted = handler_util.convert_value(arg_name, value, convert)
             if converted is not None:
                 # 保存するのは、実際に使う値 (TODO-028)。
                 # 文字列にならないものは、渡された文字列のまま
@@ -543,7 +547,9 @@ class MainHandler(HandlerBase):
                 return converted
 
         if conf_value:
-            converted = self.convert_value(conf_key, conf_value, convert)
+            converted = handler_util.convert_value(
+                conf_key, conf_value, convert
+            )
             if converted is not None:
                 return converted
 
@@ -663,7 +669,9 @@ class MainHandler(HandlerBase):
         cur_day_str = self.get_argument("cur_day", None)
         if cur_day_str:
             # 日付として読めなければ今日のまま (TODO-027)
-            parsed = self.convert_value("cur_day", cur_day_str, self.str2date)
+            parsed = handler_util.convert_value(
+                "cur_day", cur_day_str, handler_util.str2date
+            )
             if parsed is not None:
                 cur_day = parsed
         self.__log.debug(f"cur_day={cur_day}")
@@ -674,7 +682,9 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"date_str={date_str}")
         if date_str:
             # 日付として読めなければ「指定が無かった」のと同じ (TODO-027)
-            date = self.convert_value("date", date_str, self.str2date)
+            date = handler_util.convert_value(
+                "date", date_str, handler_util.str2date
+            )
 
         if modified_date:
             date = modified_date
@@ -717,7 +727,7 @@ class MainHandler(HandlerBase):
             日付にならなければ ``None``
 
         """
-        return self.convert_value(
+        return handler_util.convert_value(
             "year/month/day", f"{year}/{month}/{day}", self.str2ymd_date
         )
 
@@ -920,7 +930,9 @@ class MainHandler(HandlerBase):
         date_to = monday + datetime.timedelta(6)
 
         if search_mode:
-            date_from = date - datetime.timedelta(self.SEARCH_MODE_MAX_DAYS)
+            date_from = date - datetime.timedelta(
+                handler_util.SEARCH_MODE_MAX_DAYS
+            )
             date_from1 = date - datetime.timedelta(self.SEARCH_MODE_DAYS)
             date_to = date
 
@@ -1190,7 +1202,9 @@ class MainHandler(HandlerBase):
         if not value:
             return None
 
-        date = self.convert_value(arg_name, value, self.str2date)
+        date = handler_util.convert_value(
+            arg_name, value, handler_util.str2date
+        )
         if date is None:
             raise tornado.web.HTTPError(
                 400, "invalid date: %s=%r", arg_name, value
@@ -1222,7 +1236,7 @@ class MainHandler(HandlerBase):
         if not value:
             return None
 
-        time = self.convert_value(
+        time = handler_util.convert_value(
             arg_name, value, datetime.time.fromisoformat
         )
         if time is None:

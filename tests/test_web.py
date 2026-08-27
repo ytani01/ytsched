@@ -14,9 +14,10 @@ from urllib.parse import urlencode
 
 import pytest
 import tornado.testing
-from helpers import URL_PREFIX, make_app
+from helpers import URL_PREFIX, app_sd, make_app
 from loguru import logger
 
+from ytsched import handler_util
 from ytsched.edit_handler import EditHandler
 from ytsched.main_handler import MainHandler
 from ytsched.ytsched import SchedDataFile
@@ -1012,7 +1013,7 @@ class TestInvalidArgs(WebTestBase):
     def test_the_newest_usable_date_still_works(self):
         """使える範囲の上端は、今までどおり出る。"""
         date = datetime.date.max - datetime.timedelta(
-            MainHandler.SEARCH_MODE_MAX_DAYS
+            handler_util.SEARCH_MODE_MAX_DAYS
         )
 
         body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
@@ -1026,7 +1027,7 @@ class TestInvalidArgs(WebTestBase):
         いる。1 件も見つからない日は出ないので、200 で見る。
         """
         date = datetime.date.min + datetime.timedelta(
-            MainHandler.SEARCH_MODE_MAX_DAYS
+            handler_util.SEARCH_MODE_MAX_DAYS
         )
 
         res = self.fetch(
@@ -1345,7 +1346,7 @@ class TestUpdate(WebTestBase):
         assert "id-2" in backup
 
         # 印は残っていないので、次のリクエストが巻き添えにしない
-        sd = self._app.settings["sd"]
+        sd = app_sd(self._app)
         assert not sd._dirty_sdf
 
     def test_update_clears_search_str(self):

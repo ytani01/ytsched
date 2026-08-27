@@ -11,7 +11,8 @@
 ```
 src/ytsched/
   ytsched.py       # データモデル: SchedDataEnt / SchedDataFile / SchedData
-  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、conf.json の読み書き、引数の変換と検証）
+  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、conf.json の読み書き）
+  handler_util.py  # 引数と設定値の変換・検証（self を使わない純粋な関数）
   main_handler.py  # MainHandler（一覧表示・追加/修正/削除の実行）
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
@@ -109,14 +110,11 @@ classDiagram
         <<tornado.web>>
     }
     class HandlerBase {
+        +initialize(sd)
         +load_conf()
         +save_conf()
         +get_conf()
         +set_conf()
-        +convert_value()
-        +str2date()
-        +check_date()
-        +date_range()
     }
     class MainHandler {
         +get()
@@ -144,9 +142,13 @@ classDiagram
   ファイルではない（`LoadMonths` については `MainHandler` の項を参照）。
   読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
   でないキー）は、警告を 1 行出して無視する。
-  引数や設定値の変換と検証もここに置く（`convert_value()` /
-  `str2date()` / `check_date()` / `date_range()` / `check_int_range()`。
-  TODO-027）
+  `SchedData` は `tornado.web.Application` の URL 登録時に渡し、
+  `initialize()` で受け取る（`app.settings` 経由ではないので、
+  `self._sd` の型が `SchedData` として見える。TODO-081）。
+  引数や設定値の変換と検証は、`self` を使わない純粋な関数として
+  `handler_util.py` にある（`convert_value()` / `str2date()` /
+  `check_date()` / `date_range()` / `check_int_range()`。
+  TODO-027・TODO-081）
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
   実行（`cmd=add/fix/update/del`）を兼ねる。**`GET` が描画、`POST` が
   実行**で、`post()` は描かずに `redirect()` する（POST-Redirect-GET、

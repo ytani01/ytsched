@@ -10,6 +10,7 @@
 import os
 import subprocess
 import sys
+import weakref
 from unittest import mock
 
 import tornado.httputil
@@ -22,6 +23,14 @@ from ytsched.ytsched import SchedData
 
 URL_PREFIX = WebServer.DEF_URL_PREFIX
 
+# ``make_app()`` が作った ``SchedData`` を、``app`` から引けるようにする
+# (TODO-081)。``sd`` はもう ``app.settings`` に無い（``webapp.py`` と同じく
+# ``URLSpec`` の kwargs で ``initialize()`` へ渡す）ので、
+# ``tornado.web.Application`` に無い属性を動的に生やす代わりにこちらへ持つ。
+_APP_SD: weakref.WeakKeyDictionary[tornado.web.Application, SchedData] = (
+    weakref.WeakKeyDictionary()
+)
+
 
 def make_app(datadir):
     """テスト用の ``tornado.web.Application`` を作る。
@@ -31,14 +40,15 @@ def make_app(datadir):
     """
     datadir = str(datadir)
     webroot = WebServer.DEF_WEBROOT
+    sd = SchedData(datadir)
 
-    return tornado.web.Application(
+    app = tornado.web.Application(
         [
-            (r"/", MainHandler),
-            (URL_PREFIX, MainHandler),
-            (rf"{URL_PREFIX}/", MainHandler),
-            (rf"{URL_PREFIX}/edit", EditHandler),
-            (rf"{URL_PREFIX}/edit/", EditHandler),
+            (r"/", MainHandler, {"sd": sd}),
+            (URL_PREFIX, MainHandler, {"sd": sd}),
+            (rf"{URL_PREFIX}/", MainHandler, {"sd": sd}),
+            (rf"{URL_PREFIX}/edit", EditHandler, {"sd": sd}),
+            (rf"{URL_PREFIX}/edit/", EditHandler, {"sd": sd}),
         ],
         static_path=os.path.join(webroot, "static"),
         static_url_prefix=URL_PREFIX + "/static/",
@@ -48,20 +58,27 @@ def make_app(datadir):
         version="0.0.0",
         url_prefix=URL_PREFIX + "/",
         datadir=datadir,
-        sd=SchedData(datadir),
         debug=False,
     )
+    _APP_SD[app] = sd
+    return app
+
+
+def app_sd(app: tornado.web.Application) -> SchedData:
+    """``make_app(app)`` が使った ``SchedData`` を返す（TODO-081）。"""
+    return _APP_SD[app]
 
 
 def make_handler(app, handler_class, uri=URL_PREFIX + "/"):
     """リクエストを実際に送らずに handler を作る。
 
     ``HandlerBase`` の ``load_conf()`` などを直に試すために使う。
+    ``sd`` は ``make_app()`` が作ったものを ``initialize()`` へ渡す。
     """
     req = tornado.httputil.HTTPServerRequest(
         method="GET", uri=uri, connection=mock.Mock()
     )
-    return handler_class(app, req)
+    return handler_class(app, req, sd=app_sd(app))
 
 
 def run_in_c_locale(tmp_path, script, *args):

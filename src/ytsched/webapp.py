@@ -81,11 +81,11 @@ class WebServer:
 
         self._app = tornado.web.Application(
             [
-                (r"/", MainHandler),
-                (self._url_prefix, MainHandler),
-                (rf"{self._url_prefix}/", MainHandler),
-                (rf"{self._url_prefix}/edit", EditHandler),
-                (rf"{self._url_prefix}/edit/", EditHandler),
+                (r"/", MainHandler, {"sd": self._sd}),
+                (self._url_prefix, MainHandler, {"sd": self._sd}),
+                (rf"{self._url_prefix}/", MainHandler, {"sd": self._sd}),
+                (rf"{self._url_prefix}/edit", EditHandler, {"sd": self._sd}),
+                (rf"{self._url_prefix}/edit/", EditHandler, {"sd": self._sd}),
             ],
             static_path=os.path.join(self._webroot, "static"),
             static_url_prefix=self._url_prefix + "/static/",
@@ -96,7 +96,6 @@ class WebServer:
             version=VERSION,
             url_prefix=self._url_prefix + "/",
             datadir=self._datadir,
-            sd=self._sd,
             debug=self._dbg,
         )
         self.__log.debug(f"app={self._app.__dict__}")

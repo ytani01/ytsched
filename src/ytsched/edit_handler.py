@@ -12,6 +12,7 @@ import datetime
 
 import tornado.web
 
+from . import handler_util
 from .handler import HandlerBase
 from .mylog import getLogger
 from .ytsched import SchedDataEnt
@@ -60,7 +61,9 @@ class EditHandler(HandlerBase):
             if date_str:
                 # 日付として読めなければ「指定が無かった」のと同じ
                 # ＝ 今日 (TODO-027)
-                date = self.convert_value("date", date_str, self.str2date)
+                date = handler_util.convert_value(
+                    "date", date_str, handler_util.str2date
+                )
 
         if not date:
             date = datetime.date.today()

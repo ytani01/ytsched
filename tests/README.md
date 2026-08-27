@@ -15,6 +15,8 @@
 - `test_ytsched.py` — データモデル（`SchedDataEnt` /
   `SchedDataFile` / `SchedData`）のテスト
 - `test_handler.py` — `HandlerBase`（`conf.json` の読み書き）のテスト
+- `test_handler_util.py` — `handler_util.py`（引数と設定値の変換・検証）の
+  テスト（TODO-081）。ハンドラを組み立てずに、関数を直接呼んで確かめる
 - `test_main_handler.py` — `MainHandler` の個々のメソッドのテスト
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /
   `EditHandler` へ実際にリクエストを送るテスト

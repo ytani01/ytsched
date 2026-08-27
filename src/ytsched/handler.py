@@ -8,24 +8,19 @@ HandlerBase
 __author__ = "ytani01"
 __date__ = "2021/01"
 
-import datetime
 import json
 import os
-from collections.abc import Callable
 
 import tornado.web
 
 from .mylog import getLogger
+from .ytsched import SchedData
 
 
 class HandlerBase(tornado.web.RequestHandler):
-    """HandlerBase"""
+    """HandlerBase: ``conf.json`` の読み書き。"""
 
     __log = getLogger(__qualname__)
-
-    # 検索モードで遡る最大の日数。``date_range()`` が使うので、
-    # ``MainHandler`` ではなくここに置く (TODO-027)
-    SEARCH_MODE_MAX_DAYS = 365 * 5
 
     CONF_FNAME = "conf.json"
     CONF_ENCODE = "utf-8"
@@ -33,14 +28,18 @@ class HandlerBase(tornado.web.RequestHandler):
     CONF_KEY_FILTER_STR = "FilterStr"
     CONF_KEY_SEARCH_STR = "SearchStr"
     CONF_KEY_SEARCH_N = "SearchN"
-    CONF_KEY_LOAD_MONTHS = "LoadMonths"
 
     HTML_MAIN = "main.html"
     HTML_EDIT = "edit.html"
 
-    def __init__(self, app, req):
-        """Constructor"""
-        super().__init__(app, req)
+    def __init__(self, app, req, **kwargs):
+        """Constructor
+
+        ``**kwargs`` は ``initialize()`` へそのまま渡る
+        (``tornado.web.RequestHandler.__init__`` が ``self.initialize(
+        **kwargs)`` を呼ぶ。TODO-081)。
+        """
+        super().__init__(app, req, **kwargs)
 
         self.__log.debug(f"app={app}")
         self.__log.debug(f"req={req}")
@@ -54,18 +53,29 @@ class HandlerBase(tornado.web.RequestHandler):
         self._version = app.settings.get("version")
         self._url_prefix = app.settings.get("url_prefix")
         self._datadir = app.settings.get("datadir")
-        self._sd = app.settings.get("sd")
 
         self._conf_file = os.path.join(self._datadir, self.CONF_FNAME)
 
         self.__log.debug(
             f"title={self._title}, author={self._author},"
             f" version={self._version}, url_prefix={self._url_prefix},"
-            f" datadir={self._datadir},"
-            f" sd={self._sd}, conf_file={self._conf_file}"
+            f" datadir={self._datadir}, conf_file={self._conf_file}"
         )
 
         self._conf = self.load_conf()
+
+    def initialize(self, sd: SchedData) -> None:
+        """URL の登録時に渡された ``sd`` を受け取る (TODO-081)。
+
+        tornado は ``__init__`` のあとに、``URLSpec`` の 3 番目に
+        渡した dict をキーワード引数として ``initialize()`` へ渡す。
+
+        Parameters
+        ----------
+        sd: SchedData
+
+        """
+        self._sd: SchedData = sd
 
     def load_conf(self) -> dict[str, str]:
         """``conf.json`` を読み込んで dict で返す (TODO-032)。
@@ -138,125 +148,3 @@ class HandlerBase(tornado.web.RequestHandler):
         self.__log.debug(f"name={name}, value='{value}'")
         self._conf[name] = value
         self.save_conf()
-
-    def convert_value[T](
-        self, name: str, value: str, convert: Callable[[str], T]
-    ) -> T | None:
-        """文字列を ``convert`` で変換する (TODO-027)。
-
-        変換できない値は ``None`` を返して、警告を 1 行出す。
-        不正な正規表現の扱い (TODO-012) と揃えて、例外にはしない。
-
-        ``convert`` には、**変換したあとに使える範囲かどうかまで見る**
-        関数を渡す (``str2date()``/``str2todo_days()`` など)。範囲を
-        見ないまま ``datetime.date()`` や ``datetime.timedelta()`` へ
-        渡すと、``ValueError`` ではなく ``OverflowError`` になって、
-        ここでは拾えない。
-
-        Parameters
-        ----------
-        name: str
-            警告に出す名前 (引数名か ``conf.json`` のキー)
-        value: str
-        convert: Callable[[str], T]
-            ``int`` や ``str2date()`` など
-
-        Returns
-        -------
-        T | None
-            変換できなければ ``None``
-
-        """
-        try:
-            return convert(value)
-        except ValueError as ex:
-            self.__log.warning(f"{name}={value!a}: {ex} .. ignored")
-            return None
-
-    def date_range(self) -> tuple[datetime.date, datetime.date]:
-        """表示に使える日付の範囲 (TODO-027)。
-
-        ``load_sched()`` は、指定された日付から前後へ日をずらしながら
-        スケジュールを集める。ずらす幅は最大で ``SEARCH_MODE_MAX_DAYS``
-        日。``datetime.date.min``/``datetime.date.max`` ぎりぎりの日付を
-        受け取ると、この足し引きが ``OverflowError`` になるので、
-        ずらす幅のぶんだけ内側を「使える範囲」とする。
-
-        Returns
-        -------
-        tuple[datetime.date, datetime.date]
-            使える日付の、最小と最大
-
-        """
-        margin = datetime.timedelta(self.SEARCH_MODE_MAX_DAYS)
-        return datetime.date.min + margin, datetime.date.max - margin
-
-    def check_date(self, date: datetime.date) -> datetime.date:
-        """``date_range()`` の外なら ``ValueError`` (TODO-027)。
-
-        Parameters
-        ----------
-        date: datetime.date
-
-        Returns
-        -------
-        datetime.date
-            範囲内なら、そのまま返す
-
-        """
-        date_min, date_max = self.date_range()
-
-        if not date_min <= date <= date_max:
-            raise ValueError(
-                f"date must be in {date_min}..{date_max}, not {date}"
-            )
-
-        return date
-
-    def str2date(self, value: str) -> datetime.date:
-        """ISO 8601 の文字列を、表示に使える日付にする (TODO-027)。
-
-        ``convert_value()`` に渡す変換関数。日付として読めない値も、
-        使える範囲の外の日付も ``ValueError``。
-
-        Parameters
-        ----------
-        value: str
-
-        Returns
-        -------
-        datetime.date
-
-        """
-        return self.check_date(datetime.date.fromisoformat(value))
-
-    def check_int_range(
-        self, name: str, value: int, value_min: int, value_max: int
-    ) -> int:
-        """範囲外の整数なら ``ValueError`` (TODO-027)。
-
-        ``datetime.date()`` や ``datetime.timedelta()`` は、C の
-        ``int`` に収まらない値を渡されると ``OverflowError``
-        (``ValueError`` のサブクラスではない) を投げる。渡す前に
-        ここで弾いて、他の範囲外と同じ ``ValueError`` に揃える。
-
-        Parameters
-        ----------
-        name: str
-            警告に出す名前
-        value: int
-        value_min: int
-        value_max: int
-
-        Returns
-        -------
-        int
-            範囲内なら、そのまま返す
-
-        """
-        if not value_min <= value <= value_max:
-            raise ValueError(
-                f"{name} must be in {value_min}..{value_max}, not {value}"
-            )
-
-        return value

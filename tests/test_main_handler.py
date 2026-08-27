@@ -32,7 +32,7 @@ import re
 from unittest import mock
 from urllib.parse import urlencode
 
-from helpers import URL_PREFIX, make_handler
+from helpers import URL_PREFIX, app_sd, make_handler
 from test_web import (
     DATE1,
     DATE1_STR,
@@ -43,6 +43,7 @@ from test_web import (
     week_panel,
 )
 
+from ytsched import handler_util
 from ytsched.main_handler import MainHandler, SchedLoadCond
 from ytsched.ytsched import SchedData
 
@@ -333,7 +334,7 @@ class TestSearchModeRange(WebTestBase):
         body = self.search(search_n=10)
 
         date_from = self.BASE - datetime.timedelta(
-            MainHandler.SEARCH_MODE_MAX_DAYS
+            handler_util.SEARCH_MODE_MAX_DAYS
         )
         assert f'value="{date_from}"' in body
 
@@ -970,7 +971,7 @@ class TestLoadSchedScan(WebTestBase):
         変更前は、当たらなかった日まで ``SchedDataFile`` を作って
         キャッシュへ積んでいた（1 件も当たらなければ 1825 日ぶん）。
         """
-        sd = self._app.settings["sd"]
+        sd = app_sd(self._app)
         assert sd.get_cache_size() == 0
 
         self.get_body(
@@ -985,7 +986,7 @@ class TestLoadSchedScan(WebTestBase):
     def test_existing_days_are_opened(self):
         """ファイルがある日は、今までどおり開く。"""
         self.write_mixed_data()
-        sd = self._app.settings["sd"]
+        sd = app_sd(self._app)
 
         self.get_body(
             URL_PREFIX + "/",
