@@ -830,6 +830,37 @@ class SchedData:
         pathname = SchedDataFile.date2path(date, self._topdir)
         return pathname.is_file()
 
+    def sdf_has_sde(self, date: datetime.date | None = None) -> bool:
+        """その日に予定が 1 件でもあるか (TODO-103)。
+
+        キャッシュに載っていれば、その ``sde`` の数を見る。
+        載っていなければ、データファイルの大きさを見る
+        (``sdf_exists()`` と同じく**ファイルを開かない**)。
+
+        ``sdf_exists()`` では足りないのは、``save()`` が
+        1 件も無いときに空のファイルを書くため。その日の予定を全部
+        削除しても、ファイルそのものは残る。
+
+        Parameters
+        ----------
+        date: datetime.date | None
+            None: ToDo
+
+        Returns
+        -------
+        bool
+
+        """
+        sdf = self._sdf_cache.get(date)
+        if sdf is not None:
+            return len(sdf.sde) > 0
+
+        pathname = SchedDataFile.date2path(date, self._topdir)
+        try:
+            return pathname.stat().st_size > 0
+        except OSError:
+            return False
+
     def get_sdf(self, date: datetime.date | None = None) -> SchedDataFile:
         """
         キャッシュがヒットすれば、そのデータを返す。

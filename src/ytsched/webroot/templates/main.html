@@ -229,6 +229,55 @@
     </div><!-- row -->
 
     {% end %}<!-- for sched_ent -->
+
+    {% if not search_mode %}
+    {# 日曜日の下に、2 ヶ月分の月間ミニカレンダーを横に並べる
+       (TODO-103)。出す月は「その週の月曜が含まれる月」と「その翌月」
+       (``MainHandler.mk_month_cals()``)。検索モードでは週の区切りに
+       合わず ``month_cals`` も空なので出さない #}
+    <div class="my-mini-cal-row">
+      {% for mc in w.month_cals %}
+      <table class="my-mini-cal">
+        <caption class="my-mini-cal-caption">
+          {{ '%d/%02d' % (mc.year, mc.month) }}
+        </caption>
+        <tr class="my-mini-cal-wdays">
+          {% for wd in ('月', '火', '水', '木', '金', '土', '日') %}
+          <th class="my-mini-cal-wday">{{ wd }}</th>
+          {% end %}
+        </tr>
+        {% for mc_week in mc.weeks %}
+        <tr>
+          {% for d in mc_week %}
+          {% set td_class = 'my-mini-cal-day' %}
+          {% if not d.in_month %}
+          {% set td_class = td_class + ' my-mini-cal-day-out' %}
+          {% else %}
+          {% set td_class = td_class + ' my-btn' %}
+          {% end %}
+          {% if d.date == today %}
+          {% set td_class = td_class + ' my-mini-cal-day-today' %}
+          {% end %}
+          {% if w.monday <= d.date <= w.monday + datetime.timedelta(6) %}
+          {% set td_class = td_class + ' my-mini-cal-day-cur-week' %}
+          {% end %}
+          <td class="{{ td_class }}"
+            {% if d.in_month %}
+            onmousedown="scrollToDate('{{ url_prefix }}', '{{ d.date }}');"
+            {% end %}>
+            <div class="my-mini-cal-daynum">{{ d.date.day }}</div>
+            {% if d.has_sched %}
+            <div class="my-mini-cal-dot"></div>
+            {% end %}
+          </td>
+          {% end %}<!-- for d -->
+        </tr>
+        {% end %}<!-- for mc_week -->
+      </table>
+      {% end %}<!-- for mc -->
+    </div><!-- my-mini-cal-row -->
+    {% end %}<!-- if not search_mode -->
+
     </div><!-- my-week-panel -->
     {% end %}<!-- for w -->
     </div><!-- week_wrap -->

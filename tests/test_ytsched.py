@@ -1309,6 +1309,42 @@ def test_sdf_exists_cached(tmp_path):
     assert sd.sdf_exists(DATE1) is True
 
 
+def test_sdf_has_sde(tmp_path):
+    """予定が 1 件でもあるかを、開かずに見る（TODO-103）。"""
+    write_data(tmp_path, DATE1, [DATALINE1])
+    sd = SchedData(str(tmp_path))
+
+    assert sd.sdf_has_sde(DATE1) is True
+    assert sd.sdf_has_sde(DATE1 + datetime.timedelta(1)) is False
+    # 見るだけなので、キャッシュには積まれない
+    assert sd.get_cache_size() == 0
+
+
+def test_sdf_has_sde_empty_file(tmp_path):
+    """空のファイルは「予定なし」。
+
+    ``save()`` は 1 件も無いときも空のファイルを書くので、
+    全部削除した日にファイルだけが残る。
+    """
+    write_data(tmp_path, DATE1, [])
+    sd = SchedData(str(tmp_path))
+
+    assert sd.sdf_exists(DATE1) is True
+    assert sd.sdf_has_sde(DATE1) is False
+
+
+def test_sdf_has_sde_cached(tmp_path):
+    """キャッシュに載っていれば、その中身の数を見る。"""
+    write_data(tmp_path, DATE1, [DATALINE1])
+    sd = SchedData(str(tmp_path))
+
+    sdf = sd.get_sdf(DATE1)
+    assert sd.sdf_has_sde(DATE1) is True
+
+    sdf.sde = []
+    assert sd.sdf_has_sde(DATE1) is False
+
+
 def test_sdf_exists_expands_topdir(tmp_path, monkeypatch):
     """``~`` 付きの ``topdir`` でも、展開してから見に行く。"""
     monkeypatch.setenv("HOME", str(tmp_path))

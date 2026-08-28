@@ -8,6 +8,7 @@ SchedLoader
 __author__ = "ytani01"
 __date__ = "2026/08"
 
+import calendar
 import dataclasses
 import datetime
 import re
@@ -113,15 +114,42 @@ class SchedDay:
 
 
 @dataclasses.dataclass
+class MonthCalDay:
+    """月間ミニカレンダーの 1 日 (TODO-103)。
+
+    ``load_month_cal()`` が組み立てる ``MonthCal.weeks`` の 1 要素。
+    """
+
+    date: datetime.date
+    in_month: bool
+    has_sched: bool
+
+
+@dataclasses.dataclass
+class MonthCal:
+    """月間ミニカレンダー 1 か月分 (TODO-103)。
+
+    ``weeks`` は月曜始まりで 7 個ずつ (前後の月の埋めセルを含む)。
+    """
+
+    year: int
+    month: int
+    weeks: list[list[MonthCalDay]]
+
+
+@dataclasses.dataclass
 class SchedWeek:
     """``weeks`` の 1 要素 (TODO-091)。
 
     ``MainHandler.mk_weeks()`` が前後の週も含めて組み立てる。
+    ``month_cals`` は週パネルの下に出す月間ミニカレンダー 2 ヶ月分
+    (検索モードでは空リスト。TODO-103)。
     """
 
     offset: int
     monday: datetime.date
     sched: list[SchedDay]
+    month_cals: list[MonthCal]
 
 
 class SchedLoader:
@@ -141,6 +169,10 @@ class SchedLoader:
 
         """
         self._sd = sd
+        #: 月間ミニカレンダーのキャッシュ ((year, month) をキーに)。
+        #: 同じ月が複数の週パネルで要るので、1 リクエスト内で使い回す
+        #: (``SchedLoader`` はリクエストごとに作られる。TODO-103)
+        self._month_cal_cache: dict[tuple[int, int], MonthCal] = {}
 
     def load_todo(
         self,
@@ -230,6 +262,60 @@ class SchedLoader:
             by_date.setdefault(sde.date, []).append(sde)
 
         return by_date
+
+    def load_month_cal(self, year: int, month: int) -> MonthCal:
+        """月間ミニカレンダー 1 か月分を組み立てる (TODO-103)。
+
+        予定の有無は ``SchedData.sdf_has_sde()`` で見る。**ファイルを
+        開かない**ので軽い。ToDo は数えない。フィルタ・検索は反映
+        しない。
+
+        1 リクエスト内で同じ月が複数の週パネルから要求されるので、
+        ``self._month_cal_cache`` に積んで使い回す。
+
+        Parameters
+        ----------
+        year: int
+        month: int
+
+        Returns
+        -------
+        MonthCal
+            ``weeks`` は月曜始まりで 7 個ずつ
+
+        """
+        key = (year, month)
+        cached = self._month_cal_cache.get(key)
+        if cached is not None:
+            return cached
+
+        first_day = datetime.date(year, month, 1)
+        days_in_month = calendar.monthrange(year, month)[1]
+        last_day = datetime.date(year, month, days_in_month)
+
+        monday = first_day - datetime.timedelta(first_day.weekday())
+        last_week_monday = last_day - datetime.timedelta(last_day.weekday())
+
+        weeks: list[list[MonthCalDay]] = []
+        date1 = monday
+        while date1 <= last_week_monday:
+            week: list[MonthCalDay] = []
+            for _ in range(7):
+                week.append(
+                    MonthCalDay(
+                        date=date1,
+                        in_month=(
+                            date1.year == year and date1.month == month
+                        ),
+                        has_sched=self._sd.sdf_has_sde(date1),
+                    )
+                )
+                date1 += datetime.timedelta(1)
+            weeks.append(week)
+
+        month_cal = MonthCal(year=year, month=month, weeks=weeks)
+        self._month_cal_cache[key] = month_cal
+        return month_cal
 
     def _load_day(
         self,

@@ -921,3 +921,63 @@ textarea {
  */
 .my-follow-keyboard {
 }
+
+/*
+ * 月間ミニカレンダー (TODO-103)。日曜日の下に、2 ヶ月分を横に並べる。
+ */
+.my-mini-cal-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.my-mini-cal {
+    border-collapse: collapse;
+    font-size: x-small;
+}
+
+.my-mini-cal-caption {
+    caption-side: top;
+    font-size: small;
+    font-weight: bold;
+}
+
+.my-mini-cal-wday {
+    padding: 0 2px;
+    font-weight: normal;
+    color: #888;
+}
+
+.my-mini-cal-day {
+    width: 24px;
+    height: 24px;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid #DDD;
+}
+
+.my-mini-cal-day-out {
+    color: #CCC;
+}
+
+/* ↑ より後に置くこと (同じ詳細度なので、後のほうが勝つ) */
+.my-mini-cal-day-cur-week {
+    background-color: #FFF6C0;
+}
+
+.my-mini-cal-day-today {
+    border: 2px solid #28F;
+}
+
+.my-mini-cal-daynum {
+    line-height: 14px;
+}
+
+.my-mini-cal-dot {
+    width: 4px;
+    height: 4px;
+    margin: 1px auto 0;
+    border-radius: 50%;
+    background-color: #28F;
+}

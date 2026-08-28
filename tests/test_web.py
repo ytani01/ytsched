@@ -618,6 +618,75 @@ class TestDateColumn(WebTestBase):
         assert "'search_str': ''" in onmousedown
 
 
+class TestMonthMiniCal(WebTestBase):
+    """週間表示の月間ミニカレンダー（TODO-103）"""
+
+    def test_shows_two_months(self):
+        """いま見ている週の月と、その翌月の 2 ヶ月分が出る。
+
+        ``DATE1``（2021-03-01）は月曜。
+        """
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+        panel = week_panel(body)
+
+        captions = re.findall(r'my-mini-cal-caption">\s*([^<]+?)\s*<', panel)
+        assert captions == ["2021/03", "2021/04"]
+
+    def test_day_with_sched_has_dot(self):
+        """予定がある日には、印（ドット）が付く。"""
+        target = datetime.date(2021, 4, 10)
+        self.write_data(target, [mk_dataline(date=target.isoformat())])
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+        panel = week_panel(body)
+
+        m = re.search(
+            r"<td[^>]*>\s*<div class=\"my-mini-cal-daynum\">10</div>"
+            r"(.*?)</td>",
+            panel[panel.index("2021/04") :],
+            re.DOTALL,
+        )
+        assert m is not None
+        assert "my-mini-cal-dot" in m.group(1)
+
+    def test_day_click_scrolls_to_date(self):
+        """日付のセルは ``scrollToDate()`` でその日へジャンプする。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+        panel = week_panel(body)
+
+        assert (
+            f"onmousedown=\"scrollToDate('{URL_PREFIX}/', '2021-03-15');\""
+            in panel
+        )
+
+    def test_out_of_month_day_is_not_clickable(self):
+        """前後の月の埋めセルは ``onmousedown`` を持たない。
+
+        2021-04-30 は金曜なので、4 月分の最後の週は 5 月 1 日・2 日
+        まで伸びる。その 5 月 1 日の埋めセルを見る。
+        """
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+        panel = week_panel(body)
+
+        april = panel[panel.index("2021/04") :]
+        m = re.search(
+            r'<td class="my-mini-cal-day my-mini-cal-day-out"[^>]*>'
+            r'\s*<div class="my-mini-cal-daynum">1</div>',
+            april,
+        )
+        assert m is not None
+
+    def test_not_shown_in_search_mode(self):
+        """検索モードでは出さない（週の区切りに合わないため）。"""
+        self.write_data(DATE1, [DATALINE1])
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="定例"
+        )
+
+        assert "my-mini-cal-row" not in body
+
+
 class TestManifestAndIcons(WebTestBase):
     """manifest.json とアイコンが HTTP で引ける（TODO-039）"""
 

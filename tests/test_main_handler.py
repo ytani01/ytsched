@@ -1016,3 +1016,84 @@ class TestLoadSchedScan(WebTestBase):
             self.get_body(URL_PREFIX + "/", date=self.BASE.isoformat())
 
         assert len(calls) == 1
+
+
+class TestMonthCal(WebTestBase):
+    """``SchedLoader.load_month_cal()`` の単体テスト（TODO-103）。"""
+
+    def loader(self):
+        handler = make_handler(self._app, MainHandler)
+        return handler._loader
+
+    def test_weeks_start_monday_and_cover_the_month(self):
+        """月曜始まりで、月の最初と最後の日を含む週まで並ぶ。
+
+        2021-03-01 は月曜、2021-03-31 は水曜。
+        """
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        assert month_cal.year == 2021
+        assert month_cal.month == 3
+        for week in month_cal.weeks:
+            assert len(week) == 7
+            assert week[0].date.weekday() == 0  # 月曜始まり
+
+        first_day = month_cal.weeks[0][0].date
+        last_day = month_cal.weeks[-1][-1].date
+        assert first_day <= datetime.date(2021, 3, 1)
+        assert last_day >= datetime.date(2021, 3, 31)
+
+    def test_in_month_flag(self):
+        """前後の月の埋めセルは ``in_month`` が偽になる。"""
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        for week in month_cal.weeks:
+            for day in week:
+                expected = day.date.year == 2021 and day.date.month == 3
+                assert day.in_month == expected
+
+    def test_has_sched_reflects_existing_files(self):
+        """予定があるかは ``sdf_has_sde()`` で見る。"""
+        target = datetime.date(2021, 3, 15)
+        self.write_data(target, [mk_dataline(date=target.isoformat())])
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.has_sched for week in month_cal.weeks for d in week
+        }
+        assert by_date[target] is True
+        assert by_date[datetime.date(2021, 3, 14)] is False
+
+    def test_has_sched_ignores_empty_file(self):
+        """予定を全部削除した日（空のファイルが残る）にはドットを出さない。"""
+        target = datetime.date(2021, 3, 15)
+        self.write_data(target, [])
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.has_sched for week in month_cal.weeks for d in week
+        }
+        assert by_date[target] is False
+
+    def test_missing_month_directory(self):
+        """データディレクトリごと無い月でも、例外にならず全部 False。"""
+        month_cal = self.loader().load_month_cal(2030, 2)
+
+        for week in month_cal.weeks:
+            for day in week:
+                assert day.has_sched is False
+
+    def test_cached_within_one_loader(self):
+        """同じ月は、同じ ``SchedLoader`` の中で使い回される。
+
+        週パネルごとに 2 ヶ月分を持たせると、同じ月が複数の週から
+        要求されるため。
+        """
+        loader = self.loader()
+
+        first = loader.load_month_cal(2021, 3)
+        second = loader.load_month_cal(2021, 3)
+
+        assert first is second

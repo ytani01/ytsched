@@ -229,7 +229,18 @@ classDiagram
   集める `_load_day()` だけ。分ける前は 1 つの `while` の中に検索
   かどうかの分岐が 4 か所あった。表示の条件は `SchedLoadCond`、
   検索だけが使う条件（検索語と目標件数）は `SchedSearchCond` に
-  分けてある。`SchedUpdater` と同じく **tornado を知らない**
+  分けてある。`SchedUpdater` と同じく **tornado を知らない**。
+  **`load_month_cal(year, month)`** は、週間表示の日曜日の下に出す
+  月間ミニカレンダー 1 か月分（`MonthCal`）を組み立てる（TODO-103）。
+  予定の有無は `SchedData.sdf_has_sde()`（ファイルを開かず、大きさ
+  だけを見る）で決めるだけで、フィルタ・検索・ToDo は反映しない。
+  `sdf_exists()` ではなく大きさを見るのは、`save()` が 1 件も無いときも
+  空のファイルを書くため（全部削除した日にドットが残ってしまう）。
+  `SchedWeek.month_cals`
+  （`MainHandler.mk_weeks()` が「週の月曜が含まれる月」と「その翌月」の
+  2 つを詰める。検索モードでは空リスト）に 1 つずつ入る。同じ月が
+  複数の週パネルから要るので、`SchedLoader` インスタンスの dict に
+  キャッシュして 1 リクエスト内で使い回す
 - **`EditHandler`**（`edit_handler.py`）が編集画面を出す。`date` /
   `sde_id` の決め方（引数 → クエリ文字列 → 既定値の順）は docstring に
   書いてある。フォームの隠しフィールド `orig_date`（更新・削除のときに

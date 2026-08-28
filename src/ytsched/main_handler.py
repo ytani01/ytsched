@@ -22,6 +22,7 @@ from .conf import ConfFile
 from .handler import AppInfo, HandlerBase
 from .mylog import getLogger
 from .sched_load import (
+    MonthCal,
     SchedDay,
     SchedLoadCond,
     SchedLoader,
@@ -353,9 +354,12 @@ class MainHandler(HandlerBase):
         """
         if search_mode:
             # 検索モードの範囲は週の区切りに合わないので、隣の週は
-            # 持たせない (TODO-069)。DOM の中で週を移ることも無い
+            # 持たせない (TODO-069)。DOM の中で週を移ることも無い。
+            # 月間ミニカレンダーも検索モードでは出さない (TODO-103)
             monday = date - datetime.timedelta(date.weekday())
-            return [SchedWeek(offset=0, monday=monday, sched=sched)]
+            return [
+                SchedWeek(offset=0, monday=monday, sched=sched, month_cals=[])
+            ]
 
         weeks: list[SchedWeek] = []
         weeks_n = self.months2weeks(load_months)
@@ -370,10 +374,36 @@ class MainHandler(HandlerBase):
                     offset=offset,
                     monday=monday,
                     sched=sched_offset,
+                    month_cals=self.mk_month_cals(monday),
                 )
             )
 
         return weeks
+
+    def mk_month_cals(self, monday: datetime.date) -> list[MonthCal]:
+        """週パネルの下に出す月間ミニカレンダー 2 ヶ月分 (TODO-103)。
+
+        出す月は「``monday`` が含まれる月」と「その翌月」。
+
+        Parameters
+        ----------
+        monday: datetime.date
+
+        Returns
+        -------
+        list[MonthCal]
+
+        """
+        year1, month1 = monday.year, monday.month
+        if month1 == 12:
+            year2, month2 = year1 + 1, 1
+        else:
+            year2, month2 = year1, month1 + 1
+
+        return [
+            self._loader.load_month_cal(year1, month1),
+            self._loader.load_month_cal(year2, month2),
+        ]
 
     def str2todo_days(self, value: str) -> int:
         """ToDo の期間 (日数) にする (TODO-027)。
