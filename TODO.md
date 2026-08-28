@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-095**
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-095, TODO-100**
 これまでに 96 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-100` から**。
+**番号は `TODO-101` から**。
 
 TODO-087..TODO-095 と TODO-097 は、2026-08-27 の基本設計のレビュー
 （A〜P の 16 件）を 10 項目にまとめたもの。A〜P の記号は、そのレビューでの
@@ -58,6 +58,26 @@ TODO-087..TODO-095 と TODO-097 は、2026-08-27 の基本設計のレビュー
 置き場所を `pyproject.toml` へ移しただけ。規則を増やすかは決めていない。
 
 足すと決めたら、指摘の量を見てから直す項目を別に立てる。
+
+---
+
+## TODO-100. `os.path` を `pathlib` へ移す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | implementer + verifier |
+
+- [ ] `os.path.join` / `open` / `os.stat` などを `pathlib.Path` に置き換える
+- [ ] `pyproject.toml` の `extend-select` に `PTH` を足す
+
+TODO-095 で ruff の規則を見直したときに出てきたもの。`PTH` を有効にすると
+約 45 件の指摘が出る（`PTH118` os-path-join が 14 件、`PTH123` builtin-open
+が 13 件、`PTH111` os-path-expanduser と `PTH116` os-stat が各 7 件、
+`PTH113` os-path-isfile と `PTH120` os-path-dirname が各 3〜5 件）。
+
+TODO-095 では `PTH` を有効にしていない。書き換えが済んでいない状態で
+有効にすると `lint` が通らなくなるため、**この項目の中で書き換えと同時に
+足す**。
 
 ---
 
