@@ -16,61 +16,61 @@
 //   ytState (state.js)            -- onloadEdit が ytState.elLoadingSpinner をセット
 //   loadingSpinner() (spinner.js) -- submitCmd・onloadEdit
 
-const wdayList = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const wdayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const mkInput = (cmd) => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "hidden");
-    input.setAttribute("name", "cmd");
-    input.setAttribute("value", cmd);
-    return input;
+  const input = document.createElement("input");
+  input.setAttribute("type", "hidden");
+  input.setAttribute("name", "cmd");
+  input.setAttribute("value", cmd);
+  return input;
 };
 
 let busyFlag = false;
 
 const submitCmd = (cmd) => {
-    if ( busyFlag ) {
-        return;
-    }
-    busyFlag = true;
-    console.log(`cmd=${cmd}`);
-    const form = document.forms["input_form"];
-    form.appendChild(mkInput(cmd));
-    loadingSpinner(true);
-    form.submit();
+  if (busyFlag) {
+    return;
+  }
+  busyFlag = true;
+  console.log(`cmd=${cmd}`);
+  const form = document.forms["input_form"];
+  form.appendChild(mkInput(cmd));
+  loadingSpinner(true);
+  form.submit();
 };
 
 const update_wday = (el_date) => {
-    if ( el_date === undefined ) {
-        el_date = document.getElementById("date");
-    }
-    const d1 = new Date(el_date.value);
+  if (el_date === undefined) {
+    el_date = document.getElementById("date");
+  }
+  const d1 = new Date(el_date.value);
 
-    const el_wday = document.getElementById("wday");
-    el_wday.innerHTML = wdayList[d1.getDay()];
+  const el_wday = document.getElementById("wday");
+  el_wday.innerHTML = wdayList[d1.getDay()];
 };
 
 const setElDate = (date_value, el_date) => {
-    let d1 = new Date(); // today
-    if ( date_value ) {
-        d1 = new Date(date_value);
-    }
-    if ( el_date === undefined ) {
-        el_date = document.getElementById("date");
-    }
-    el_date.value = d1.toISOString().replace(/T.*$/, '');
+  let d1 = new Date(); // today
+  if (date_value) {
+    d1 = new Date(date_value);
+  }
+  if (el_date === undefined) {
+    el_date = document.getElementById("date");
+  }
+  el_date.value = d1.toISOString().replace(/T.*$/, "");
 
-    update_wday(el_date);
+  update_wday(el_date);
 };
 
 const changeElDate = (d, el_date) => {
-    if ( el_date === undefined ) {
-        el_date = document.getElementById("date");
-    }
-    let d1 = new Date(el_date.value);
-    d1.setDate(d1.getDate() + d);
+  if (el_date === undefined) {
+    el_date = document.getElementById("date");
+  }
+  let d1 = new Date(el_date.value);
+  d1.setDate(d1.getDate() + d);
 
-    setElDate(d1, el_date);
+  setElDate(d1, el_date);
 };
 
 const changeDetailHeight = () => {
@@ -80,10 +80,10 @@ const changeDetailHeight = () => {
   const el_id = document.getElementById("div_id");
   const id_h = el_id.offsetHeight;
 
-  const win_h = document.documentElement.clientHeight
+  const win_h = document.documentElement.clientHeight;
   let detail_h = win_h - detail_y - id_h - 7 - 150;
   if (detail_h < 100) {
-        detail_h = 100;
+    detail_h = 100;
   }
 
   el_detail.style.height = `${detail_h}px`;
@@ -94,7 +94,7 @@ const onloadEdit = (event) => {
   loadingSpinner(false);
 };
 
-window.addEventListener('load', function() {
+window.addEventListener("load", function () {
   changeDetailHeight();
 });
-window.addEventListener('load', onloadEdit);
+window.addEventListener("load", onloadEdit);

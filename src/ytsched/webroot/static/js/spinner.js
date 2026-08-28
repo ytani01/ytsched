@@ -15,11 +15,11 @@
  *
  */
 const loadingSpinner = (on) => {
-    if (on) {
-        ytState.elLoadingSpinner.style.display = "block";
-    } else {
-        ytState.elLoadingSpinner.style.display = "none";
-    }
+  if (on) {
+    ytState.elLoadingSpinner.style.display = "block";
+  } else {
+    ytState.elLoadingSpinner.style.display = "none";
+  }
 };
 
 /**
@@ -32,11 +32,11 @@ const loadingSpinner = (on) => {
  * 復元されたときの値を当てにせず、ここで取り直す。
  */
 window.addEventListener("pageshow", (event) => {
-    if (! event.persisted) {
-        return;
-    }
-    ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
-    if (ytState.elLoadingSpinner) {
-        loadingSpinner(false);
-    }
+  if (!event.persisted) {
+    return;
+  }
+  ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
+  if (ytState.elLoadingSpinner) {
+    loadingSpinner(false);
+  }
 });

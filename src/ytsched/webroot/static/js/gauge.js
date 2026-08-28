@@ -37,15 +37,16 @@ const DAYS_GAUGE_K = 10.0;
  * @return {number} xPercent
  */
 const days2xPercent = (days) => {
-    // console.log(`days=${days}`);
-    let xPercent = 50.0 * Math.log10(1 + Math.abs(days) / DAYS_GAUGE_K)
-          / Math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K);
-    xPercent = Math.min(xPercent, 50.0);
+  // console.log(`days=${days}`);
+  let xPercent =
+    (50.0 * Math.log10(1 + Math.abs(days) / DAYS_GAUGE_K)) /
+    Math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K);
+  xPercent = Math.min(xPercent, 50.0);
 
-    if (days < 0) {
-        return -xPercent;
-    }
-    return xPercent;
+  if (days < 0) {
+    return -xPercent;
+  }
+  return xPercent;
 };
 
 /**
@@ -59,35 +60,35 @@ const days2xPercent = (days) => {
  * @return {number} days
  */
 const xPercent2days = (xPercent) => {
-    const abs_xPercent = Math.abs(xPercent);
-    const exponent = abs_xPercent / 50.0
-          * Math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K);
-    const abs_days = DAYS_GAUGE_K * (Math.pow(10, exponent) - 1);
+  const abs_xPercent = Math.abs(xPercent);
+  const exponent =
+    (abs_xPercent / 50.0) * Math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K);
+  const abs_days = DAYS_GAUGE_K * (Math.pow(10, exponent) - 1);
 
-    if (xPercent < 0) {
-        return -abs_days;
-    }
-    return abs_days;
+  if (xPercent < 0) {
+    return -abs_days;
+  }
+  return abs_days;
 };
 
 // ゲージの目盛りの一覧 (TODO-058)。以前は ``main_handler.py`` の
 // ``GAUGE`` がテンプレートへ渡していたが、同じ一覧を JavaScript 側だけに
 // 寄せた (TODO-078)
 const GAUGE_MARKS = [
-    { label: "-30y", days: -DAYS_YEAR * 30 },
-    { label: "-10y", days: -DAYS_YEAR * 10 },
-    { label: "-3y", days: -DAYS_YEAR * 3 },
-    { label: "-1y", days: -DAYS_YEAR },
-    { label: "-4m", days: -DAYS_MONTH * 4 },
-    { label: "-1m", days: -DAYS_MONTH },
-    { label: "-1w", days: -7 },
-    { label: "+1w", days: +7 },
-    { label: "+1m", days: +DAYS_MONTH },
-    { label: "+4m", days: +DAYS_MONTH * 4 },
-    { label: "+1y", days: +DAYS_YEAR },
-    { label: "+3y", days: +DAYS_YEAR * 3 },
-    { label: "+10y", days: +DAYS_YEAR * 10 },
-    { label: "+30y", days: +DAYS_YEAR * 30 },
+  { label: "-30y", days: -DAYS_YEAR * 30 },
+  { label: "-10y", days: -DAYS_YEAR * 10 },
+  { label: "-3y", days: -DAYS_YEAR * 3 },
+  { label: "-1y", days: -DAYS_YEAR },
+  { label: "-4m", days: -DAYS_MONTH * 4 },
+  { label: "-1m", days: -DAYS_MONTH },
+  { label: "-1w", days: -7 },
+  { label: "+1w", days: +7 },
+  { label: "+1m", days: +DAYS_MONTH },
+  { label: "+4m", days: +DAYS_MONTH * 4 },
+  { label: "+1y", days: +DAYS_YEAR },
+  { label: "+3y", days: +DAYS_YEAR * 3 },
+  { label: "+10y", days: +DAYS_YEAR * 10 },
+  { label: "+30y", days: +DAYS_YEAR * 30 },
 ];
 
 /**
@@ -99,18 +100,18 @@ const GAUGE_MARKS = [
  * 何もしない。
  */
 const dispGaugeMarks = () => {
-    const elGaugeBar = document.querySelector(".my-gauge-bar");
-    if ( ! elGaugeBar ) {
-        return;
-    }
+  const elGaugeBar = document.querySelector(".my-gauge-bar");
+  if (!elGaugeBar) {
+    return;
+  }
 
-    for (const mark of GAUGE_MARKS) {
-        const elMark = document.createElement("div");
-        elMark.className = "my-gauge-label";
-        elMark.style.left = `${(50 + days2xPercent(mark.days)).toFixed(2)}%`;
-        elMark.textContent = mark.label;
-        elGaugeBar.appendChild(elMark);
-    }
+  for (const mark of GAUGE_MARKS) {
+    const elMark = document.createElement("div");
+    elMark.className = "my-gauge-label";
+    elMark.style.left = `${(50 + days2xPercent(mark.days)).toFixed(2)}%`;
+    elMark.textContent = mark.label;
+    elGaugeBar.appendChild(elMark);
+  }
 };
 
 /**
@@ -121,12 +122,12 @@ const dispGaugeMarks = () => {
  * @return {Date} monday
  */
 const mondayOf = (date_str) => {
-    const d = new Date(date_str.split('/').join('-'));
-    let wday = d.getDay(); // 0:Sun, 1:Mon, ..
-    if (wday == 0) {
-        wday = 7; // Sun: 0 --> 7
-    }
-    return shiftDays(d, 1 - wday);
+  const d = new Date(date_str.split("/").join("-"));
+  let wday = d.getDay(); // 0:Sun, 1:Mon, ..
+  if (wday == 0) {
+    wday = 7; // Sun: 0 --> 7
+  }
+  return shiftDays(d, 1 - wday);
 };
 
 /**
@@ -145,20 +146,20 @@ const mondayOf = (date_str) => {
  * @return {String} label
  */
 const gaugeDiffLabel = (days) => {
-    if (days === 0) {
-        return "\u00b10";
-    }
+  if (days === 0) {
+    return "\u00b10";
+  }
 
-    const sign = days > 0 ? "+" : "-";
-    const abs_days = Math.abs(days);
+  const sign = days > 0 ? "+" : "-";
+  const abs_days = Math.abs(days);
 
-    if (abs_days < DAYS_MONTH) {
-        return `${sign}${abs_days / 7}w`;
-    }
-    if (abs_days < DAYS_YEAR) {
-        return `${sign}${(abs_days / DAYS_MONTH).toFixed(1)}m`;
-    }
-    return `${sign}${(abs_days / DAYS_YEAR).toFixed(1)}y`;
+  if (abs_days < DAYS_MONTH) {
+    return `${sign}${abs_days / 7}w`;
+  }
+  if (abs_days < DAYS_YEAR) {
+    return `${sign}${(abs_days / DAYS_MONTH).toFixed(1)}m`;
+  }
+  return `${sign}${(abs_days / DAYS_YEAR).toFixed(1)}y`;
 };
 
 /**
@@ -171,17 +172,17 @@ const gaugeDiffLabel = (days) => {
  *   月曜へ丸めてから、今週の月曜との差を見る)
  */
 const setGaugePosition = (date_str) => {
-    const monday = mondayOf(date_str);
-    const this_monday = mondayOf(getLocaltimeDateString(new Date()));
-    const top_rel_days = calcDays(this_monday, monday);
+  const monday = mondayOf(date_str);
+  const this_monday = mondayOf(getLocaltimeDateString(new Date()));
+  const top_rel_days = calcDays(this_monday, monday);
 
-    ytState.elGaugeR0.style.left = `${50 + days2xPercent(top_rel_days)}%`;
+  ytState.elGaugeR0.style.left = `${50 + days2xPercent(top_rel_days)}%`;
 
-    // どちらも月曜なので、7 で割り切れる
-    const elLabel = document.getElementById("gauge_r_label");
-    if (elLabel) {
-        elLabel.textContent = gaugeDiffLabel(Math.round(top_rel_days / 7) * 7);
-    }
+  // どちらも月曜なので、7 で割り切れる
+  const elLabel = document.getElementById("gauge_r_label");
+  if (elLabel) {
+    elLabel.textContent = gaugeDiffLabel(Math.round(top_rel_days / 7) * 7);
+  }
 };
 
 // 直前に見ていた週の月曜 (TODO-049)。ページを読み直したあと、
@@ -199,12 +200,12 @@ const GAUGE_MONDAY_KEY = "ytsched_gauge_monday";
  * @return {String | null}
  */
 const getGaugeMonday = () => {
-    try {
-        return sessionStorage.getItem(GAUGE_MONDAY_KEY);
-    } catch (e) {
-        console.log(`getGaugeMonday: ${e}`);
-        return null;
-    }
+  try {
+    return sessionStorage.getItem(GAUGE_MONDAY_KEY);
+  } catch (e) {
+    console.log(`getGaugeMonday: ${e}`);
+    return null;
+  }
 };
 
 /**
@@ -214,11 +215,11 @@ const getGaugeMonday = () => {
  * @param {String} monday_str   'YYYY-mm-dd'
  */
 const setGaugeMonday = (monday_str) => {
-    try {
-        sessionStorage.setItem(GAUGE_MONDAY_KEY, monday_str);
-    } catch (e) {
-        console.log(`setGaugeMonday: ${e}`);
-    }
+  try {
+    sessionStorage.setItem(GAUGE_MONDAY_KEY, monday_str);
+  } catch (e) {
+    console.log(`setGaugeMonday: ${e}`);
+  }
 };
 
 /**
@@ -234,10 +235,10 @@ const setGaugeMonday = (monday_str) => {
  * @param {String} date_str   'YYYY-mm-dd'
  */
 const placeGaugeWithoutTransition = (date_str) => {
-    ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
-    setGaugePosition(date_str);
-    ytState.elGaugeR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
-    ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+  ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
+  setGaugePosition(date_str);
+  ytState.elGaugeR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
+  ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
 };
 
 /**
@@ -254,32 +255,32 @@ const placeGaugeWithoutTransition = (date_str) => {
  * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
  */
 const dispGauge = (date_str) => {
-    // 検索モードでは週バーごと帯が出ないので、gauge_r が無い (TODO-058)
-    if ( ! ytState.elGaugeR0 ) {
-        return;
-    }
+  // 検索モードでは週バーごと帯が出ないので、gauge_r が無い (TODO-058)
+  if (!ytState.elGaugeR0) {
+    return;
+  }
 
-    if ( ! date_str ) {
-        ytState.elGaugeR0.style.display = "none";
-        return;
-    }
+  if (!date_str) {
+    ytState.elGaugeR0.style.display = "none";
+    return;
+  }
 
-    const monday_str = getLocaltimeDateString(mondayOf(date_str));
-    const prev_monday_str = getGaugeMonday();
-    setGaugeMonday(monday_str);
+  const monday_str = getLocaltimeDateString(mondayOf(date_str));
+  const prev_monday_str = getGaugeMonday();
+  setGaugeMonday(monday_str);
 
-    if (prev_monday_str && prev_monday_str !== monday_str) {
-        placeGaugeWithoutTransition(prev_monday_str);
-        requestAnimationFrame(() => {
-            setGaugePosition(monday_str);
-        });
-        return;
-    }
+  if (prev_monday_str && prev_monday_str !== monday_str) {
+    placeGaugeWithoutTransition(prev_monday_str);
+    requestAnimationFrame(() => {
+      setGaugePosition(monday_str);
+    });
+    return;
+  }
 
-    // 動かす先が無いので、そのまま置く。``setGaugePosition()`` を直に
-    // 呼ぶと、針の ``left`` が CSS の初期値 (``left: 50%``) のままな
-    // ので、中央から目的地まで transition が掛かる (TODO-060)
-    placeGaugeWithoutTransition(monday_str);
+  // 動かす先が無いので、そのまま置く。``setGaugePosition()`` を直に
+  // 呼ぶと、針の ``left`` が CSS の初期値 (``left: 50%``) のままな
+  // ので、中央から目的地まで transition が掛かる (TODO-060)
+  placeGaugeWithoutTransition(monday_str);
 };
 
 /**
@@ -306,19 +307,19 @@ const dispGauge = (date_str) => {
  * @param {Event} event
  */
 const gaugeBarClickHdr = (event) => {
-    const el_bar = document.querySelector(".my-gauge-bar");
-    if ( ! el_bar ) {
-        return;
-    }
+  const el_bar = document.querySelector(".my-gauge-bar");
+  if (!el_bar) {
+    return;
+  }
 
-    const rect = el_bar.getBoundingClientRect();
-    const x_percent = (event.clientX - rect.left) / rect.width * 100 - 50;
-    const days = xPercent2days(x_percent);
+  const rect = el_bar.getBoundingClientRect();
+  const x_percent = ((event.clientX - rect.left) / rect.width) * 100 - 50;
+  const days = xPercent2days(x_percent);
 
-    const this_monday = mondayOf(getLocaltimeDateString(new Date()));
-    const target_date = shiftDays(this_monday, Math.round(days));
-    const monday = mondayOf(getLocaltimeDateString(target_date));
+  const this_monday = mondayOf(getLocaltimeDateString(new Date()));
+  const target_date = shiftDays(this_monday, Math.round(days));
+  const monday = mondayOf(getLocaltimeDateString(target_date));
 
-    // パスは onloadHdr() と同じく location.pathname でよい (TODO-074)
-    scrollToDate(location.pathname, getLocaltimeDateString(monday));
+  // パスは onloadHdr() と同じく location.pathname でよい (TODO-074)
+  scrollToDate(location.pathname, getLocaltimeDateString(monday));
 };

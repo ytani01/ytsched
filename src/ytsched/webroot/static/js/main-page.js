@@ -30,35 +30,36 @@
 let clickCount = 0;
 
 const homeButtonHdr = (event) => {
-  if( !clickCount ) { // single click
-                       ++clickCount;
-	     setTimeout(function() {clickCount = 0;}, 350 );
+  if (!clickCount) {
+    // single click
+    ++clickCount;
+    setTimeout(function () {
+      clickCount = 0;
+    }, 350);
     console.log("single click");
 
     console.log(`search_str0=${search_str0}`);
-    if ( search_str0 ) {
+    if (search_str0) {
       const el_search = document.getElementById("search_str");
       const search_str = el_search.value;
       console.log(`search_str=${search_str}`);
       // search_str は URL に載せない (TODO-050)
-      doPost(url_prefix,
-             {
-               date: today_str,
-               search_str: search_str
-             } );
+      doPost(url_prefix, {
+        date: today_str,
+        search_str: search_str,
+      });
     }
-    scrollToDate(url_prefix, today_str, 'top');
-
-  } else { // double click
+    scrollToDate(url_prefix, today_str, "top");
+  } else {
+    // double click
     //event.preventDefault() ;
-	     clickCount = 0;
-	     console.log( "double click" ) ;
+    clickCount = 0;
+    console.log("double click");
 
     // データを読み直す (TODO-069)。前後数ヶ月ぶんを DOM に持つ
     // ようになったので、抱えたまま古くなる。ダブルタップが、
     // 手で取り直す道
-    doGet(url_prefix,
-           {date: today_str, sde_align: 'top'} );
+    doGet(url_prefix, { date: today_str, sde_align: "top" });
   }
 };
 
@@ -84,7 +85,7 @@ const onloadHdr = (event) => {
   // (TODO-055)。body_h を測るより先に入れること。
   // 検索モードでは週バーが無いので、そのときは 0 のまま
   const elWeekBar = document.getElementById("week_bar");
-  if ( elWeekBar ) {
+  if (elWeekBar) {
     document.body.style.paddingTop = `${elWeekBar.offsetHeight}px`;
   }
 
@@ -95,7 +96,7 @@ const onloadHdr = (event) => {
   // 目盛りの位置は日付によらないので、ここで一度だけ描く (TODO-078)
   dispGaugeMarks();
 
-  if ( body_h < win_h ) {
+  if (body_h < win_h) {
     console.log(`body_h=${body_h} < win_h=${win_h}`);
     // ゲージの都合で画面が出ないのはおかしいので、dispGauge() より
     // 先に visible にする (TODO-049 reviewer 指摘 1)
@@ -111,9 +112,13 @@ const onloadHdr = (event) => {
   // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
   // アニメーションになってしまう (TODO-041)
   // 読み直した直後なので、履歴には積まない (TODO-050)
-  scrollToDate(location.pathname,
-               el_date.value, el_sde_align.value,
-               "instant", false);
+  scrollToDate(
+    location.pathname,
+    el_date.value,
+    el_sde_align.value,
+    "instant",
+    false,
+  );
 
   // 週表示になり、スクロールでの追加読み込みが無くなったので、
   // 検索の有無によらず一度だけゲージを合わせる (TODO-049)
@@ -124,7 +129,10 @@ const onloadHdr = (event) => {
 const changeSearchN = (val) => {
   console.log(`changeSearchN: val=${val}`);
   // search_n は URL に載せない (TODO-050)
-  doPost(url_prefix, {date: document.getElementById("cur_day").value, search_n: val} );
+  doPost(url_prefix, {
+    date: document.getElementById("cur_day").value,
+    search_n: val,
+  });
 };
 
 // フッターの ◀▶ のダブルタップで、自動ページ送りを始める (TODO-084)。
@@ -152,7 +160,7 @@ const PAGE_TURN_MOVE_PX = 30;
 
 /** 走っていれば自動ページ送りを止める。走っていなければ何もしない。 */
 const stopAutoPageTurn = () => {
-  if ( autoTurnTimerId === null ) {
+  if (autoTurnTimerId === null) {
     return;
   }
   clearInterval(autoTurnTimerId);
@@ -183,17 +191,18 @@ const startAutoPageTurn = (direction) => {
  * 拾う)。
  */
 const pageTurnPointerDownHdr = (event) => {
-  const el = event.target && event.target.closest
-        ? event.target.closest("[data-page-turn]")
-        : null;
+  const el =
+    event.target && event.target.closest
+      ? event.target.closest("[data-page-turn]")
+      : null;
 
-  if ( ! el ) {
+  if (!el) {
     pageTurnStart = null;
     stopAutoPageTurn();
     return;
   }
 
-  pageTurnStart = {x: event.clientX, y: event.clientY, t: Date.now()};
+  pageTurnStart = { x: event.clientX, y: event.clientY, t: Date.now() };
 };
 
 /**
@@ -209,25 +218,26 @@ const pageTurnPointerDownHdr = (event) => {
 const pageTurnPointerUpHdr = (event) => {
   const start = pageTurnStart;
   pageTurnStart = null;
-  if ( ! start ) {
+  if (!start) {
     return;
   }
 
-  const el = event.target && event.target.closest
-        ? event.target.closest("[data-page-turn]")
-        : null;
-  if ( ! el ) {
+  const el =
+    event.target && event.target.closest
+      ? event.target.closest("[data-page-turn]")
+      : null;
+  if (!el) {
     return;
   }
 
-  if ( autoTurnTimerId !== null ) {
+  if (autoTurnTimerId !== null) {
     stopAutoPageTurn();
     return;
   }
 
   const dx = event.clientX - start.x;
   const dy = event.clientY - start.y;
-  if ( Math.hypot(dx, dy) >= PAGE_TURN_MOVE_PX ) {
+  if (Math.hypot(dx, dy) >= PAGE_TURN_MOVE_PX) {
     return;
   }
 
@@ -235,8 +245,10 @@ const pageTurnPointerUpHdr = (event) => {
   moveToMonday(direction, url_prefix);
 
   const now = Date.now();
-  if ( lastPageTurnDirection === direction
-       && now - lastPageTurnTapMsec < PAGE_TURN_DOUBLE_TAP_MSEC ) {
+  if (
+    lastPageTurnDirection === direction &&
+    now - lastPageTurnTapMsec < PAGE_TURN_DOUBLE_TAP_MSEC
+  ) {
     startAutoPageTurn(direction);
     lastPageTurnDirection = null;
     lastPageTurnTapMsec = 0;
@@ -251,39 +263,39 @@ const pageTurnPointerCancelHdr = () => {
   pageTurnStart = null;
 };
 
-window.addEventListener('load', onloadHdr);
+window.addEventListener("load", onloadHdr);
 // キーボードでの操作は一覧だけ (TODO-050)
-window.addEventListener('keydown', keyHdr);
+window.addEventListener("keydown", keyHdr);
 // 画面内で完結した移動から戻ってきたとき (TODO-050)
-window.addEventListener('popstate', popstateHdr);
+window.addEventListener("popstate", popstateHdr);
 // 左右のスワイプで週を送るのも一覧だけ (TODO-054)。
 // touchmove だけ passive: false (TODO-057)。横の動きと判定した
 // あと preventDefault() で縦スクロールを止めないと、指に追従
 // できない。他の 3 つは縦スクロールを邪魔しないので passive のまま
-window.addEventListener('touchstart', touchStartHdr, {passive: true});
-window.addEventListener('touchmove', touchMoveHdr, {passive: false});
-window.addEventListener('touchend', touchEndHdr, {passive: true});
-window.addEventListener('touchcancel', touchCancelHdr, {passive: true});
+window.addEventListener("touchstart", touchStartHdr, { passive: true });
+window.addEventListener("touchmove", touchMoveHdr, { passive: false });
+window.addEventListener("touchend", touchEndHdr, { passive: true });
+window.addEventListener("touchcancel", touchCancelHdr, { passive: true });
 // PC のマウスの左右ドラッグでも週を送る (TODO-064)。
 // mousedown だけ capture で拾って伝播を止める。日付セルなどの
 // onmousedown は押した瞬間に遷移してしまい、そのままでは
 // セルの上からドラッグを始められない。動かずに離したときは、
 // mouseUpHdr が止めておいた onmousedown を自前で呼ぶ
-window.addEventListener('mousedown', mouseDownHdr, true);
-window.addEventListener('mousemove', mouseMoveHdr);
-window.addEventListener('mouseup', mouseUpHdr);
+window.addEventListener("mousedown", mouseDownHdr, true);
+window.addEventListener("mousemove", mouseMoveHdr);
+window.addEventListener("mouseup", mouseUpHdr);
 // フッターの ◀▶ のダブルタップで自動ページ送り (TODO-084)。
 // pointerdown は capture で拾う (画面の他の場所を押したら止める分岐が、
 // ボタン側の分岐より先に効いてよい)
-window.addEventListener('pointerdown', pageTurnPointerDownHdr, true);
-window.addEventListener('pointerup', pageTurnPointerUpHdr);
-window.addEventListener('pointercancel', pageTurnPointerCancelHdr);
+window.addEventListener("pointerdown", pageTurnPointerDownHdr, true);
+window.addEventListener("pointerup", pageTurnPointerUpHdr);
+window.addEventListener("pointercancel", pageTurnPointerCancelHdr);
 // 止まる条件: ボタンをもう一度タップ (pageTurnPointerUpHdr) / 画面の
 // 他の場所をタップ (pageTurnPointerDownHdr) / キーを押した / 画面が
 // 隠れた
-window.addEventListener('keydown', stopAutoPageTurn);
-document.addEventListener('visibilitychange', () => {
-  if ( document.hidden ) {
+window.addEventListener("keydown", stopAutoPageTurn);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
     stopAutoPageTurn();
   }
 });

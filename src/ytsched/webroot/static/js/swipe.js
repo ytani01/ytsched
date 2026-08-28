@@ -67,16 +67,16 @@ let mouseDownEl = null;
  * ``ytState.elWeekWrap`` が無いとき (このページに無い) も何もしない。
  */
 const cancelSwipeDrag = () => {
-    if ( ! swipeDragging ) {
-        return;
+  if (!swipeDragging) {
+    return;
+  }
+  swipeDragging = false;
+  slideWeekWrap(0, () => {
+    if (ytState.elWeekWrap) {
+      ytState.elWeekWrap.style.transform = "";
+      ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
     }
-    swipeDragging = false;
-    slideWeekWrap(0, () => {
-        if ( ytState.elWeekWrap ) {
-            ytState.elWeekWrap.style.transform = "";
-            ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
-        }
-    });
+  });
 };
 
 /**
@@ -93,24 +93,26 @@ const cancelSwipeDrag = () => {
  * @return {boolean}
  */
 const swipeDragTo = (dx, dy) => {
-    if ( ! swipeDragging ) {
-        if ( Math.abs(dx) < SWIPE_MIN_X
-             || Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y ) {
-            return false;
-        }
-        if ( ! hasAdjacentWeek() ) {
-            return false;
-        }
-        swipeDragging = true;
-        if ( ytState.elWeekWrap ) {
-            ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
-        }
+  if (!swipeDragging) {
+    if (
+      Math.abs(dx) < SWIPE_MIN_X ||
+      Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y
+    ) {
+      return false;
     }
+    if (!hasAdjacentWeek()) {
+      return false;
+    }
+    swipeDragging = true;
+    if (ytState.elWeekWrap) {
+      ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
+    }
+  }
 
-    if ( ytState.elWeekWrap ) {
-        ytState.elWeekWrap.style.transform = `translateX(${dx}px)`;
-    }
-    return true;
+  if (ytState.elWeekWrap) {
+    ytState.elWeekWrap.style.transform = `translateX(${dx}px)`;
+  }
+  return true;
 };
 
 /**
@@ -128,25 +130,26 @@ const swipeDragTo = (dx, dy) => {
  * @return {boolean}   送ったら true
  */
 const swipeFinish = (dx, dy, elapsed_msec) => {
-    if ( Math.abs(dx) < SWIPE_MIN_X
-         || Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y ) {
-        cancelSwipeDrag();
-        return false;
-    }
+  if (
+    Math.abs(dx) < SWIPE_MIN_X ||
+    Math.abs(dx) < Math.abs(dy) * SWIPE_X_PER_Y
+  ) {
+    cancelSwipeDrag();
+    return false;
+  }
 
-    const win_w = document.documentElement.clientWidth;
-    const velocity = elapsed_msec > 0
-          ? Math.abs(dx) / elapsed_msec : Infinity;
+  const win_w = document.documentElement.clientWidth;
+  const velocity = elapsed_msec > 0 ? Math.abs(dx) / elapsed_msec : Infinity;
 
-    if ( Math.abs(dx) < win_w / 3 && velocity < SWIPE_FAST_PX_PER_MSEC ) {
-        cancelSwipeDrag();
-        return false;
-    }
+  if (Math.abs(dx) < win_w / 3 && velocity < SWIPE_FAST_PX_PER_MSEC) {
+    cancelSwipeDrag();
+    return false;
+  }
 
-    console.log(`swipeFinish:dx=${dx}, dy=${dy}, velocity=${velocity}`);
-    swipeDragging = false;
-    moveToMonday(dx < 0 ? 1 : -1, url_prefix);
-    return true;
+  console.log(`swipeFinish:dx=${dx}, dy=${dy}, velocity=${velocity}`);
+  swipeDragging = false;
+  moveToMonday(dx < 0 ? 1 : -1, url_prefix);
+  return true;
 };
 
 /**
@@ -164,28 +167,30 @@ const swipeFinish = (dx, dy, elapsed_msec) => {
  *   ここで拾うと週送りが二重に効く (TODO-084)
  */
 const touchStartHdr = (event) => {
-    lastTouchMsec = Date.now();
-    swipeStart = null;
-    cancelSwipeDrag(); // 前の指が離れ損なっていたときの後始末 (念のため)
+  lastTouchMsec = Date.now();
+  swipeStart = null;
+  cancelSwipeDrag(); // 前の指が離れ損なっていたときの後始末 (念のため)
 
-    if ( event.touches.length !== 1 ) {
-        return;
-    }
+  if (event.touches.length !== 1) {
+    return;
+  }
 
-    const el = event.target;
-    if ( el && el.closest
-         && el.closest("input, textarea, select, [data-page-turn]") ) {
-        return;
-    }
+  const el = event.target;
+  if (
+    el &&
+    el.closest &&
+    el.closest("input, textarea, select, [data-page-turn]")
+  ) {
+    return;
+  }
 
-    const touch = event.touches[0];
-    const win_w = document.documentElement.clientWidth;
-    if ( touch.clientX < SWIPE_EDGE_PX
-         || touch.clientX > win_w - SWIPE_EDGE_PX ) {
-        return;
-    }
+  const touch = event.touches[0];
+  const win_w = document.documentElement.clientWidth;
+  if (touch.clientX < SWIPE_EDGE_PX || touch.clientX > win_w - SWIPE_EDGE_PX) {
+    return;
+  }
 
-    swipeStart = {x: touch.clientX, y: touch.clientY, t: Date.now()};
+  swipeStart = { x: touch.clientX, y: touch.clientY, t: Date.now() };
 };
 
 /**
@@ -200,25 +205,25 @@ const touchStartHdr = (event) => {
  * だけ効く (TODO-054)。
  */
 const touchMoveHdr = (event) => {
-    lastTouchMsec = Date.now();
+  lastTouchMsec = Date.now();
 
-    if ( event.touches.length !== 1 ) {
-        swipeStart = null;
-        cancelSwipeDrag();
-        return;
-    }
+  if (event.touches.length !== 1) {
+    swipeStart = null;
+    cancelSwipeDrag();
+    return;
+  }
 
-    if ( ! swipeStart ) {
-        return;
-    }
+  if (!swipeStart) {
+    return;
+  }
 
-    const touch = event.touches[0];
-    const dx = touch.clientX - swipeStart.x;
-    const dy = touch.clientY - swipeStart.y;
+  const touch = event.touches[0];
+  const dx = touch.clientX - swipeStart.x;
+  const dy = touch.clientY - swipeStart.y;
 
-    if ( swipeDragTo(dx, dy) ) {
-        event.preventDefault();
-    }
+  if (swipeDragTo(dx, dy)) {
+    event.preventDefault();
+  }
 };
 
 /**
@@ -227,31 +232,34 @@ const touchMoveHdr = (event) => {
  * 送るかどうかの判定は ``swipeFinish()`` に任せる。
  */
 const touchEndHdr = (event) => {
-    lastTouchMsec = Date.now();
+  lastTouchMsec = Date.now();
 
-    const start = swipeStart;
-    swipeStart = null;
+  const start = swipeStart;
+  swipeStart = null;
 
-    if ( ! start ) {
-        return;
-    }
-    if ( event.changedTouches.length !== 1 ) {
-        cancelSwipeDrag();
-        return;
-    }
+  if (!start) {
+    return;
+  }
+  if (event.changedTouches.length !== 1) {
+    cancelSwipeDrag();
+    return;
+  }
 
-    const touch = event.changedTouches[0];
-    swipeFinish(touch.clientX - start.x, touch.clientY - start.y,
-                Date.now() - start.t);
+  const touch = event.changedTouches[0];
+  swipeFinish(
+    touch.clientX - start.x,
+    touch.clientY - start.y,
+    Date.now() - start.t,
+  );
 };
 
 /**
  * 途中で割り込まれたとき (TODO-054)。
  */
 const touchCancelHdr = () => {
-    lastTouchMsec = Date.now();
-    swipeStart = null;
-    cancelSwipeDrag();
+  lastTouchMsec = Date.now();
+  swipeStart = null;
+  cancelSwipeDrag();
 };
 
 /**
@@ -276,36 +284,36 @@ const touchCancelHdr = () => {
  *   返す (TODO-084)
  */
 const mouseDownHdr = (event) => {
-    if ( Date.now() - lastTouchMsec < MOUSE_AFTER_TOUCH_MSEC ) {
-        return;
-    }
+  if (Date.now() - lastTouchMsec < MOUSE_AFTER_TOUCH_MSEC) {
+    return;
+  }
 
-    // ウィンドウの外でボタンを離していたときの後始末 (念のため)。
-    // ``mouseup`` はウィンドウの外では来ないので、``swipeDragging``
-    // が true のまま残る
-    // ことがある。残っていると、次に動かさずにクリックしただけで
-    // 「追従していた」と見なされ、その回のクリックが効かない
-    swipeStart = null;
-    mouseDownEl = null;
-    cancelSwipeDrag();
+  // ウィンドウの外でボタンを離していたときの後始末 (念のため)。
+  // ``mouseup`` はウィンドウの外では来ないので、``swipeDragging``
+  // が true のまま残る
+  // ことがある。残っていると、次に動かさずにクリックしただけで
+  // 「追従していた」と見なされ、その回のクリックが効かない
+  swipeStart = null;
+  mouseDownEl = null;
+  cancelSwipeDrag();
 
-    if ( event.button !== 0 ) {
-        return;
-    }
+  if (event.button !== 0) {
+    return;
+  }
 
-    const el = event.target;
-    if ( ! el || ! el.closest ) {
-        return;
-    }
-    if ( el.closest("input, textarea, select, label, a, [data-page-turn]") ) {
-        return;
-    }
+  const el = event.target;
+  if (!el || !el.closest) {
+    return;
+  }
+  if (el.closest("input, textarea, select, label, a, [data-page-turn]")) {
+    return;
+  }
 
-    event.stopPropagation();
-    event.preventDefault(); // ドラッグ中に文字が選択されないように
+  event.stopPropagation();
+  event.preventDefault(); // ドラッグ中に文字が選択されないように
 
-    mouseDownEl = el.closest("[onmousedown]");
-    swipeStart = {x: event.clientX, y: event.clientY, t: Date.now()};
+  mouseDownEl = el.closest("[onmousedown]");
+  swipeStart = { x: event.clientX, y: event.clientY, t: Date.now() };
 };
 
 /**
@@ -315,17 +323,17 @@ const mouseDownHdr = (event) => {
  * ``mouseup`` はウィンドウの外では来ないので、ここで気づくしかない。
  */
 const mouseMoveHdr = (event) => {
-    if ( ! swipeStart ) {
-        return;
-    }
-    if ( ! (event.buttons & 1) ) {
-        swipeStart = null;
-        mouseDownEl = null;
-        cancelSwipeDrag();
-        return;
-    }
+  if (!swipeStart) {
+    return;
+  }
+  if (!(event.buttons & 1)) {
+    swipeStart = null;
+    mouseDownEl = null;
+    cancelSwipeDrag();
+    return;
+  }
 
-    swipeDragTo(event.clientX - swipeStart.x, event.clientY - swipeStart.y);
+  swipeDragTo(event.clientX - swipeStart.x, event.clientY - swipeStart.y);
 };
 
 /**
@@ -336,34 +344,37 @@ const mouseMoveHdr = (event) => {
  * どうかを ``swipeFinish()`` が決める。
  */
 const mouseUpHdr = (event) => {
-    const start = swipeStart;
-    const el = mouseDownEl;
-    swipeStart = null;
-    mouseDownEl = null;
+  const start = swipeStart;
+  const el = mouseDownEl;
+  swipeStart = null;
+  mouseDownEl = null;
 
-    if ( ! start ) {
-        return;
-    }
-    if ( event.button !== 0 ) {
-        cancelSwipeDrag();
-        return;
-    }
+  if (!start) {
+    return;
+  }
+  if (event.button !== 0) {
+    cancelSwipeDrag();
+    return;
+  }
 
-    // 追従を始めていなければ、どれだけ動いていてもクリックと見なす
-    // (TODO-064)。「少しだけ動いた」を除いてしまうと、押してから
-    // 離すまでに手がぶれただけのときに、クリックとしても週送りとしても
-    // 扱われず、黙って何も起きない範囲ができる。マウスには縦スクロール
-    // のためのドラッグが無いので、追従していない動きはクリックでよい
-    if ( ! swipeDragging ) {
-        if ( el && typeof el.onmousedown === "function" ) {
-            // 渡しているのは ``mouseup`` の event。今のテンプレートの
-            // ``onmousedown`` は event を見ていないので困らないが、
-            // 見るものを足すときはここを思い出すこと
-            el.onmousedown(event);
-        }
-        return;
+  // 追従を始めていなければ、どれだけ動いていてもクリックと見なす
+  // (TODO-064)。「少しだけ動いた」を除いてしまうと、押してから
+  // 離すまでに手がぶれただけのときに、クリックとしても週送りとしても
+  // 扱われず、黙って何も起きない範囲ができる。マウスには縦スクロール
+  // のためのドラッグが無いので、追従していない動きはクリックでよい
+  if (!swipeDragging) {
+    if (el && typeof el.onmousedown === "function") {
+      // 渡しているのは ``mouseup`` の event。今のテンプレートの
+      // ``onmousedown`` は event を見ていないので困らないが、
+      // 見るものを足すときはここを思い出すこと
+      el.onmousedown(event);
     }
+    return;
+  }
 
-    swipeFinish(event.clientX - start.x, event.clientY - start.y,
-                Date.now() - start.t);
+  swipeFinish(
+    event.clientX - start.x,
+    event.clientY - start.y,
+    Date.now() - start.t,
+  );
 };

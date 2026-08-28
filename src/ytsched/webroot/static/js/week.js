@@ -35,11 +35,12 @@ const SWIPE_SLIDE_MSEC = 200;
  * @return {Element | null}
  */
 const weekPanelOf = (offset) => {
-    if ( ! ytState.elWeekWrap ) {
-        return null;
-    }
-    return ytState.elWeekWrap.querySelector(
-        `.my-week-panel[data-offset="${offset}"]`);
+  if (!ytState.elWeekWrap) {
+    return null;
+  }
+  return ytState.elWeekWrap.querySelector(
+    `.my-week-panel[data-offset="${offset}"]`,
+  );
 };
 
 /**
@@ -53,16 +54,17 @@ const weekPanelOf = (offset) => {
  * @return {number | null}
  */
 const weekOffsetOfDate = (date_str) => {
-    if ( ! ytState.elWeekWrap || ! date_str ) {
-        return null;
-    }
-    const monday = getLocaltimeDateString(mondayOf(date_str));
-    const panel = ytState.elWeekWrap.querySelector(
-        `.my-week-panel[data-monday="${monday}"]`);
-    if ( ! panel ) {
-        return null;
-    }
-    return Number(panel.dataset.offset);
+  if (!ytState.elWeekWrap || !date_str) {
+    return null;
+  }
+  const monday = getLocaltimeDateString(mondayOf(date_str));
+  const panel = ytState.elWeekWrap.querySelector(
+    `.my-week-panel[data-monday="${monday}"]`,
+  );
+  if (!panel) {
+    return null;
+  }
+  return Number(panel.dataset.offset);
 };
 
 /**
@@ -73,8 +75,10 @@ const weekOffsetOfDate = (date_str) => {
  * 滑らせても中身の無い余白が見えるだけなので、その場合は false。
  */
 const hasAdjacentWeek = () => {
-    return !! (weekPanelOf(ytState.activeWeekOffset - 1)
-               || weekPanelOf(ytState.activeWeekOffset + 1));
+  return !!(
+    weekPanelOf(ytState.activeWeekOffset - 1) ||
+    weekPanelOf(ytState.activeWeekOffset + 1)
+  );
 };
 
 /**
@@ -89,18 +93,18 @@ const hasAdjacentWeek = () => {
  * ようにするのはこの 2 週だけで、前後数ヶ月ぶんを全部見せない。
  */
 const layoutWeeks = () => {
-    if ( ! ytState.elWeekWrap ) {
-        return;
-    }
-    const panels = ytState.elWeekWrap.querySelectorAll(".my-week-panel");
-    for ( const panel of panels ) {
-        const offset = Number(panel.dataset.offset);
-        const rel = offset - ytState.activeWeekOffset;
+  if (!ytState.elWeekWrap) {
+    return;
+  }
+  const panels = ytState.elWeekWrap.querySelectorAll(".my-week-panel");
+  for (const panel of panels) {
+    const offset = Number(panel.dataset.offset);
+    const rel = offset - ytState.activeWeekOffset;
 
-        panel.classList.toggle("my-week-cur", rel === 0);
-        panel.classList.toggle("my-week-near", Math.abs(rel) === 1);
-        panel.style.left = `${rel * 100}%`;
-    }
+    panel.classList.toggle("my-week-cur", rel === 0);
+    panel.classList.toggle("my-week-near", Math.abs(rel) === 1);
+    panel.style.left = `${rel * 100}%`;
+  }
 };
 
 /**
@@ -118,37 +122,37 @@ const layoutWeeks = () => {
  * @return {boolean}   移れたら true
  */
 const setActiveWeek = (offset, push_flag = true) => {
-    const panel = weekPanelOf(offset);
-    if ( ! panel ) {
-        return false;
+  const panel = weekPanelOf(offset);
+  if (!panel) {
+    return false;
+  }
+
+  ytState.activeWeekOffset = offset;
+  layoutWeeks();
+
+  // 滑らせ終わった位置から、ずらした分を戻す。並べ直しで見た目の
+  // 位置は変わらないので、transition を掛けずに戻す
+  ytState.elWeekWrap.classList.remove("my-week-wrap-sliding");
+  ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
+  ytState.elWeekWrap.style.transform = "";
+
+  const monday = panel.dataset.monday;
+
+  for (const id of ["cur_day", "date", "date_from"]) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.value = monday;
     }
+  }
 
-    ytState.activeWeekOffset = offset;
-    layoutWeeks();
+  if (push_flag) {
+    pushDateInUrl(monday);
+  }
 
-    // 滑らせ終わった位置から、ずらした分を戻す。並べ直しで見た目の
-    // 位置は変わらないので、transition を掛けずに戻す
-    ytState.elWeekWrap.classList.remove("my-week-wrap-sliding");
-    ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
-    ytState.elWeekWrap.style.transform = "";
+  dispGauge(monday);
+  scrollToId(`date-${monday}`, "top", "instant");
 
-    const monday = panel.dataset.monday;
-
-    for ( const id of ["cur_day", "date", "date_from"] ) {
-        const el = document.getElementById(id);
-        if ( el ) {
-            el.value = monday;
-        }
-    }
-
-    if ( push_flag ) {
-        pushDateInUrl(monday);
-    }
-
-    dispGauge(monday);
-    scrollToId(`date-${monday}`, "top", "instant");
-
-    return true;
+  return true;
 };
 
 // 走っている ``slideWeekWrap()`` の後始末 (リスナーを外し、タイマーを
@@ -175,55 +179,58 @@ let cancelActiveSlide = null;
  * @param {Function} on_done
  */
 const slideWeekWrap = (target_x, on_done) => {
-    if ( ! ytState.elWeekWrap || ! hasAdjacentWeek() ) {
-        on_done();
-        return;
+  if (!ytState.elWeekWrap || !hasAdjacentWeek()) {
+    on_done();
+    return;
+  }
+
+  if (cancelActiveSlide) {
+    cancelActiveSlide();
+    cancelActiveSlide = null;
+  }
+
+  ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
+  if (!ytState.elWeekWrap.style.transform) {
+    ytState.elWeekWrap.style.transform = "translateX(0px)";
+  }
+  void ytState.elWeekWrap.offsetWidth; // 強制的にレイアウトし、transition を効かせる
+
+  let done = false;
+  let timeoutId;
+  const cleanup = () => {
+    ytState.elWeekWrap.removeEventListener("transitionend", onEnd);
+    clearTimeout(timeoutId);
+  };
+  const finish = () => {
+    if (done) {
+      return;
     }
-
-    if ( cancelActiveSlide ) {
-        cancelActiveSlide();
-        cancelActiveSlide = null;
+    done = true;
+    cancelActiveSlide = null;
+    cleanup();
+    ytState.elWeekWrap.classList.remove("my-week-wrap-sliding");
+    on_done();
+  };
+  const onEnd = (event) => {
+    if (
+      event.target !== ytState.elWeekWrap ||
+      event.propertyName !== "transform"
+    ) {
+      return;
     }
+    finish();
+  };
 
-    ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
-    if ( ! ytState.elWeekWrap.style.transform ) {
-        ytState.elWeekWrap.style.transform = "translateX(0px)";
-    }
-    void ytState.elWeekWrap.offsetWidth; // 強制的にレイアウトし、transition を効かせる
+  cancelActiveSlide = () => {
+    done = true;
+    cleanup();
+  };
 
-    let done = false;
-    let timeoutId;
-    const cleanup = () => {
-        ytState.elWeekWrap.removeEventListener("transitionend", onEnd);
-        clearTimeout(timeoutId);
-    };
-    const finish = () => {
-        if ( done ) {
-            return;
-        }
-        done = true;
-        cancelActiveSlide = null;
-        cleanup();
-        ytState.elWeekWrap.classList.remove("my-week-wrap-sliding");
-        on_done();
-    };
-    const onEnd = (event) => {
-        if ( event.target !== ytState.elWeekWrap || event.propertyName !== "transform" ) {
-            return;
-        }
-        finish();
-    };
+  ytState.elWeekWrap.addEventListener("transitionend", onEnd);
+  timeoutId = setTimeout(finish, SWIPE_SLIDE_MSEC + 100);
 
-    cancelActiveSlide = () => {
-        done = true;
-        cleanup();
-    };
-
-    ytState.elWeekWrap.addEventListener("transitionend", onEnd);
-    timeoutId = setTimeout(finish, SWIPE_SLIDE_MSEC + 100);
-
-    ytState.elWeekWrap.classList.add("my-week-wrap-sliding");
-    ytState.elWeekWrap.style.transform = `translateX(${target_x}px)`;
+  ytState.elWeekWrap.classList.add("my-week-wrap-sliding");
+  ytState.elWeekWrap.style.transform = `translateX(${target_x}px)`;
 };
 
 /**
@@ -237,37 +244,37 @@ const slideWeekWrap = (target_x, on_done) => {
  * @param {number} direction
  * @param {String} path
  */
-const moveToMonday = (direction=1, path) => {
-    const el_cur_day = document.getElementById("cur_day");
-    let cur_day = new Date(el_cur_day.value);
-    console.log(`moveToMonday:path=${path}`);
-    console.log(`moveToMonday:cur_day=${getLocaltimeString(cur_day)}`);
+const moveToMonday = (direction = 1, path) => {
+  const el_cur_day = document.getElementById("cur_day");
+  let cur_day = new Date(el_cur_day.value);
+  console.log(`moveToMonday:path=${path}`);
+  console.log(`moveToMonday:cur_day=${getLocaltimeString(cur_day)}`);
 
-    let wday = cur_day.getDay(); // 0:Sun, 1:Mon, ..
-    if (wday == 0) {
-        wday = 7; // Sun: 0 --> 7
+  let wday = cur_day.getDay(); // 0:Sun, 1:Mon, ..
+  if (wday == 0) {
+    wday = 7; // Sun: 0 --> 7
+  }
+
+  // まず ``cur_day`` をその週の月曜まで戻してから、前後へ 7 日
+  // ずらす (TODO-063)。週の途中の日付から直に前の月曜を求めると、
+  // 同じ週の月曜になって週が送れない
+  const days = 1 - wday + (direction > 0 ? 7 : -7);
+  console.log(`moveToMonday:days=${days}`);
+
+  let d1 = new Date(el_cur_day.value);
+  d1 = shiftDays(d1, days);
+  d1_str = getLocaltimeDateString(d1);
+  console.log(`moveToMonday:d1_str=${d1_str}`);
+
+  const win_w = document.documentElement.clientWidth;
+  const target_x = direction > 0 ? -win_w : win_w;
+  const next_offset = ytState.activeWeekOffset + direction;
+  console.log(`moveToMonday:next_offset=${next_offset}`);
+
+  slideWeekWrap(target_x, () => {
+    if (setActiveWeek(next_offset)) {
+      return;
     }
-
-    // まず ``cur_day`` をその週の月曜まで戻してから、前後へ 7 日
-    // ずらす (TODO-063)。週の途中の日付から直に前の月曜を求めると、
-    // 同じ週の月曜になって週が送れない
-    const days = (1 - wday) + (direction > 0 ? 7 : -7);
-    console.log(`moveToMonday:days=${days}`);
-
-    let d1 = new Date(el_cur_day.value);
-    d1 = shiftDays(d1, days);
-    d1_str = getLocaltimeDateString(d1);
-    console.log(`moveToMonday:d1_str=${d1_str}`);
-
-    const win_w = document.documentElement.clientWidth;
-    const target_x = direction > 0 ? -win_w : win_w;
-    const next_offset = ytState.activeWeekOffset + direction;
-    console.log(`moveToMonday:next_offset=${next_offset}`);
-
-    slideWeekWrap(target_x, () => {
-        if ( setActiveWeek(next_offset) ) {
-            return;
-        }
-        doGet(path, {date: d1_str, sde_align: "top"});
-    });
+    doGet(path, { date: d1_str, sde_align: "top" });
+  });
 };
