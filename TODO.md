@@ -1,14 +1,14 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095**
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095, TODO-097..TODO-098**
 これまでに 91 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-097` から**。
+**番号は `TODO-099` から**。
 
-TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 16 件）を
-9 項目にまとめたもの。A〜P の記号は、そのレビューでの通し番号。レビューの
-文書（`docs/design-review.md`）は、中身を各項目へ移したうえで削除した
-（git の履歴にある）。
+TODO-087..TODO-095 と TODO-097 は、2026-08-27 の基本設計のレビュー
+（A〜P の 16 件）を 10 項目にまとめたもの。A〜P の記号は、そのレビューでの
+通し番号。レビューの文書（`docs/design-review.md`）は、中身を各項目へ
+移したうえで削除した（git の履歴にある）。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
 前後があった 3 つ（TODO-087 → TODO-088 → TODO-071）のうち、
@@ -45,36 +45,38 @@ TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 1
 
 ---
 
-## TODO-093. ブラウザ側の状態と、ファイル間の依存
+## TODO-093. 表示中の週の月曜日の日付を DOM から `ytState` へ移す
 
 |      | main | 担当 |
 |------|------|------|
 | 見込み | Sonnet 5 / effort medium | implementer + verifier |
 
-- [ ] いま見ている日付を `ytState` に持ち、hidden input はフォームで送るときに書くものと割り切る（N）
-- [ ] `#date_from` はゲージへ値を渡しているだけなので `data-*` 属性にする（N）
-- [ ] 各 `.js` の先頭に「外から使うもの」をコメントで並べる（O）
+- [ ] `#cur_day` / `#date` / `#date_from` に分かれている日付を `ytState` に 1 つ持たせる
+- [ ] `#date_from` を hidden input から `data-*` 属性にする
 
-基本設計のレビュー（2026-08-27）の N・O。
+週表示は DOM の中だけで週を移るので（TODO-069）、どの週を見ているかを
+ブラウザ側で覚えておく必要がある。その値が**表示中の週の月曜日の日付**で、
+`2026-08-24` の形の文字列。`#date` が `<input type="date">` なので、
+`YYYY-MM-DD` 以外は受け付けない。
 
 TODO-083 で「ファイルをまたぐ状態は `ytState` に集める」と決めたが、
-集めたのは要素の参照 4 つと `activeWeekOffset` だけで、いま見ている
-日付は DOM の hidden input が持っている。`setActiveWeek()` が `cur_day` /
-`date` / `date_from` の 3 つの `value` を書いて揃え、`moveToMonday()` は
-`#cur_day` を読み、`onloadHdr()` は `#date_from` を読んでゲージを合わせる。
+この日付だけは DOM が持ったままになっている。同じ日付が 3 か所にあり、
+`setActiveWeek()`（`week.js`）が週を移るたびに、移った先のパネルの
+`data-monday` を 3 つとも書き換えて揃えている。読むほうは
+`moveToMonday()` が `#cur_day`、`onloadHdr()` が `#date_from`。
 
-O は、`base.html` の `<script>` の並びがそのまま仕様になっていて、
-順番を入れ替えても読み込み時には何も起きず、押したときに初めて壊れる。
-ES モジュールにしないと決めた（TODO-083）ので `import` は書けないが、
-実際の依存は次のとおり。
+読み込んだ直後だけは 3 つが揃っていない。サーバが `date` に基準日、
+`date_from` に週の月曜（検索表示なら結果の一番古い日）を入れて渡すため。
+週を 1 回移った時点から、3 つとも月曜になる。
 
-| 呼ぶ側 | 呼ばれる側 |
-|---|---|
-| `swipe.js` | `url_prefix`（`base.html` の `<script>`） |
-| `main-page.js` | `search_str0` / `today_str`（`main.html` の `<script>`） |
-| `gauge.js` | `nav.js` の `shiftDays()` / `calcDays()` / `getLocaltimeDateString()` |
-| `week.js` | `gauge.js` の `mondayOf()` / `dispGauge()`、`nav.js` の `scrollToId()` |
-| `swipe.js` | `week.js` の `moveToMonday()` / `slideWeekWrap()` |
+| 要素 | 実体 | 直したあと |
+|---|---|---|
+| `#date` | フッタの日付入力（画面に出ている） | そのまま。週を移ったら値を合わせる |
+| `#cur_day` | `form_search` の hidden。POST で送る | そのまま。送るときに書く |
+| `#date_from` | フォームの外。ゲージへ渡すだけ | `data-*` 属性にする |
+
+`ytState` に日付を 1 つ置き、読むときはそこから読む。DOM は表示と
+送信のための入れ物と割り切る。
 
 ---
 
@@ -113,6 +115,68 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 置き場所を `pyproject.toml` へ移しただけ。規則を増やすかは決めていない。
 
 足すと決めたら、指摘の量を見てから直す項目を別に立てる。
+
+---
+
+## TODO-097. `.js` の呼び出し関係をファイル先頭のコメントに書く
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] 各 `.js` の先頭に、外へ出すものと外から使うものを並べる
+
+基本設計のレビュー（2026-08-27）の O。
+
+`base.html` の `<script>` の並び順がそのまま仕様になっている。順番を
+入れ替えても読み込み時には何も起きず、押したときに初めて壊れる。
+ES モジュールにしないと決めた（TODO-083）ので `import` は書けない。
+代わりに、各ファイルの先頭にコメントで書く。実際の依存は次のとおり。
+
+| 呼ぶ側 | 呼ばれる側 |
+|---|---|
+| `swipe.js` | `url_prefix`（`base.html` の `<script>`） |
+| `main-page.js` | `search_str0` / `today_str`（`main.html` の `<script>`） |
+| `gauge.js` | `nav.js` の `shiftDays()` / `calcDays()` / `getLocaltimeDateString()` |
+| `week.js` | `gauge.js` の `mondayOf()` / `dispGauge()`、`nav.js` の `scrollToId()` |
+| `swipe.js` | `week.js` の `moveToMonday()` / `slideWeekWrap()` |
+
+---
+
+## TODO-098. JavaScript のリンター（ESLint）を導入する
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier + wording |
+
+- [ ] `package.json` / `package-lock.json` / `eslint.config.js` を置く
+- [ ] `node_modules/` を `.gitignore` に足す
+- [ ] `mise.toml` の `[tools]` に node を固定し、`lintjs` タスクを足す
+- [ ] `lint` の `depends` に `lintjs` を足す
+- [ ] 今の 9 ファイルが通る設定にする（既存コードは直さない）
+- [ ] `docs/Developer.md` に、用意する手順と走らせ方を書く
+
+Python 側は ruff / basedpyright / mypy で見ているのに、`.js`（9 ファイル・
+約 1800 行）は何も見ていない。TODO-097 で各ファイルの先頭に
+「定義するグローバル / 参照するグローバル」を書くが、ESLint があれば
+`/* exported */` と `/* global */` をそのまま解釈し、`no-undef` と
+`no-unused-vars` で **コメントと実際の依存が食い違ったら落ちる**。
+コメントが古びない。
+
+**TODO-097 より先にやる。** 逆だと、書いたコメントを確かめる手段が無い。
+
+決めてあること:
+
+- ESLint（Biome ではない）。ファイル先頭の `/* global */` を解釈できるのは
+  ESLint のほうで、それが TODO-097 の目的そのものだから
+- `mise run lint` に組み込む（走らせ忘れを無くす）
+- node は mise で入れる。今は global の `latest`（v26.8.1）が使われているので、
+  `mise.toml` の `[tools]` に書いてこのプロジェクトで固定する
+
+決めること（着手時）:
+
+- 既存の 9 ファイルが `eslint:recommended` で何件落ちるか。多ければ、
+  まず通る最小の設定から始めて、規則を足すのは別項目にする
 
 ---
 
