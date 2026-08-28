@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095**
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095, TODO-099**
 これまでに 93 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-099` から**。
+**番号は `TODO-100` から**。
 
 TODO-087..TODO-095 と TODO-097 は、2026-08-27 の基本設計のレビュー
 （A〜P の 16 件）を 10 項目にまとめたもの。A〜P の記号は、そのレビューでの
@@ -118,7 +118,27 @@ TODO-083 で「ファイルをまたぐ状態は `ytState` に集める」と決
 
 ---
 
-## 完了済み
+## TODO-099. JavaScript の整形ツール（Prettier）を導入する
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier + wording |
+
+- [ ] `prettier` を devDependency に足す
+- [ ] `.js` 9 ファイルを一括整形する（機械的な差分なので単独コミット）
+- [ ] `mise.toml` に整形タスクを足して `fmt` か `lint` に組み込む
+- [ ] `docs/Developer.md` の技術スタックと個別コマンドを更新
+
+TODO-098 で ESLint（バグ検出寄り）を入れたが、整形は手動のまま。
+ESLint 10 は整形系ルールを持たない（stylistic は別パッケージに分離）ので、
+Prettier とは役割が分かれ競合しない。`eslint-config-prettier` は不要。
+
+Python 側は `mise run fmt`（ruff format）で整形を自動化済み。JS だけ
+手動なのを揃える。対象は `src/ytsched/webroot/static/js/` の 9 ファイル・
+約 1,900 行。Prettier はオプションを持たない方針なので設定はほぼ無し。
+
+決めること: 整形タスクを `fmtjs` として独立させるか、既存の `fmt` に
+まとめるか。`fmt` は今 ruff 専用なので、名前と中身の対応をどうするか。
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
