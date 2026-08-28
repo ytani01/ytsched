@@ -49,8 +49,8 @@ class MainHandler(HandlerBase):
 
     __log = getLogger(__qualname__)
 
-    # SEARCH_MODE_DAYS は SchedLoader にある (TODO-088)。
-    # SEARCH_MODE_MAX_DAYS は handler_util にある (TODO-081)
+    # SEARCH_ENOUGH_DAYS は SchedLoader にある (TODO-088)。
+    # SEARCH_HARD_LIMIT_DAYS は handler_util にある (TODO-081)
     DEF_SEARCH_N = 5
 
     # ``LoadMonths`` を読むのは MainHandler だけ (TODO-081)
@@ -266,7 +266,7 @@ class MainHandler(HandlerBase):
             todo_days_value=todo_days_value,
             todo_today_sde=todo_today_sde,
             todo_by_date=self._loader.mk_todo_by_date(
-                search_re, todo_days_value, todo_sde
+                todo_days_value, todo_sde
             ),
         )
         # 検索モードかどうかは ``search_re`` そのもので分ける

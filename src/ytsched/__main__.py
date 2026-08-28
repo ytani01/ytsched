@@ -133,7 +133,7 @@ Web server"""
     help=f"URL prefix, default='{WebServer.DEF_URL_PREFIX}'",
 )
 @click.option(
-    "--size_limit",
+    "--size-limit",
     "-l",
     "size_limit",
     type=int,

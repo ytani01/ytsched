@@ -921,7 +921,7 @@ class TestInvalidArgs(WebTestBase):
     def test_the_newest_usable_date_still_works(self):
         """使える範囲の上端は、今までどおり出る。"""
         date = datetime.date.max - datetime.timedelta(
-            handler_util.SEARCH_MODE_MAX_DAYS
+            handler_util.SEARCH_HARD_LIMIT_DAYS
         )
 
         body = self.get_body(URL_PREFIX + "/", date=date.isoformat())
@@ -931,11 +931,11 @@ class TestInvalidArgs(WebTestBase):
     def test_the_oldest_usable_date_works_in_search_mode(self):
         """使える範囲の下端は、検索モード（5 年前まで遡る）でも開ける。
 
-        範囲の幅は、この遡る分（``SEARCH_MODE_MAX_DAYS``）で決めて
+        範囲の幅は、この遡る分（``SEARCH_HARD_LIMIT_DAYS``）で決めて
         いる。1 件も見つからない日は出ないので、200 で見る。
         """
         date = datetime.date.min + datetime.timedelta(
-            handler_util.SEARCH_MODE_MAX_DAYS
+            handler_util.SEARCH_HARD_LIMIT_DAYS
         )
 
         res = self.fetch(

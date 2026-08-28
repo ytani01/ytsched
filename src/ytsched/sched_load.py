@@ -129,8 +129,8 @@ class SchedLoader:
 
     __log = getLogger(__qualname__)
 
-    #: 1 件も当たらないときに諦める日数 (元 MainHandler.SEARCH_MODE_DAYS)
-    SEARCH_MODE_DAYS = 365
+    #: 1 件でも当たったら、ここまで戻って検索を打ち切る日数
+    SEARCH_ENOUGH_DAYS = 365
 
     def __init__(self, sd: SchedData) -> None:
         """Constructor
@@ -194,7 +194,6 @@ class SchedLoader:
 
     def mk_todo_by_date(
         self,
-        search_re: re.Pattern[str] | None,
         todo_days_value: int,
         todo_sde: list[SchedDataEnt],
     ) -> dict[datetime.date, list[SchedDataEnt]]:
@@ -206,12 +205,14 @@ class SchedLoader:
         まま。``get()`` が ``SchedLoadCond`` を作るところで 1 回だけ
         呼び、週の数だけ繰り返し呼ばないようにしている (TODO-079)。
 
+        ``todo_sde`` は ``load_todo()`` が ``search_re`` で絞ったあとの
+        ものなので、ここで検索の照合はしない (TODO-094)。
+
         ``todo_days_value`` が負のときは ToDo を混ぜないので、空の
         ``dict`` を返す。
 
         Parameters
         ----------
-        search_re: re.Pattern[str] | None
         todo_days_value: int
         todo_sde: list[SchedDataEnt]
 
@@ -226,9 +227,6 @@ class SchedLoader:
             return by_date
 
         for sde in todo_sde:
-            if not search_match(search_re, sde):
-                continue
-
             by_date.setdefault(sde.date, []).append(sde)
 
         return by_date
@@ -354,13 +352,13 @@ class SchedLoader:
             日付の昇順。1 件も当たらなかった日は並べない
             (ToDo だけの日は並べる)
         date_from: datetime.date
-            打ち切った日 (最大でも ``SEARCH_MODE_MAX_DAYS``(1825) 日前)
+            打ち切った日 (最大でも ``SEARCH_HARD_LIMIT_DAYS``(1825) 日前)
         date_to: datetime.date
             ``date``
 
         Notes
         -----
-        最大 ``SEARCH_MODE_MAX_DAYS``(1825) 日をさかのぼるので、
+        最大 ``SEARCH_HARD_LIMIT_DAYS``(1825) 日をさかのぼるので、
         **データファイルが無い日は開きに行かない** (TODO-028)。
         開いても中身が空の ``SchedDataFile`` になるだけで、``sched`` の
         中身も打ち切りの数え方も変わらない。
@@ -368,9 +366,9 @@ class SchedLoader:
         """
         date_to = date
         date_from = date - datetime.timedelta(
-            handler_util.SEARCH_MODE_MAX_DAYS
+            handler_util.SEARCH_HARD_LIMIT_DAYS
         )
-        date_from1 = date - datetime.timedelta(self.SEARCH_MODE_DAYS)
+        date_from1 = date - datetime.timedelta(self.SEARCH_ENOUGH_DAYS)
 
         sched = []
         search_count = 0

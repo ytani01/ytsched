@@ -263,7 +263,7 @@ class TestConfArgs(WebTestBase):
 class TestSearchModeRange(WebTestBase):
     """検索モードで、どこまでさかのぼるか。
 
-    ``SEARCH_MODE_DAYS``（365）の境界をまたぐ位置にデータを置いて
+    ``SEARCH_ENOUGH_DAYS``（365）の境界をまたぐ位置にデータを置いて
     確かめる。``BASE`` は月曜（TODO-049）。
     """
 
@@ -341,11 +341,11 @@ class TestSearchModeRange(WebTestBase):
     def test_search_mode_stops_365_days_after_first_hit(self):
         """1 件目が見つかったあとは、365 日前まででやめる。
 
-        ``SEARCH_MODE_DAYS`` ちょうどの日は見るが、その 1 日前は
+        ``SEARCH_ENOUGH_DAYS`` ちょうどの日は見るが、その 1 日前は
         見ない。
         """
         day = datetime.timedelta(1)
-        limit = day * SchedLoader.SEARCH_MODE_DAYS
+        limit = day * SchedLoader.SEARCH_ENOUGH_DAYS
 
         self.write_hits(self.BASE)
         self.write_hits(self.BASE - limit)
@@ -361,7 +361,7 @@ class TestSearchModeRange(WebTestBase):
         """1 件も見つかっていないうちは、365 日を超えてさかのぼる。
 
         打ち切りの判定は ``search_count > 0`` の中にあるので、
-        1 件目までは ``SEARCH_MODE_MAX_DAYS`` まで探し続ける。
+        1 件目までは ``SEARCH_HARD_LIMIT_DAYS`` まで探し続ける。
         """
         old = self.BASE - datetime.timedelta(400)
         self.write_hits(old)
@@ -371,7 +371,7 @@ class TestSearchModeRange(WebTestBase):
         assert date_id(old) in body
 
     def test_search_mode_max_days_when_nothing_is_found(self):
-        """1 件も無いときは ``SEARCH_MODE_MAX_DAYS`` までさかのぼる。
+        """1 件も無いときは ``SEARCH_HARD_LIMIT_DAYS`` までさかのぼる。
 
         ``date_from`` が縮まないので、``#week_wrap`` の ``data-monday`` が
         1825 日前のままになる。
@@ -379,7 +379,7 @@ class TestSearchModeRange(WebTestBase):
         body = self.search(search_n=10)
 
         date_from = self.BASE - datetime.timedelta(
-            handler_util.SEARCH_MODE_MAX_DAYS
+            handler_util.SEARCH_HARD_LIMIT_DAYS
         )
         assert f'data-monday="{date_from}"' in body
 
@@ -871,9 +871,7 @@ class TestLoadSchedScan(WebTestBase):
             filter_neg=False,
             todo_days_value=todo_days_value,
             todo_today_sde=todo_today_sde,
-            todo_by_date=loader.mk_todo_by_date(
-                search_re, todo_days_value, todo_sde
-            ),
+            todo_by_date=loader.mk_todo_by_date(todo_days_value, todo_sde),
         )
         if search_re is not None:
             return loader.search(
@@ -913,7 +911,7 @@ class TestLoadSchedScan(WebTestBase):
         ]
         # 1 件目が見つかったので、365 日前で打ち切られる
         assert date_from == self.BASE - datetime.timedelta(
-            SchedLoader.SEARCH_MODE_DAYS
+            SchedLoader.SEARCH_ENOUGH_DAYS
         )
         assert date_to == self.BASE
 

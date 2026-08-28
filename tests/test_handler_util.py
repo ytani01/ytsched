@@ -24,10 +24,10 @@ def test_convert_value_invalid_returns_none():
     assert handler_util.convert_value("n", "abc", int) is None
 
 
-def test_date_range_margin_is_search_mode_max_days():
+def test_date_range_margin_is_search_hard_limit_days():
     date_min, date_max = handler_util.date_range()
 
-    margin = datetime.timedelta(handler_util.SEARCH_MODE_MAX_DAYS)
+    margin = datetime.timedelta(handler_util.SEARCH_HARD_LIMIT_DAYS)
     assert date_min == datetime.date.min + margin
     assert date_max == datetime.date.max - margin
 

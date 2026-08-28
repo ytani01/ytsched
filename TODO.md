@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-094..TODO-095**
-これまでに 95 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-095**
+これまでに 96 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-100` から**。
 
@@ -45,28 +45,6 @@ TODO-087..TODO-095 と TODO-097 は、2026-08-27 の基本設計のレビュー
 
 ---
 
-## TODO-094. 細かいもの
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | verifier |
-
-- [ ] `SEARCH_MODE_DAYS`（365、`SchedLoader`）と `SEARCH_MODE_MAX_DAYS`（1,825、`handler_util`）の名前を、意味の違いが分かるものにする
-- [ ] `mk_todo_by_date()` が `search_match()` をもう一度かけているのをやめる
-- [ ] CLI の `--size_limit` を `--size-limit` に揃える
-
-基本設計のレビュー（2026-08-27）の P のうち、直すもの。
-`webapp.py` の件は TODO-090 に入れた。
-
-前者は「1 件も当たらないときに諦める日数」、後者は「絶対の上限」で、
-名前が似ていて意味が違う。`mk_todo_by_date()` に渡ってくる `todo_sde` は
-`load_todo()` が同じ条件で絞ったあとのもの。
-
-**`--size-limit` に揃えると決めた（2026-08-28）。** 他は `--dry-run` /
-`--error-file` とハイフンで、これだけアンダースコア。
-
----
-
 ## TODO-095. ruff の規則を増やすか決める
 
 |      | main | 担当 |
@@ -88,6 +66,7 @@ TODO-087..TODO-095 と TODO-097 は、2026-08-27 の基本設計のレビュー
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-094.** 細かいもの](archives/todo/TODO-094.%20細かいもの.md)
 - [**TODO-093.** 表示中の週の月曜日の日付を DOM から `ytState` へ移す](archives/todo/TODO-093.%20表示中の週の月曜日の日付を%20DOM%20から%20ytState%20へ移す.md)
 - [**TODO-099.** JavaScript の整形ツール（Prettier）を導入する](archives/todo/TODO-099.%20JavaScript%20の整形ツール（Prettier）を導入する.md)
 - [**TODO-098.** JavaScript のリンター（ESLint）を導入する](archives/todo/TODO-098.%20JavaScript%20のリンター（ESLint）を導入する.md)

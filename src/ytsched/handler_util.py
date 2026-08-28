@@ -20,7 +20,7 @@ from .mylog import getLogger
 _log = getLogger(__name__)
 
 # 検索モードで遡る最大の日数。``date_range()`` が使う (TODO-027)
-SEARCH_MODE_MAX_DAYS = 365 * 5
+SEARCH_HARD_LIMIT_DAYS = 365 * 5
 
 
 def convert_value[T](
@@ -62,7 +62,7 @@ def date_range() -> tuple[datetime.date, datetime.date]:
     """表示に使える日付の範囲 (TODO-027)。
 
     ``load_sched()`` は、指定された日付から前後へ日をずらしながら
-    スケジュールを集める。ずらす幅は最大で ``SEARCH_MODE_MAX_DAYS``
+    スケジュールを集める。ずらす幅は最大で ``SEARCH_HARD_LIMIT_DAYS``
     日。``datetime.date.min``/``datetime.date.max`` ぎりぎりの日付を
     受け取ると、この足し引きが ``OverflowError`` になるので、
     ずらす幅のぶんだけ内側を「使える範囲」とする。
@@ -73,7 +73,7 @@ def date_range() -> tuple[datetime.date, datetime.date]:
         使える日付の、最小と最大
 
     """
-    margin = datetime.timedelta(SEARCH_MODE_MAX_DAYS)
+    margin = datetime.timedelta(SEARCH_HARD_LIMIT_DAYS)
     return datetime.date.min + margin, datetime.date.max - margin
 
 
