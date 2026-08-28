@@ -1,3 +1,6 @@
+[tools]
+node = "26.8.1"
+
 [tasks.upgradeproject]
 description = "upgrade in this project"
 run = '''
@@ -39,9 +42,13 @@ uv run mypy src tests tools
 # typecheck だけを叩いたときは fmt は走らない。
 wait_for = ["fmt"]
 
+[tasks.lintjs]
+description = "lint JavaScript (ESLint)"
+run = "npx --no-install eslint src/ytsched/webroot/static/js"
+
 [tasks.lint]
-description = "linting (fmt, typecheck)"
-depends = ["fmt", "typecheck"]
+description = "linting (fmt, typecheck, lintjs)"
+depends = ["fmt", "typecheck", "lintjs"]
 
 [tasks.test]
 description = "test"

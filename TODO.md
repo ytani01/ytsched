@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095, TODO-097..TODO-098**
-これまでに 91 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095, TODO-097**
+これまでに 92 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-099` から**。
 
@@ -143,48 +143,12 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 
 ---
 
-## TODO-098. JavaScript のリンター（ESLint）を導入する
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | implementer + verifier + wording |
-
-- [ ] `package.json` / `package-lock.json` / `eslint.config.js` を置く
-- [ ] `node_modules/` を `.gitignore` に足す
-- [ ] `mise.toml` の `[tools]` に node を固定し、`lintjs` タスクを足す
-- [ ] `lint` の `depends` に `lintjs` を足す
-- [ ] 今の 9 ファイルが通る設定にする（既存コードは直さない）
-- [ ] `docs/Developer.md` に、用意する手順と走らせ方を書く
-
-Python 側は ruff / basedpyright / mypy で見ているのに、`.js`（9 ファイル・
-約 1800 行）は何も見ていない。TODO-097 で各ファイルの先頭に
-「定義するグローバル / 参照するグローバル」を書くが、ESLint があれば
-`/* exported */` と `/* global */` をそのまま解釈し、`no-undef` と
-`no-unused-vars` で **コメントと実際の依存が食い違ったら落ちる**。
-コメントが古びない。
-
-**TODO-097 より先にやる。** 逆だと、書いたコメントを確かめる手段が無い。
-
-決めてあること:
-
-- ESLint（Biome ではない）。ファイル先頭の `/* global */` を解釈できるのは
-  ESLint のほうで、それが TODO-097 の目的そのものだから
-- `mise run lint` に組み込む（走らせ忘れを無くす）
-- node は mise で入れる。今は global の `latest`（v26.8.1）が使われているので、
-  `mise.toml` の `[tools]` に書いてこのプロジェクトで固定する
-
-決めること（着手時）:
-
-- 既存の 9 ファイルが `eslint:recommended` で何件落ちるか。多ければ、
-  まず通る最小の設定から始めて、規則を足すのは別項目にする
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-098.** JavaScript のリンター（ESLint）を導入する](archives/todo/TODO-098.%20JavaScript%20のリンター（ESLint）を導入する.md)
 - [**TODO-090.** 依存の渡し方と、キャッシュ・`conf.json` の扱いを揃える](archives/todo/TODO-090.%20依存の渡し方と、キャッシュ・conf.json%20の扱いを揃える.md)
 - [**TODO-092.** テンプレートの掃除](archives/todo/TODO-092.%20テンプレートの掃除.md)
 - [**TODO-091.** `SchedData` の渡し方と、表示に渡す値の dataclass 化](archives/todo/TODO-091.%20SchedData%20の渡し方と、表示に渡す値の%20dataclass%20化.md)

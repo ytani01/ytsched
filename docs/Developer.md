@@ -19,6 +19,8 @@
 | [ruff](https://docs.astral.sh/ruff/) | フォーマットと lint |
 | [basedpyright](https://docs.basedpyright.com/) / [mypy](https://mypy-lang.org/) | 型チェック（2 つともかける） |
 | [mise](https://mise.jdx.dev/) | タスクランナー（`mise.toml`） |
+| [ESLint](https://eslint.org/) | JavaScript の lint |
+| [Node.js](https://nodejs.org/) | ESLint の実行環境。`mise.toml` の `[tools]` で固定 |
 
 ## 開発環境の用意
 
@@ -34,15 +36,25 @@ uv sync
 など）も一緒に入る。以降のコマンドは `uv run` 経由か、`mise run` で
 タスクとして叩く。
 
+`.js` の lint（ESLint）には Node.js と npm パッケージが要る。Node.js は
+`mise install` で `mise.toml` の `[tools]` に書いたバージョンが入る。
+パッケージは `npm install`（CI なら `npm ci`）で入れる。
+
+```sh
+mise install
+npm install
+```
+
 ## mise のタスク
 
 `mise.toml` に定義がある。`build` は `test` に、`test` は `lint` に、
-`lint` は `fmt` と `typecheck` の両方に依存する。
+`lint` は `fmt` と `typecheck` と `lintjs` に依存する。
 
 ```sh
 mise run fmt        # ruff format / ruff check --fix
 mise run typecheck  # basedpyright / mypy
-mise run lint       # fmt と typecheck の両方
+mise run lintjs     # ESLint（.js）
+mise run lint       # fmt と typecheck と lintjs
 mise run test       # pytest（lint に依存）
 mise run build      # uv build（test に依存）
 ```
@@ -71,6 +83,7 @@ uv run ruff format src tests tools
 uv run ruff check --fix src tests tools
 uv run basedpyright src tests tools
 uv run mypy src tests tools
+npx eslint src/ytsched/webroot/static/js
 ```
 
 アプリの起動:
