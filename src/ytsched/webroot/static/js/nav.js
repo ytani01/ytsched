@@ -3,6 +3,28 @@
  */
 
 // URL と遷移 (TODO-083)
+//
+// 外へ出すもの:
+//   shiftDays()              -- gauge.js (mondayOf)・week.js (weekOffsetOfDate)
+//   getLocaltimeString()     -- week.js (setActiveWeek)
+//   getLocaltimeDateString() -- gauge.js・week.js・keyboard.js の日付計算から
+//   calcDays()               -- gauge.js (setGaugePosition)
+//   doGet()    -- main.html・sde.html・edit.html の onmousedown / onchange、
+//                week.js (moveToMonday)・main-page.js から
+//   doPost()   -- main.html の onmousedown、main-page.js から
+//   doSubmit() / doGetDate() -- main.html の onmousedown / onchange
+//   scrollToId()    -- week.js (setActiveWeek)
+//   scrollToDate()  -- gauge.js (gaugeBarClickHdr)・keyboard.js (keyHdr)・
+//                      main-page.js (homeButtonHdr / onloadHdr)
+//   pushDateInUrl() -- week.js (setActiveWeek)
+//   popstateHdr()   -- main-page.js が window の popstate に登録する
+//   mkUrl() / replaceDateInUrl() はこのファイル内だけで使う
+// 外から使うもの:
+//   ytState (state.js)            -- elMain・activeWeekOffset
+//   loadingSpinner() (spinner.js) -- doSubmit・doGet・doPost
+//   weekOffsetOfDate() (week.js)  -- popstateHdr・scrollToDate
+//   setActiveWeek() (week.js)     -- popstateHdr・scrollToDate
+// week.js は base.html でこのあとに読み込まれるが、呼ぶのは実行時なので前方参照でよい
 
 /**
  * 日付をずらす

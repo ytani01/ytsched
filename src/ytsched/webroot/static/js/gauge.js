@@ -6,6 +6,22 @@
 
 // 横ゲージ (TODO-058)。以前は ``main_handler.py`` にも同じ定数・同じ式が
 // あったが、二重に持つのをやめて JavaScript 側だけに寄せた (TODO-078)
+//
+// 外へ出すもの (他ファイル・テンプレートから使うもの):
+//   mondayOf()         -- week.js (weekOffsetOfDate)
+//   dispGauge()        -- week.js (setActiveWeek)・main-page.js (onloadHdr)
+//   dispGaugeMarks()   -- main-page.js (onloadHdr)
+//   gaugeBarClickHdr() -- main.html の .my-gauge-bar の onmousedown
+//   ほかの定数・関数 (DAYS_* / days2xPercent / xPercent2days / GAUGE_MARKS /
+//     gaugeDiffLabel / setGaugePosition / GAUGE_MONDAY_KEY / get・setGaugeMonday /
+//     placeGaugeWithoutTransition) はこのファイル内だけで使う
+// 外から使うもの (nav.js は base.html でこのあとに読み込まれるが、
+//   呼ぶのは実行時なので前方参照でよい):
+//   shiftDays() (nav.js)              -- mondayOf・gaugeBarClickHdr
+//   getLocaltimeDateString() (nav.js) -- setGaugePosition・dispGauge・gaugeBarClickHdr
+//   calcDays() (nav.js)              -- setGaugePosition
+//   scrollToDate() (nav.js)          -- gaugeBarClickHdr
+//   ytState (state.js)               -- ytState.elGaugeR0
 const DAYS_YEAR = 365.25;
 const DAYS_MONTH = DAYS_YEAR / 12;
 const DAYS_GAUGE_MAX = DAYS_YEAR * 30;

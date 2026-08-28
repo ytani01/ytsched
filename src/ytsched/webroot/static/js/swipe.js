@@ -6,6 +6,20 @@
 
 // swipeStart / swipeDragging / lastTouchMsec / mouseDownEl は、
 // swipe.js だけで閉じる状態 (TODO-083)
+//
+// 外へ出すもの:
+//   touchStartHdr / touchMoveHdr / touchEndHdr / touchCancelHdr /
+//   mouseDownHdr / mouseMoveHdr / mouseUpHdr
+//     -- main-page.js が window の touch* / mouse* イベントに登録する
+//   cancelSwipeDrag / swipeDragTo / swipeFinish と、定数 (SWIPE_MIN_X /
+//   SWIPE_X_PER_Y / SWIPE_EDGE_PX / SWIPE_FAST_PX_PER_MSEC /
+//   MOUSE_AFTER_TOUCH_MSEC)・上記の状態はこのファイル内だけで使う
+// 外から使うもの:
+//   ytState (state.js)         -- elWeekWrap
+//   slideWeekWrap() (week.js)  -- cancelSwipeDrag
+//   hasAdjacentWeek() (week.js) -- swipeDragTo
+//   moveToMonday() (week.js)   -- swipeFinish
+//   url_prefix (base.html の <script>) -- swipeFinish が moveToMonday へ渡す
 
 /**
  * 左右のスワイプ・ドラッグで週を送るための、始点を覚えておく場所

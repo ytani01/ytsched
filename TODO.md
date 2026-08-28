@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095, TODO-097**
-これまでに 92 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-093..TODO-095**
+これまでに 93 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-099` から**。
 
@@ -118,37 +118,13 @@ TODO-083 で「ファイルをまたぐ状態は `ytState` に集める」と決
 
 ---
 
-## TODO-097. `.js` の呼び出し関係をファイル先頭のコメントに書く
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | implementer + verifier |
-
-- [ ] 各 `.js` の先頭に、外へ出すものと外から使うものを並べる
-
-基本設計のレビュー（2026-08-27）の O。
-
-`base.html` の `<script>` の並び順がそのまま仕様になっている。順番を
-入れ替えても読み込み時には何も起きず、押したときに初めて壊れる。
-ES モジュールにしないと決めた（TODO-083）ので `import` は書けない。
-代わりに、各ファイルの先頭にコメントで書く。実際の依存は次のとおり。
-
-| 呼ぶ側 | 呼ばれる側 |
-|---|---|
-| `swipe.js` | `url_prefix`（`base.html` の `<script>`） |
-| `main-page.js` | `search_str0` / `today_str`（`main.html` の `<script>`） |
-| `gauge.js` | `nav.js` の `shiftDays()` / `calcDays()` / `getLocaltimeDateString()` |
-| `week.js` | `gauge.js` の `mondayOf()` / `dispGauge()`、`nav.js` の `scrollToId()` |
-| `swipe.js` | `week.js` の `moveToMonday()` / `slideWeekWrap()` |
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
 - [**TODO-098.** JavaScript のリンター（ESLint）を導入する](archives/todo/TODO-098.%20JavaScript%20のリンター（ESLint）を導入する.md)
+- [**TODO-097.** `.js` の呼び出し関係をファイル先頭のコメントに書く](archives/todo/TODO-097.%20.js%20の呼び出し関係をファイル先頭のコメントに書く.md)
 - [**TODO-090.** 依存の渡し方と、キャッシュ・`conf.json` の扱いを揃える](archives/todo/TODO-090.%20依存の渡し方と、キャッシュ・conf.json%20の扱いを揃える.md)
 - [**TODO-092.** テンプレートの掃除](archives/todo/TODO-092.%20テンプレートの掃除.md)
 - [**TODO-091.** `SchedData` の渡し方と、表示に渡す値の dataclass 化](archives/todo/TODO-091.%20SchedData%20の渡し方と、表示に渡す値の%20dataclass%20化.md)

@@ -3,6 +3,24 @@
  */
 
 // 週の管理 (TODO-083)
+//
+// 外へ出すもの:
+//   weekOffsetOfDate() -- nav.js (popstateHdr / scrollToDate)
+//   hasAdjacentWeek()  -- swipe.js (swipeDragTo)
+//   layoutWeeks()      -- main-page.js (onloadHdr)
+//   setActiveWeek()    -- nav.js (popstateHdr / scrollToDate)
+//   slideWeekWrap()    -- swipe.js (cancelSwipeDrag)
+//   moveToMonday()     -- swipe.js (swipeFinish)・keyboard.js (keyHdr)・
+//                         main-page.js (startAutoPageTurn / pageTurnPointerUpHdr)
+//   weekPanelOf() / cancelActiveSlide / SWIPE_SLIDE_MSEC はこのファイル内だけで使う
+// 外から使うもの:
+//   ytState (state.js)          -- elWeekWrap・activeWeekOffset
+//   mondayOf() (gauge.js)       -- weekOffsetOfDate
+//   dispGauge() (gauge.js)      -- setActiveWeek
+//   getLocaltimeDateString() / getLocaltimeString() / shiftDays() (nav.js)
+//     -- weekOffsetOfDate・moveToMonday
+//   pushDateInUrl() / scrollToId() (nav.js) -- setActiveWeek
+//   doGet() (nav.js)            -- moveToMonday
 
 // 滑らせるアニメーションの長さ (msec)。CSS の
 // ``.my-week-wrap-sliding`` の transition と合わせる (TODO-057)

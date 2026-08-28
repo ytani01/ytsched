@@ -5,6 +5,27 @@
 // main.html だけで使う関数・リスナー登録 (TODO-083)。テンプレートの
 // 値 (``search_str0`` / ``today_str``) は main.html の <script> で
 // 定数にしてから、この後ろで読み込まれる
+//
+// 外へ出すもの:
+//   homeButtonHdr() -- main.html の #home_button の onMouseDown
+//   changeSearchN() -- main.html の #search_n_in の onchange (検索モード)
+//   onloadHdr()・keyHdr (keyboard.js)・popstateHdr (nav.js)・swipe.js の各
+//     ハンドラを、このファイル末尾で window のイベントに登録する。
+//     ページ送り関連 (startAutoPageTurn / stopAutoPageTurn /
+//     pageTurnPointerDownHdr / pageTurnPointerUpHdr / pageTurnPointerCancelHdr)
+//     はこのファイル内だけで使う
+// 外から使うもの:
+//   search_str0 / today_str / auto_turn_msec (main.html の <script>)
+//   url_prefix (base.html の <script>)
+//   ytState (state.js)  -- elLoadingSpinner・elMain・elWeekWrap・
+//                          activeWeekOffset・elGaugeR0
+//   loadingSpinner() (spinner.js)             -- onloadHdr
+//   doGet() / doPost() / scrollToDate() (nav.js)
+//   popstateHdr() (nav.js)                    -- popstate に登録
+//   layoutWeeks() / moveToMonday() (week.js)
+//   dispGauge() / dispGaugeMarks() (gauge.js) -- onloadHdr
+//   keyHdr() (keyboard.js)                    -- keydown に登録
+//   swipe.js の touch* / mouse* の 7 ハンドラ -- 各イベントに登録
 
 let clickCount = 0;
 

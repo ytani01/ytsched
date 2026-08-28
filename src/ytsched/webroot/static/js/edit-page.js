@@ -3,6 +3,18 @@
  */
 
 // edit.html だけで使う関数・リスナー登録 (TODO-089)。
+//
+// 外へ出すもの:
+//   submitCmd()    -- edit.html の各ボタンの onmousedown、detail の onchange
+//   update_wday()  -- edit.html の #date の onchange
+//   setElDate()    -- edit.html の日付ボタンの onmousedown
+//   changeElDate() -- edit.html の日付ボタンの onmousedown
+//   onloadEdit() は window の load でこのファイルが登録し、changeDetailHeight()
+//     も別の load ハンドラから呼ぶ。mkInput() / wdayList / busyFlag は
+//     このファイル内だけで使う
+// 外から使うもの:
+//   ytState (state.js)            -- onloadEdit が ytState.elLoadingSpinner をセット
+//   loadingSpinner() (spinner.js) -- submitCmd・onloadEdit
 
 const wdayList = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

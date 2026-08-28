@@ -3,6 +3,17 @@
  */
 
 // キーボード (TODO-083)
+//
+// 外へ出すもの:
+//   keyHdr() -- main-page.js が window の keydown に登録する
+//   followKeyboard() は visualViewport / window のリスナーとしてこのファイルで
+//     登録し、isTyping() は keyHdr() だけで使う
+// 外から使うもの:
+//   moveToMonday() (week.js)          -- keyHdr (← →)
+//   getLocaltimeDateString() (nav.js) -- keyHdr (Home)
+//   scrollToDate() (nav.js)           -- keyHdr (Home)
+//   url_prefix (base.html の <script>) -- keyHdr が moveToMonday / scrollToDate へ渡す
+// keyHdr 内の today_str はこの関数のローカル変数で、main.html の today_str とは別物
 
 /**
  * 画面下に固定したバーを、ソフトキーボードの上に出す (TODO-039)

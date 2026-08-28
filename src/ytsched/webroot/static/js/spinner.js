@@ -3,6 +3,13 @@
  */
 
 // スピナー (TODO-083)
+//
+// 外へ出すもの:
+//   loadingSpinner() -- nav.js (doSubmit / doGet / doPost)・main-page.js
+//     (onloadHdr)・edit-page.js (submitCmd / onloadEdit) から呼ぶ。
+//     ほかに window の pageshow リスナーをこのファイルで登録する
+// 外から使うもの:
+//   ytState (state.js) -- ytState.elLoadingSpinner
 
 /**
  *
