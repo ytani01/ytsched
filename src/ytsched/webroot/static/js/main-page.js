@@ -18,7 +18,7 @@
 //   search_str0 / today_str / auto_turn_msec (main.html の <script>)
 //   url_prefix (base.html の <script>)
 //   ytState (state.js)  -- elLoadingSpinner・elMain・elWeekWrap・
-//                          activeWeekOffset・elGaugeR0
+//                          activeWeekOffset・activeMonday・elGaugeR0
 //   loadingSpinner() (spinner.js)             -- onloadHdr
 //   doGet() / doPost() / scrollToDate() (nav.js)
 //   popstateHdr() (nav.js)                    -- popstate に登録
@@ -71,6 +71,10 @@ const onloadHdr = (event) => {
   ytState.elMain = document.getElementById("main"); // declared in state.js
   ytState.elWeekWrap = document.getElementById("week_wrap"); // declared in state.js
 
+  // 表示中の週の月曜 (検索表示なら結果の一番古い日)。サーバが
+  // #week_wrap の data-monday に入れて渡す (TODO-093)
+  ytState.activeMonday = ytState.elWeekWrap.dataset.monday;
+
   // 読み込んだ直後は、真ん中の週 (offset 0) を見ている。
   // サーバも同じ形で描いているので並べ直す必要は無いが、
   // ``my-week-near`` はサーバが付けないのでここで付ける (TODO-069)
@@ -101,8 +105,7 @@ const onloadHdr = (event) => {
     // ゲージの都合で画面が出ないのはおかしいので、dispGauge() より
     // 先に visible にする (TODO-049 reviewer 指摘 1)
     ytState.elMain.style.visibility = "visible";
-    const date_from_str = document.getElementById("date_from").value;
-    dispGauge(date_from_str);
+    dispGauge(ytState.activeMonday);
     return;
   }
 
@@ -122,15 +125,14 @@ const onloadHdr = (event) => {
 
   // 週表示になり、スクロールでの追加読み込みが無くなったので、
   // 検索の有無によらず一度だけゲージを合わせる (TODO-049)
-  const date_from_str = document.getElementById("date_from").value;
-  dispGauge(date_from_str);
+  dispGauge(ytState.activeMonday);
 }; // onloadHdr()
 
 const changeSearchN = (val) => {
   console.log(`changeSearchN: val=${val}`);
   // search_n は URL に載せない (TODO-050)
   doPost(url_prefix, {
-    date: document.getElementById("cur_day").value,
+    date: ytState.activeMonday,
     search_n: val,
   });
 };

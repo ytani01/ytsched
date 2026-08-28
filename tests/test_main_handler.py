@@ -312,7 +312,7 @@ class TestSearchModeRange(WebTestBase):
         """月曜を指定したとき、その日が ``date_from`` になる（TODO-049）。"""
         body = self.get_body(URL_PREFIX + "/", date=self.BASE.isoformat())
 
-        assert f'value="{self.BASE}"' in body
+        assert f'data-monday="{self.BASE}"' in body
 
     def test_normal_mode_range_goes_back_to_monday_when_date_is_sunday(self):
         """日曜を指定したとき、その週の月曜まで戻る
@@ -321,7 +321,7 @@ class TestSearchModeRange(WebTestBase):
         sunday = self.BASE + datetime.timedelta(6)
         body = self.get_body(URL_PREFIX + "/", date=sunday.isoformat())
 
-        assert f'value="{self.BASE}"' in body
+        assert f'data-monday="{self.BASE}"' in body
 
     def test_normal_mode_range_is_seven_days_across_year_boundary(self):
         """年をまたぐ週でも 7 日ちょうど（TODO-049）。"""
@@ -331,7 +331,7 @@ class TestSearchModeRange(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", date=monday.isoformat())
         panel = week_panel(body)
 
-        assert f'value="{monday}"' in body
+        assert f'data-monday="{monday}"' in body
         assert date_id(monday) in panel
         assert date_id(sunday) in panel
         assert date_id(sunday - datetime.timedelta(1)) in panel
@@ -373,7 +373,7 @@ class TestSearchModeRange(WebTestBase):
     def test_search_mode_max_days_when_nothing_is_found(self):
         """1 件も無いときは ``SEARCH_MODE_MAX_DAYS`` までさかのぼる。
 
-        ``date_from`` が縮まないので、hidden の ``date_from`` が
+        ``date_from`` が縮まないので、``#week_wrap`` の ``data-monday`` が
         1825 日前のままになる。
         """
         body = self.search(search_n=10)
@@ -381,7 +381,7 @@ class TestSearchModeRange(WebTestBase):
         date_from = self.BASE - datetime.timedelta(
             handler_util.SEARCH_MODE_MAX_DAYS
         )
-        assert f'value="{date_from}"' in body
+        assert f'data-monday="{date_from}"' in body
 
     def test_search_n_stops_at_the_day_of_the_nth_hit(self):
         """``search_n`` 件見つかった日でやめる（その日は出る）。"""

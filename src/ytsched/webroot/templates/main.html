@@ -73,8 +73,6 @@
     <!-- hidden params -->
     <input id="sde_align" name="sde_align"
       type="hidden" value="{{ sde_align }}" />
-    <input id="date_from" name="date_from"
-      type="hidden" value="{{ date_from }}" />
 
     {% if search_mode %}
     {% set date_from2 = str(date_from).replace('-','/') %}
@@ -135,7 +133,10 @@
          ここは動かないので、``week_wrap`` を横へずらしても
          画面の外に出た分だけが切られる -->
     <div class="my-week-viewport">
-    <div id="week_wrap" class="my-week-wrap">
+    <div id="week_wrap" class="my-week-wrap"
+      {# 表示中の週の月曜 (検索表示なら結果の一番古い日)。読み込み時に
+         ytState.activeMonday へ移す (TODO-093) #}
+      data-monday="{{ date_from }}">
     {% for w in weeks %}
     <div class="my-week-panel{% if w.offset == 0 %} my-week-cur{% end %}"
       data-offset="{{ w.offset }}"

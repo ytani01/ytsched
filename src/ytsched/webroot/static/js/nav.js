@@ -20,7 +20,7 @@
 //   popstateHdr()   -- main-page.js が window の popstate に登録する
 //   mkUrl() / replaceDateInUrl() はこのファイル内だけで使う
 // 外から使うもの:
-//   ytState (state.js)            -- elMain・activeWeekOffset
+//   ytState (state.js)            -- elMain・activeWeekOffset・activeMonday
 //   loadingSpinner() (spinner.js) -- doSubmit・doGet・doPost
 //   weekOffsetOfDate() (week.js)  -- popstateHdr・scrollToDate
 //   setActiveWeek() (week.js)     -- popstateHdr・scrollToDate
@@ -106,6 +106,10 @@ const calcDays = (d_from, d_to) => {
 const doSubmit = (id) => {
   loadingSpinner(true);
   const el = document.getElementById(id);
+  // 表示中の週の月曜を hidden の cur_day に載せてから送る (TODO-093)
+  for (const cd of el.querySelectorAll('[name="cur_day"]')) {
+    cd.value = ytState.activeMonday;
+  }
   el.submit();
 };
 
@@ -255,10 +259,7 @@ const popstateHdr = (event) => {
 
   // 画面内にあればスクロールで済ませる。無ければ読み直す
   if (scrollToId(`date-${date}`, "top", "auto")) {
-    const el_cur_day = document.getElementById("cur_day");
-    if (el_cur_day) {
-      el_cur_day.value = date;
-    }
+    ytState.activeMonday = date;
     return;
   }
 
@@ -357,8 +358,6 @@ const scrollToDate = (
 ) => {
   console.log(`scrollToDate:date=${date}, sde_align=${sde_align}`);
 
-  const el_cur_day = document.getElementById("cur_day");
-
   // 表示していない週の日付なら、まず週を移す (TODO-069)。
   // ``date-YYYY-mm-dd`` は前後数ヶ月ぶんの週すべてにあるので、
   // 週を移さずにスクロールすると、隠れている週へ寄せてしまう。
@@ -370,7 +369,7 @@ const scrollToDate = (
   }
 
   if (scrollToId(`date-${date}`, sde_align, behavior)) {
-    el_cur_day.value = date;
+    ytState.activeMonday = date;
     // 読み直した直後 (``push_flag``が偽) は履歴に積まない。
     // 読み直しそのもので 1つ増えているため (TODO-050)
     if (push_flag) {

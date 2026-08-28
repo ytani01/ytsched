@@ -14,7 +14,7 @@
 //                         main-page.js (startAutoPageTurn / pageTurnPointerUpHdr)
 //   weekPanelOf() / cancelActiveSlide / SWIPE_SLIDE_MSEC はこのファイル内だけで使う
 // 外から使うもの:
-//   ytState (state.js)          -- elWeekWrap・activeWeekOffset
+//   ytState (state.js)          -- elWeekWrap・activeWeekOffset・activeMonday
 //   mondayOf() (gauge.js)       -- weekOffsetOfDate
 //   dispGauge() (gauge.js)      -- setActiveWeek
 //   getLocaltimeDateString() / getLocaltimeString() / shiftDays() (nav.js)
@@ -111,8 +111,8 @@ const layoutWeeks = () => {
  * いま見ている週を ``offset`` の週にする (TODO-069)。
  *
  * ページを読み直さずに、DOM の中だけで週を移る。並べ直したうえで、
- * 週に付いて回るもの (``#cur_day``・``#date``・``#date_from``・
- * ヘッダのゲージ) を、その週の月曜に揃える。
+ * 週に付いて回るもの (``ytState.activeMonday``・画面に出ている
+ * ``#date``・ヘッダのゲージ) を、その週の月曜に揃える。
  *
  * ``push_flag`` が真なら URL を履歴に積む。戻る/進むから呼ぶときは
  * 偽にする (``popstate`` で来た時点で URL はもう動いている)。
@@ -137,12 +137,13 @@ const setActiveWeek = (offset, push_flag = true) => {
   ytState.elWeekWrap.style.transform = "";
 
   const monday = panel.dataset.monday;
+  ytState.activeMonday = monday;
 
-  for (const id of ["cur_day", "date", "date_from"]) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.value = monday;
-    }
+  // 画面に出ている日付入力だけ値を合わせる。#cur_day は POST で
+  // 送るときに doSubmit() が書くので、ここでは触らない (TODO-093)
+  const el_date = document.getElementById("date");
+  if (el_date) {
+    el_date.value = monday;
   }
 
   if (push_flag) {
@@ -245,8 +246,7 @@ const slideWeekWrap = (target_x, on_done) => {
  * @param {String} path
  */
 const moveToMonday = (direction = 1, path) => {
-  const el_cur_day = document.getElementById("cur_day");
-  let cur_day = new Date(el_cur_day.value);
+  let cur_day = new Date(ytState.activeMonday);
   console.log(`moveToMonday:path=${path}`);
   console.log(`moveToMonday:cur_day=${getLocaltimeString(cur_day)}`);
 
@@ -261,7 +261,7 @@ const moveToMonday = (direction = 1, path) => {
   const days = 1 - wday + (direction > 0 ? 7 : -7);
   console.log(`moveToMonday:days=${days}`);
 
-  let d1 = new Date(el_cur_day.value);
+  let d1 = new Date(ytState.activeMonday);
   d1 = shiftDays(d1, days);
   d1_str = getLocaltimeDateString(d1);
   console.log(`moveToMonday:d1_str=${d1_str}`);
