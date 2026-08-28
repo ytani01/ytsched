@@ -67,3 +67,21 @@ def test_check_int_range_in_range():
 def test_check_int_range_out_of_range_raises():
     with pytest.raises(ValueError):
         handler_util.check_int_range("n", 11, 0, 10)
+
+
+def test_str2month_cal_1_is_true():
+    assert handler_util.str2month_cal("1") is True
+
+
+def test_str2month_cal_0_is_false():
+    assert handler_util.str2month_cal("0") is False
+
+
+def test_str2month_cal_other_raises():
+    with pytest.raises(ValueError):
+        handler_util.str2month_cal("2")
+
+
+def test_str2month_cal_empty_raises():
+    with pytest.raises(ValueError):
+        handler_util.str2month_cal("")

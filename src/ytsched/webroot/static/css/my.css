@@ -930,6 +930,27 @@ textarea {
     justify-content: center;
     gap: 10px;
     margin-top: 8px;
+    position: relative;
+    /* スイッチは position: absolute で高さに数えられないので、
+       出していないときに行が潰れてスイッチが押しにくくならないよう
+       最低限の高さを確保する (TODO-104) */
+    min-height: 28px;
+}
+
+/*
+ * 月間ミニカレンダーの出す・出さないのスイッチ (TODO-104)。
+ * ``justify-content: center`` のままテーブルを中央に置きたいので、
+ * ``.my-mini-cal-row`` 側を position: relative にし、スイッチだけ
+ * 左上に重ねる。
+ */
+.my-mini-cal-sw {
+    position: absolute;
+    left: 0;
+    top: 0;
+    /* アイコン (1.25em = 20px) だけでは指で押しにくいので、周りに
+       余白をとって当たり判定を広げる (TODO-104) */
+    padding: 4px 10px;
+    line-height: 1;
 }
 
 .my-mini-cal {

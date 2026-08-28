@@ -234,8 +234,21 @@
     {# 日曜日の下に、2 ヶ月分の月間ミニカレンダーを横に並べる
        (TODO-103)。出す月は「その週の月曜が含まれる月」と「その翌月」
        (``MainHandler.mk_month_cals()``)。検索モードでは週の区切りに
-       合わず ``month_cals`` も空なので出さない #}
+       合わず ``month_cals`` も空なので出さない。
+       出す・出さないは ``month_cal`` (conf.json の ``MonthCal``) の
+       スイッチで切り替える。切り替えても戻せるよう、スイッチ自体は
+       出していないときも残す (TODO-104) #}
     <div class="my-mini-cal-row">
+      {% set month_cal_arg = '0' if month_cal else '1' %}
+      <div class="my-mini-cal-sw my-btn"
+        onmousedown="doPost('{{ url_prefix }}',
+                  {'date': '{{ w.monday }}',
+                   'month_cal': '{{ month_cal_arg }}'});">
+        <svg class="my-icon my-icon-lg">
+          <use href="{{ static_url('icons/icons.svg') }}#{% if month_cal %}check-square{% else %}square{% end %}"></use>
+        </svg>
+      </div><!-- my-mini-cal-sw -->
+      {% if month_cal %}
       {% for mc in w.month_cals %}
       <table class="my-mini-cal">
         <caption class="my-mini-cal-caption">
@@ -275,6 +288,7 @@
         {% end %}<!-- for mc_week -->
       </table>
       {% end %}<!-- for mc -->
+      {% end %}<!-- if month_cal -->
     </div><!-- my-mini-cal-row -->
     {% end %}<!-- if not search_mode -->
 

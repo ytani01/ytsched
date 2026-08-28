@@ -677,7 +677,9 @@ class TestMonthMiniCal(WebTestBase):
         assert m is not None
 
     def test_not_shown_in_search_mode(self):
-        """検索モードでは出さない（週の区切りに合わないため）。"""
+        """検索モードでは、スイッチもミニカレンダーも出さない
+        （週の区切りに合わないため。TODO-104）。
+        """
         self.write_data(DATE1, [DATALINE1])
 
         body = self.get_body(
@@ -685,6 +687,50 @@ class TestMonthMiniCal(WebTestBase):
         )
 
         assert "my-mini-cal-row" not in body
+        assert "my-mini-cal-sw" not in body
+
+
+class TestMonthCalSwitch(WebTestBase):
+    """月間ミニカレンダーの出す・出さないスイッチ（TODO-104）"""
+
+    def test_default_shows_mini_cal_and_switch(self):
+        """``conf.json`` に ``MonthCal`` が無ければ出す。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+        panel = week_panel(body)
+
+        assert "my-mini-cal-sw" in panel
+        assert "#check-square" in panel
+        assert "my-mini-cal-caption" in panel
+
+    def test_month_cal_0_hides_mini_cal_but_keeps_switch(self):
+        """``month_cal=0`` でミニカレンダーは消えるが、スイッチは残る
+        （戻せなくなるため）。
+        """
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, month_cal="0")
+        panel = week_panel(body)
+
+        assert "my-mini-cal-sw" in panel
+        assert "#square" in panel
+        assert "my-mini-cal-caption" not in panel
+
+    def test_month_cal_0_in_conf_hides_without_argument(self):
+        """``conf.json`` に ``"MonthCal": "0"`` があれば、引数なしでも
+        消えている。
+        """
+        write_conf(self.datadir, {"MonthCal": "0"})
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+        panel = week_panel(body)
+
+        assert "my-mini-cal-caption" not in panel
+        assert "my-mini-cal-sw" in panel
+        assert "#square" in panel
+
+    def test_month_cal_is_saved(self):
+        """切り替えたあと ``conf.json`` に保存されている。"""
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, month_cal="0")
+
+        assert read_conf(self.datadir)["MonthCal"] == "0"
 
 
 class TestManifestAndIcons(WebTestBase):

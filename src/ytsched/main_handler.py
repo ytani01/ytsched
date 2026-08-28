@@ -35,12 +35,13 @@ from .ytsched import SchedData, normalize
 
 @dataclasses.dataclass(frozen=True)
 class ConfArgs:
-    """``update_conf_args()`` が返す 4 つの値 (TODO-090)。"""
+    """``update_conf_args()`` が返す 5 つの値 (TODO-090・TODO-104)。"""
 
     search_str: str
     filter_str: str
     todo_days_value: int
     search_n: int
+    month_cal: bool
 
 
 class MainHandler(HandlerBase):
@@ -61,6 +62,8 @@ class MainHandler(HandlerBase):
     CONF_KEY_TODO_DAYS = "ToDo_Days"
     CONF_KEY_FILTER_STR = "FilterStr"
     CONF_KEY_SEARCH_N = "SearchN"
+    # 週間表示の月間ミニカレンダー (TODO-103) を出すかどうか (TODO-104)
+    CONF_KEY_MONTH_CAL = "MonthCal"
 
     TODO_DAYS: ClassVar[dict[str, int]] = {
         "off": -1,
@@ -74,6 +77,9 @@ class MainHandler(HandlerBase):
         "all": 365 * 100,
     }
     DEF_TODO_DAYS = 365
+
+    #: 月間ミニカレンダーの既定 (出す。TODO-104)
+    DEF_MONTH_CAL = True
 
     #: 前後どれだけの週を DOM に持たせるか (ヶ月。TODO-069)。
     #: ``conf.json`` の ``LoadMonths`` で変えられる
@@ -185,9 +191,9 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"request.path={self.request.path}")
 
         #
-        # search_str/filter_str/todo_days_value/search_n
+        # search_str/filter_str/todo_days_value/search_n/month_cal
         #
-        # ``conf.json`` へ保存される 4 つの値をまとめて読む
+        # ``conf.json`` へ保存される 5 つの値をまとめて読む
         # (``update_conf_args()``)。
         #
         conf_args = self.update_conf_args()
@@ -239,6 +245,12 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"search_n={search_n}")
 
         #
+        # month_cal (TODO-104)
+        #
+        month_cal = conf_args.month_cal
+        self.__log.debug(f"month_cal={month_cal}")
+
+        #
         # 前後どれだけの週を持たせるか (TODO-069)
         #
         load_months = self.get_load_months()
@@ -283,7 +295,7 @@ class MainHandler(HandlerBase):
         # 前後の週も一緒に描いて返す (TODO-057・TODO-069・TODO-088)
         #
         weeks = self.mk_weeks(
-            date, cond, sched, date_from, search_mode, load_months
+            date, cond, sched, date_from, search_mode, load_months, month_cal
         )
 
         #
@@ -313,6 +325,7 @@ class MainHandler(HandlerBase):
             sde_align=sde_align,
             cache_size=self._sd.get_cache_size(),
             auto_turn_msec=auto_turn_msec,
+            month_cal=month_cal,
         )
 
     def mk_weeks(
@@ -323,6 +336,7 @@ class MainHandler(HandlerBase):
         date_from: datetime.date,
         search_mode: bool,
         load_months: int,
+        month_cal: bool,
     ) -> list[SchedWeek]:
         """前後の週も一緒に描くための ``weeks`` を組み立てる
         (TODO-057・TODO-069・TODO-088)。
@@ -346,6 +360,10 @@ class MainHandler(HandlerBase):
             通常モードでは、いまの週の月曜
         search_mode: bool
         load_months: int
+        month_cal: bool
+            月間ミニカレンダーを出すかどうか (TODO-104)。``False`` の
+            ときは ``mk_month_cals()`` (``load_month_cal()`` 経由の
+            ``stat()``) を呼ばず、空リストにする
 
         Returns
         -------
@@ -374,7 +392,9 @@ class MainHandler(HandlerBase):
                     offset=offset,
                     monday=monday,
                     sched=sched_offset,
-                    month_cals=self.mk_month_cals(monday),
+                    month_cals=(
+                        self.mk_month_cals(monday) if month_cal else []
+                    ),
                 )
             )
 
@@ -523,12 +543,13 @@ class MainHandler(HandlerBase):
         return round(months * cls.DAYS_PER_MONTH / 7)
 
     def update_conf_args(self) -> ConfArgs:
-        """``post()``/``get()`` に並ぶ 4 つの設定値を、引数から
-        取り込んで ``conf.json`` へ反映しつつまとめて返す (TODO-090)。
+        """``post()``/``get()`` に並ぶ設定値を、引数から取り込んで
+        ``conf.json`` へ反映しつつまとめて返す (TODO-090)。
 
-        中身は ``update_conf_arg()`` (旧 ``get_conf_arg()``) を
-        4 回呼ぶだけ。呼び出しがそのまま ``post()``/``get()`` に
-        4 つ並んでいたのを、ここへまとめた。
+        中身は ``update_conf_arg()`` (旧 ``get_conf_arg()``) を呼ぶ
+        だけ。呼び出しがそのまま ``post()``/``get()`` に 4 つ並んで
+        いたのを、ここへまとめた (TODO-090)。``month_cal`` は
+        TODO-104 で 5 つ目として足した。
 
         Returns
         -------
@@ -563,12 +584,20 @@ class MainHandler(HandlerBase):
             empty_is_given=True,
             convert=int,
         )
+        month_cal = self.update_conf_arg(
+            "month_cal",
+            self.CONF_KEY_MONTH_CAL,
+            self.DEF_MONTH_CAL,
+            empty_is_given=False,
+            convert=handler_util.str2month_cal,
+        )
 
         return ConfArgs(
             search_str=search_str,
             filter_str=filter_str,
             todo_days_value=todo_days_value,
             search_n=search_n,
+            month_cal=month_cal,
         )
 
     def update_conf_arg[T](

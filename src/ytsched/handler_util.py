@@ -118,6 +118,31 @@ def str2date(value: str) -> datetime.date:
     return check_date(datetime.date.fromisoformat(value))
 
 
+def str2month_cal(value: str) -> bool:
+    """``"1"``/``"0"`` を、月間ミニカレンダーを出すかどうかにする
+    (TODO-104)。
+
+    ``convert_value()`` に渡す変換関数。``conf.json`` の ``MonthCal``
+    と、画面のスイッチの引数 ``month_cal`` の両方に使う。それ以外の
+    値は ``ValueError``（``conf.json`` へ保存させないため）。
+
+    Parameters
+    ----------
+    value: str
+
+    Returns
+    -------
+    bool
+
+    """
+    if value == "1":
+        return True
+    if value == "0":
+        return False
+
+    raise ValueError(f"month_cal must be '0' or '1', not {value!r}")
+
+
 def check_int_range(
     name: str, value: int, value_min: int, value_max: int
 ) -> int:
