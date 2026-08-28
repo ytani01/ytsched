@@ -129,11 +129,11 @@ class EditHandler(HandlerBase):
 
         self.render(
             self.HTML_EDIT,
-            title=self._title,
-            author=self._author,
-            version=self._version,
-            url_prefix=self._url_prefix,
-            post_url=self._url_prefix,
+            title=self._app_info.title,
+            author=self._app_info.author,
+            version=self._app_info.version,
+            url_prefix=self._app_info.url_prefix,
+            post_url=self._app_info.url_prefix,
             date=date,
             orig_date=orig_date,
             sde=sde,

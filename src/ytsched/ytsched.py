@@ -841,6 +841,10 @@ class SchedData:
         ``save()`` した直後は、``SchedDataFile.save()`` が
         ``_stat_key`` を持ち直しているので、ここでの読み直しは起きない。
 
+        **``_dirty_sdf`` に載っている日（``save()`` していない変更が
+        ある日）は、``is_stale()`` が真でも読み直さない**（TODO-090）。
+        読み直すと、その未保存の変更が消えるため。
+
         Parameters
         ----------
         date: datetime.date | None
@@ -872,7 +876,7 @@ class SchedData:
 
             sdf = SchedDataFile(date, self._topdir)
         else:
-            if sdf.is_stale():
+            if date not in self._dirty_sdf and sdf.is_stale():
                 self.__log.debug(f"reload (stale): date={date}")
                 sdf = SchedDataFile(date, self._topdir)
 

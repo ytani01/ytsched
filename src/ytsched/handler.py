@@ -8,22 +8,42 @@ HandlerBase
 __author__ = "ytani01"
 __date__ = "2021/01"
 
-import json
-import os
+import dataclasses
 
 import tornado.web
 
+from .conf import ConfFile
 from .mylog import getLogger
 from .ytsched import SchedData
 
 
+@dataclasses.dataclass(frozen=True)
+class AppInfo:
+    """アプリの固定情報 (TODO-090)。
+
+    以前は ``tornado.web.Application`` の設定 (``app.settings``) から
+    ``self._title`` のように 1 つずつ取り出していたが、型はどれも
+    ``Any`` になり、渡すものが増えるたびに ``webapp.py`` の
+    ``URLSpec`` が伸びていた。この 5 つをまとめて ``initialize()`` の
+    引数として渡す。
+
+    ``url_prefix`` は末尾に ``/`` が付いた形。
+    """
+
+    title: str
+    author: str
+    version: str
+    url_prefix: str
+    datadir: str
+
+
 class HandlerBase(tornado.web.RequestHandler):
-    """HandlerBase: ``conf.json`` の読み書き。"""
+    """HandlerBase: ``sd``/``app_info``/``conf`` の受け取りと、
+    ``conf.json`` の読み書き (``ConfFile`` へ委譲)。
+    """
 
     __log = getLogger(__qualname__)
 
-    CONF_FNAME = "conf.json"
-    CONF_ENCODE = "utf-8"
     CONF_KEY_SEARCH_STR = "SearchStr"
 
     HTML_MAIN = "main.html"
@@ -35,101 +55,36 @@ class HandlerBase(tornado.web.RequestHandler):
         ``**kwargs`` は ``initialize()`` へそのまま渡る
         (``tornado.web.RequestHandler.__init__`` が ``self.initialize(
         **kwargs)`` を呼ぶ。TODO-081)。
+
+        ``self._conf`` は ``initialize()`` で受け取った ``ConfFile``
+        (全ハンドラで共有。TODO-090)。ここで 1 リクエストごとに 1 回、
+        外部の書き換えが無いか確かめて、あれば読み直す。
         """
         super().__init__(app, req, **kwargs)
 
         self.__log.debug(f"app={app}")
         self.__log.debug(f"req={req}")
 
-        # 属性への代入は明示のまま(型チェッカが属性を追えなくなるため)
-        self._title = app.settings.get("title")
-        self._author = app.settings.get("author")
-        self._version = app.settings.get("version")
-        self._url_prefix = app.settings.get("url_prefix")
-        self._datadir = app.settings.get("datadir")
+        self._conf.refresh()
 
-        self._conf_file = os.path.join(self._datadir, self.CONF_FNAME)
+    def initialize(
+        self, sd: SchedData, app_info: AppInfo, conf: ConfFile
+    ) -> None:
+        """URL の登録時に渡された依存を受け取る (TODO-081・TODO-090)。
 
-        self.__log.debug(
-            f"title={self._title}, author={self._author},"
-            f" version={self._version}, url_prefix={self._url_prefix},"
-            f" datadir={self._datadir}, conf_file={self._conf_file}"
-        )
-
-        self._conf = self.load_conf()
-
-    def initialize(self, sd: SchedData) -> None:
-        """URL の登録時に渡された ``sd`` を受け取る (TODO-081)。
-
-        tornado は ``__init__`` のあとに、``URLSpec`` の 3 番目に
+        tornado は ``__init__`` の中で、``URLSpec`` の 3 番目に
         渡した dict をキーワード引数として ``initialize()`` へ渡す。
 
         Parameters
         ----------
         sd: SchedData
+        app_info: AppInfo
+        conf: ConfFile
 
         """
         self._sd: SchedData = sd
-
-    def load_conf(self) -> dict[str, str]:
-        """``conf.json`` を読み込んで dict で返す (TODO-032)。
-
-        ファイルが無ければ空の dict を返す。
-
-        **JSON として読めなくても例外にしない。** 壊れている場合や
-        トップレベルが object でない場合は、警告を 1 行出して空の dict
-        を返す。値が文字列でないキーは、そのキーだけ飛ばす。不正な
-        正規表現の扱い (TODO-012)、不正な引数の扱い (TODO-027) と同じ
-        考え方 (設定ファイルが壊れて画面が出ないほうが困る)。
-
-        ファイルそのものが読めない場合 (``PermissionError`` など) は
-        捕まえない。設定の中身の問題ではなく、直すべき環境の問題なので、
-        黙って既定値で動かない (TODO-032)。
-
-        Returns
-        -------
-        conf: dict[str, str]
-
-        """
-        self.__log.debug("")
-
-        conf: dict[str, str] = {}
-
-        try:
-            with open(self._conf_file, encoding=self.CONF_ENCODE) as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            return conf
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            self.__log.warning(f"{self._conf_file}: {e} .. ignored")
-            return conf
-
-        if not isinstance(data, dict):
-            self.__log.warning(f"{self._conf_file}: not an object .. ignored")
-            return conf
-
-        # JSON の object のキーは必ず文字列
-        loaded: dict[str, object] = data
-        for param, value in loaded.items():
-            if not isinstance(value, str):
-                self.__log.warning(
-                    f"{self._conf_file}: {param!a}={value!a}:"
-                    " not a string .. ignored"
-                )
-                continue
-
-            self.__log.debug(f"{param!a},{value!a}.")
-            conf[param] = value
-
-        return conf
-
-    def save_conf(self):
-        """設定を ``conf.json`` へ書き出す (TODO-032)。"""
-        self.__log.debug("")
-
-        with open(self._conf_file, mode="w", encoding=self.CONF_ENCODE) as f:
-            json.dump(self._conf, f, ensure_ascii=False, indent=2)
-            f.write("\n")
+        self._app_info = app_info
+        self._conf = conf
 
     def get_conf(self, name):
         """設定値を返す。無ければ ``None`` を返す。"""
@@ -138,7 +93,18 @@ class HandlerBase(tornado.web.RequestHandler):
         return self._conf.get(name)
 
     def set_conf(self, name, value):
-        """設定値を変更して、``conf.json`` へ保存する。"""
+        """設定値を変更する。``conf.json`` への書き込みは
+        ``on_finish()`` にまとめてある (TODO-090)。
+        """
         self.__log.debug(f"name={name}, value='{value}'")
-        self._conf[name] = value
-        self.save_conf()
+
+        self._conf.set(name, value)
+
+    def on_finish(self) -> None:
+        """レスポンスを返し終えたあとに tornado が 1 回だけ呼ぶ。
+
+        1 リクエストの中で ``set_conf()`` を何度呼んでいても、
+        ``conf.json`` への書き込みはここで 1 回だけ、変更があった
+        ときだけ行う (TODO-090)。
+        """
+        self._conf.save_if_dirty()

@@ -8,6 +8,7 @@ MainHandler
 __author__ = "ytani01"
 __date__ = "2021/01"
 
+import dataclasses
 import datetime
 import re
 import urllib.parse
@@ -17,7 +18,8 @@ from typing import ClassVar
 import tornado.web
 
 from . import handler_util
-from .handler import HandlerBase
+from .conf import ConfFile
+from .handler import AppInfo, HandlerBase
 from .mylog import getLogger
 from .sched_load import (
     SchedDay,
@@ -28,6 +30,16 @@ from .sched_load import (
 )
 from .sched_update import SchedUpdateForm, SchedUpdater
 from .ytsched import SchedData, normalize
+
+
+@dataclasses.dataclass(frozen=True)
+class ConfArgs:
+    """``update_conf_args()`` が返す 4 つの値 (TODO-090)。"""
+
+    search_str: str
+    filter_str: str
+    todo_days_value: int
+    search_n: int
 
 
 class MainHandler(HandlerBase):
@@ -87,11 +99,13 @@ class MainHandler(HandlerBase):
     AUTO_TURN_MSEC_MIN = 300
     AUTO_TURN_MSEC_MAX = 10000
 
-    def initialize(self, sd: SchedData) -> None:
+    def initialize(
+        self, sd: SchedData, app_info: AppInfo, conf: ConfFile
+    ) -> None:
         """``sd`` を受け取り、更新の実行役 (``SchedUpdater``) と
         読み込みの実行役 (``SchedLoader``) を作る (TODO-087・TODO-088)。
         """
-        super().initialize(sd)
+        super().initialize(sd, app_info, conf)
         self._updater = SchedUpdater(sd)
         self._loader = SchedLoader(sd)
 
@@ -105,7 +119,7 @@ class MainHandler(HandlerBase):
         POST で来るのは、``cmd`` (追加・修正・更新・削除) と、
         ``main.html`` の 3 つのフォーム (検索・ToDo の日数・絞り込み)。
         どれも値を ``conf.json`` へ保存するので、読むだけで保存される
-        (``get_conf_arg()``)。
+        (``update_conf_args()``)。
         """
         self.__log.debug(f"request={self.request.__dict__}")
         self.__log.debug(
@@ -115,34 +129,7 @@ class MainHandler(HandlerBase):
         #
         # ``conf.json`` へ保存される値を読む (``get()`` と同じ変換)
         #
-        _ = self.get_conf_arg(
-            "search_str",
-            self.CONF_KEY_SEARCH_STR,
-            "",
-            empty_is_given=True,
-            convert=normalize,
-        )
-        _ = self.get_conf_arg(
-            "filter_str",
-            self.CONF_KEY_FILTER_STR,
-            "",
-            empty_is_given=True,
-            convert=normalize,
-        )
-        _ = self.get_conf_arg(
-            "todo_days",
-            self.CONF_KEY_TODO_DAYS,
-            self.DEF_TODO_DAYS,
-            empty_is_given=False,
-            convert=self.str2todo_days,
-        )
-        _ = self.get_conf_arg(
-            "search_n",
-            self.CONF_KEY_SEARCH_N,
-            self.DEF_SEARCH_N,
-            empty_is_given=True,
-            convert=int,
-        )
+        self.update_conf_args()
 
         #
         # command (add/fix/update/del)
@@ -161,7 +148,7 @@ class MainHandler(HandlerBase):
 
         self.redirect(
             self.mkurl(
-                self._url_prefix,
+                self._app_info.url_prefix,
                 {
                     "date": date,
                     "sde_align": self.get_argument("sde_align", None),
@@ -197,18 +184,13 @@ class MainHandler(HandlerBase):
         self.__log.debug(f"request.path={self.request.path}")
 
         #
-        # search_str
+        # search_str/filter_str/todo_days_value/search_n
         #
-        # 照合される側 (``SchedDataEnt.search_str()``) と同じ
-        # ``normalize()`` を通す (TODO-029)。
-        # 変換後の値を ``conf.json`` へ保存する
-        search_str = self.get_conf_arg(
-            "search_str",
-            self.CONF_KEY_SEARCH_STR,
-            "",
-            empty_is_given=True,
-            convert=normalize,
-        )
+        # ``conf.json`` へ保存される 4 つの値をまとめて読む
+        # (``update_conf_args()``)。
+        #
+        conf_args = self.update_conf_args()
+        search_str = conf_args.search_str
         self.__log.debug(f"search_str='{search_str}'")
 
         #
@@ -216,16 +198,7 @@ class MainHandler(HandlerBase):
         #
         date = self.get_date(None)
 
-        #
-        # todo_days_value
-        #
-        todo_days_value = self.get_conf_arg(
-            "todo_days",
-            self.CONF_KEY_TODO_DAYS,
-            self.DEF_TODO_DAYS,
-            empty_is_given=False,
-            convert=self.str2todo_days,
-        )
+        todo_days_value = conf_args.todo_days_value
         self.__log.debug(f"todo_days_value={todo_days_value!a}")
 
         #
@@ -239,13 +212,7 @@ class MainHandler(HandlerBase):
         # 空文字は「絞り込みの解除」(TODO-028)。
         # ``normalize()`` を通してから ``conf.json`` へ保存する
         # (小文字化に加えて、全角括弧が半角になる。TODO-029)
-        filter_str = self.get_conf_arg(
-            "filter_str",
-            self.CONF_KEY_FILTER_STR,
-            "",
-            empty_is_given=True,
-            convert=normalize,
-        )
+        filter_str = conf_args.filter_str
         self.__log.debug(f"filter_str={filter_str!a}")
 
         #
@@ -267,13 +234,7 @@ class MainHandler(HandlerBase):
         #
         # search_n
         #
-        search_n = self.get_conf_arg(
-            "search_n",
-            self.CONF_KEY_SEARCH_N,
-            self.DEF_SEARCH_N,
-            empty_is_given=True,
-            convert=int,
-        )
+        search_n = conf_args.search_n
         self.__log.debug(f"search_n={search_n}")
 
         #
@@ -330,10 +291,10 @@ class MainHandler(HandlerBase):
         today = datetime.date.today()
         self.render(
             self.HTML_MAIN,
-            title=self._title,
-            author=self._author,
-            version=self._version,
-            url_prefix=self._url_prefix,
+            title=self._app_info.title,
+            author=self._app_info.author,
+            version=self._app_info.version,
+            url_prefix=self._app_info.url_prefix,
             today=today,
             date=date,
             date_from=date_from,
@@ -447,7 +408,7 @@ class MainHandler(HandlerBase):
         ``LoadMonths``/``AutoTurnMsec`` に共通の読み方。**他の設定と
         違い、リクエストの引数では変えられない。** 画面から変えるもの
         ではなく、利用者が ``conf.json`` へ手で書く値なので、
-        ``get_conf_arg()`` を通さず読むだけにする（``set_conf()`` しない
+        ``update_conf_arg()`` を通さず読むだけにする（``set_conf()`` しない
         ので、手で書いた値は消えない）。
 
         読めない値 (数字にならない、範囲の外) は警告を 1 行出して
@@ -531,7 +492,56 @@ class MainHandler(HandlerBase):
         """
         return round(months * cls.DAYS_PER_MONTH / 7)
 
-    def get_conf_arg[T](
+    def update_conf_args(self) -> ConfArgs:
+        """``post()``/``get()`` に並ぶ 4 つの設定値を、引数から
+        取り込んで ``conf.json`` へ反映しつつまとめて返す (TODO-090)。
+
+        中身は ``update_conf_arg()`` (旧 ``get_conf_arg()``) を
+        4 回呼ぶだけ。呼び出しがそのまま ``post()``/``get()`` に
+        4 つ並んでいたのを、ここへまとめた。
+
+        Returns
+        -------
+        ConfArgs
+
+        """
+        search_str = self.update_conf_arg(
+            "search_str",
+            self.CONF_KEY_SEARCH_STR,
+            "",
+            empty_is_given=True,
+            convert=normalize,
+        )
+        filter_str = self.update_conf_arg(
+            "filter_str",
+            self.CONF_KEY_FILTER_STR,
+            "",
+            empty_is_given=True,
+            convert=normalize,
+        )
+        todo_days_value = self.update_conf_arg(
+            "todo_days",
+            self.CONF_KEY_TODO_DAYS,
+            self.DEF_TODO_DAYS,
+            empty_is_given=False,
+            convert=self.str2todo_days,
+        )
+        search_n = self.update_conf_arg(
+            "search_n",
+            self.CONF_KEY_SEARCH_N,
+            self.DEF_SEARCH_N,
+            empty_is_given=True,
+            convert=int,
+        )
+
+        return ConfArgs(
+            search_str=search_str,
+            filter_str=filter_str,
+            todo_days_value=todo_days_value,
+            search_n=search_n,
+        )
+
+    def update_conf_arg[T](
         self,
         arg_name: str,
         conf_key: str,
@@ -654,7 +664,7 @@ class MainHandler(HandlerBase):
             # (読み直したファイルの日付) は ``EditHandler`` が決めるので、
             # ここからは送らない (TODO-029・TODO-034)
             edit_url = self.mkurl(
-                self._url_prefix + "edit/",
+                self._app_info.url_prefix + "edit/",
                 {
                     "date": modified_date,
                     "sde_id": modified_sde_id,

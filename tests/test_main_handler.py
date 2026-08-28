@@ -32,7 +32,7 @@ import re
 from unittest import mock
 from urllib.parse import urlencode
 
-from helpers import URL_PREFIX, app_sd, make_handler
+from helpers import URL_PREFIX, app_sd, make_app, make_handler
 from test_web import (
     DATE1,
     DATE1_STR,
@@ -59,6 +59,49 @@ def test_cookie_todo_days_is_removed():
     ための覚え書き。
     """
     assert not hasattr(MainHandler, "COOKIE_TODO_DAYS")
+
+
+def test_update_conf_args_returns_and_saves_all_four(tmp_path):
+    """``update_conf_args()`` が 4 つの値を ``ConfArgs`` にまとめて
+    返し、``conf.json`` へも反映する（C・TODO-090）。
+    """
+    datadir = tmp_path / "data"
+    datadir.mkdir()
+    app = make_app(datadir)
+
+    handler = make_handler(
+        app,
+        MainHandler,
+        uri=(
+            URL_PREFIX
+            + "/?"
+            + urlencode(
+                {
+                    "search_str": "ABC",
+                    "filter_str": "DEF",
+                    "todo_days": "3",
+                    "search_n": "9",
+                }
+            )
+        ),
+    )
+
+    conf_args = handler.update_conf_args()
+
+    assert conf_args.search_str == "abc"
+    assert conf_args.filter_str == "def"
+    assert conf_args.todo_days_value == 3
+    assert conf_args.search_n == 9
+
+    handler.on_finish()
+
+    conf_data = json.loads((datadir / CONF_FNAME).read_text(encoding="utf-8"))
+    assert conf_data == {
+        "SearchStr": "abc",
+        "FilterStr": "def",
+        "ToDo_Days": "3",
+        "SearchN": "9",
+    }
 
 
 #

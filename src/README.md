@@ -11,7 +11,8 @@
 ```
 src/ytsched/
   ytsched.py       # データモデル: SchedDataEnt / SchedDataFile / SchedData
-  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分、conf.json の読み書き）
+  handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分）と AppInfo
+  conf.py          # ConfFile（conf.json の読み書きとキャッシュ。tornado を知らない）
   handler_util.py  # 引数と設定値の変換・検証（self を使わない純粋な関数）
   main_handler.py  # MainHandler（一覧表示と、追加/修正/削除の受け取り）
   sched_update.py  # SchedUpdater（追加/修正/削除の実行。tornado を知らない）
@@ -111,11 +112,24 @@ classDiagram
         <<tornado.web>>
     }
     class HandlerBase {
-        +initialize(sd)
-        +load_conf()
-        +save_conf()
+        +initialize(sd, app_info, conf)
         +get_conf()
         +set_conf()
+        +on_finish()
+    }
+    class AppInfo {
+        <<frozen dataclass>>
+        +title
+        +author
+        +version
+        +url_prefix
+        +datadir
+    }
+    class ConfFile {
+        +refresh()
+        +get()
+        +set()
+        +save_if_dirty()
     }
     class MainHandler {
         +get()
@@ -141,24 +155,37 @@ classDiagram
     RequestHandler <|-- HandlerBase
     HandlerBase <|-- MainHandler
     HandlerBase <|-- EditHandler
+    HandlerBase ..> AppInfo : initialize() で受け取る
+    HandlerBase --> ConfFile : initialize() で受け取り、委譲する
     MainHandler ..> SchedUpdater : cmd の実行
     MainHandler ..> SchedLoader : 一覧の組み立て
     WebServer ..> MainHandler : "/", url_prefix, url_prefix/
     WebServer ..> EditHandler : url_prefix/edit, url_prefix/edit/
+    WebServer --> AppInfo : 1 つ作る
+    WebServer --> ConfFile : 1 つ作り、全ハンドラで共有する
 ```
 
 - **`HandlerBase`**（`handler.py`）が `tornado.web.RequestHandler` の
-  共通部分。リクエストのたびにデータディレクトリ直下の設定ファイル
-  `conf.json` を読み書きする（`load_conf()` / `save_conf()` /
-  `get_conf()` / `set_conf()`）。JSON のオブジェクト 1 つで、値は
+  共通部分。`SchedData`・`AppInfo`（`title`/`author`/`version`/
+  `url_prefix`/`datadir` をまとめた frozen dataclass）・`ConfFile` の
+  3 つは、`tornado.web.Application` の URL 登録時に渡し、
+  `initialize(sd, app_info, conf)` で受け取る（`app.settings` 経由
+  ではないので、`self._sd`/`self._app_info` の型がそのまま見える。
+  TODO-081・TODO-090）。`self._title` のような個別の属性は無く、
+  `self._app_info.title` のように参照する。
+  `get_conf()`/`set_conf()` は `ConfFile`（`conf.py`）へ委譲するだけ。
+  `ConfFile` は `WebServer` が 1 つだけ作って全ハンドラで共有する
+  （`SchedData` と同じ持ち方）。JSON のオブジェクト 1 つで、値は
   すべて文字列（TODO-032）。**`LoadMonths` と `AutoTurnMsec` を除いて**、
   人が手で編集するファイルではない（この 2 つについては `MainHandler`
   の項を参照）。
   読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
   でないキー）は、警告を 1 行出して無視する。
-  `SchedData` は `tornado.web.Application` の URL 登録時に渡し、
-  `initialize()` で受け取る（`app.settings` 経由ではないので、
-  `self._sd` の型が `SchedData` として見える。TODO-081）。
+  外部からの書き換えの検出・読み直しは `SchedDataFile.is_stale()` と
+  同じやり方（`os.stat()` の `st_mtime`/`st_size`）で、1 リクエストに
+  つき 1 回（`HandlerBase.__init__`）。未保存の変更があるうちは
+  読み直さない。書き込みは `set_conf()` の時点では行わず、リクエストの
+  終わり（`on_finish()`）に、変更があったときだけ 1 回（TODO-090）。
   引数や設定値の変換と検証は、`self` を使わない純粋な関数として
   `handler_util.py` にある（`convert_value()` / `str2date()` /
   `check_date()` / `date_range()` / `check_int_range()`。
@@ -215,6 +242,8 @@ classDiagram
 
 `WebServer`（`webapp.py`）がこの 2 つを `tornado.web.Application` に
 組み立てる。URL は既定で `/ytsched`（`WebServer.DEF_URL_PREFIX`）配下。
+5 つの `URLSpec` はどれも同じ `{"sd": ..., "app_info": ..., "conf":
+...}` を渡すので、1 つの dict を作って使い回す（TODO-090）。
 
 ## リクエストが来てから画面が出るまでの流れ
 
@@ -231,9 +260,9 @@ sequenceDiagram
     participant Template
 
     Browser->>Handler: GET または POST
-    Note over Handler: __init__ のたびに conf.json を読む (load_conf)
+    Note over Handler: __init__ のたびに、変わっていれば conf.json を<br/>読み直す (ConfFile.refresh())。未保存の変更が<br/>あるうちは読み直さない
     alt POST
-        Handler->>Handler: post() が cmd を実行して conf.json へ保存
+        Handler->>Handler: post() が cmd を実行して conf.json へ反映
         Handler-->>Browser: 302 (日付だけを付けた GET へ)
         Browser->>Handler: GET
     end
@@ -246,10 +275,11 @@ sequenceDiagram
     end
     SD-->>Handler: SchedDataFile / SchedDataEnt
     opt 設定値が変わった (filter_str など)
-        Handler->>Handler: set_conf() が conf.json へ書き直す
+        Handler->>Handler: set_conf() は ConfFile 上の値だけ変える<br/>(まだ書かない)
     end
     Handler->>Template: render(html, ...)
     Template-->>Browser: HTML
+    Note over Handler: on_finish() で、変更があれば<br/>conf.json へ 1 回だけ書く
 ```
 
 ## ブラウザ側のスクリプト

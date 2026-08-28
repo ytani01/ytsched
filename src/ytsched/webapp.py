@@ -17,7 +17,9 @@ import tornado.web
 from . import __author__ as AUTHOR
 from . import __prog_name__ as PROG_NAME
 from . import __version__ as VERSION
+from .conf import ConfFile
 from .edit_handler import EditHandler
+from .handler import AppInfo
 from .main_handler import MainHandler
 from .mylog import getLogger
 from .ytsched import SchedData
@@ -79,23 +81,34 @@ class WebServer:
 
         os.makedirs(self._datadir, exist_ok=True)
 
-        self._app = tornado.web.Application(
-            [
-                (r"/", MainHandler, {"sd": self._sd}),
-                (self._url_prefix, MainHandler, {"sd": self._sd}),
-                (rf"{self._url_prefix}/", MainHandler, {"sd": self._sd}),
-                (rf"{self._url_prefix}/edit", EditHandler, {"sd": self._sd}),
-                (rf"{self._url_prefix}/edit/", EditHandler, {"sd": self._sd}),
-            ],
-            static_path=os.path.join(self._webroot, "static"),
-            static_url_prefix=self._url_prefix + "/static/",
-            template_path=os.path.join(self._webroot, "templates"),
-            autoreload=self._dbg,
+        self._conf = ConfFile(os.path.join(self._datadir, ConfFile.FNAME))
+        self._app_info = AppInfo(
             title=PROG_NAME,
             author=AUTHOR,
             version=VERSION,
             url_prefix=self._url_prefix + "/",
             datadir=self._datadir,
+        )
+
+        # 5 つの ``URLSpec`` すべてで同じ dict を使い回す (TODO-090)
+        handler_kwargs = {
+            "sd": self._sd,
+            "app_info": self._app_info,
+            "conf": self._conf,
+        }
+
+        self._app = tornado.web.Application(
+            [
+                (r"/", MainHandler, handler_kwargs),
+                (self._url_prefix, MainHandler, handler_kwargs),
+                (rf"{self._url_prefix}/", MainHandler, handler_kwargs),
+                (rf"{self._url_prefix}/edit", EditHandler, handler_kwargs),
+                (rf"{self._url_prefix}/edit/", EditHandler, handler_kwargs),
+            ],
+            static_path=os.path.join(self._webroot, "static"),
+            static_url_prefix=self._url_prefix + "/static/",
+            template_path=os.path.join(self._webroot, "templates"),
+            autoreload=self._dbg,
             debug=self._dbg,
         )
         self.__log.debug(f"app={self._app.__dict__}")

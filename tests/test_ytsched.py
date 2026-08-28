@@ -1170,6 +1170,29 @@ def test_get_sdf_no_reload_right_after_save(tmp_path):
     load.assert_not_called()
 
 
+def test_get_sdf_does_not_reload_dirty_day(tmp_path):
+    """``_dirty_sdf`` に載っている日（未保存の変更がある日）は、
+    ``is_stale()`` が真でも読み直さない(F・TODO-090)。
+
+    読み直すと、その未保存の変更が消えてしまう。
+    """
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sd = SchedData(str(tmp_path))
+
+    sdf1 = sd.get_sdf(DATE1)
+    sd.add_sde(DATE1, mk_sde(sde_id="id-2"))
+    assert DATE1 in sd._dirty_sdf
+
+    # mtime の分解能で不安定にならないよう、明示的に時刻をずらす
+    st = os.stat(path)
+    path.write_text(DATALINE1 + "\n", encoding="utf-8")
+    os.utime(path, (st.st_atime + 10, st.st_mtime + 10))
+
+    sdf2 = sd.get_sdf(DATE1)
+    assert sdf2 is sdf1
+    assert len(sdf2.sde) == 2
+
+
 def test_sched_data_get_sde(tmp_path):
     write_data(tmp_path, DATE1, [DATALINE1])
     sd = SchedData(str(tmp_path))

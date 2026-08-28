@@ -16,18 +16,27 @@ from unittest import mock
 import tornado.httputil
 import tornado.web
 
+from ytsched.conf import ConfFile
 from ytsched.edit_handler import EditHandler
+from ytsched.handler import AppInfo
 from ytsched.main_handler import MainHandler
 from ytsched.webapp import WebServer
 from ytsched.ytsched import SchedData
 
 URL_PREFIX = WebServer.DEF_URL_PREFIX
 
-# ``make_app()`` が作った ``SchedData`` を、``app`` から引けるようにする
-# (TODO-081)。``sd`` はもう ``app.settings`` に無い（``webapp.py`` と同じく
-# ``URLSpec`` の kwargs で ``initialize()`` へ渡す）ので、
-# ``tornado.web.Application`` に無い属性を動的に生やす代わりにこちらへ持つ。
+# ``make_app()`` が作った ``SchedData``/``ConfFile`` を、``app`` から
+# 引けるようにする (TODO-081・TODO-090)。どちらも ``app.settings`` に無く
+# （``webapp.py`` と同じく ``URLSpec`` の kwargs で ``initialize()`` へ
+# 渡す）、``tornado.web.Application`` に無い属性を動的に生やす代わりに
+# こちらへ持つ。
 _APP_SD: weakref.WeakKeyDictionary[tornado.web.Application, SchedData] = (
+    weakref.WeakKeyDictionary()
+)
+_APP_CONF: weakref.WeakKeyDictionary[tornado.web.Application, ConfFile] = (
+    weakref.WeakKeyDictionary()
+)
+_APP_INFO: weakref.WeakKeyDictionary[tornado.web.Application, AppInfo] = (
     weakref.WeakKeyDictionary()
 )
 
@@ -41,26 +50,33 @@ def make_app(datadir):
     datadir = str(datadir)
     webroot = WebServer.DEF_WEBROOT
     sd = SchedData(datadir)
-
-    app = tornado.web.Application(
-        [
-            (r"/", MainHandler, {"sd": sd}),
-            (URL_PREFIX, MainHandler, {"sd": sd}),
-            (rf"{URL_PREFIX}/", MainHandler, {"sd": sd}),
-            (rf"{URL_PREFIX}/edit", EditHandler, {"sd": sd}),
-            (rf"{URL_PREFIX}/edit/", EditHandler, {"sd": sd}),
-        ],
-        static_path=os.path.join(webroot, "static"),
-        static_url_prefix=URL_PREFIX + "/static/",
-        template_path=os.path.join(webroot, "templates"),
+    conf = ConfFile(os.path.join(datadir, ConfFile.FNAME))
+    app_info = AppInfo(
         title="Ytsched",
         author="ytani01",
         version="0.0.0",
         url_prefix=URL_PREFIX + "/",
         datadir=datadir,
+    )
+
+    handler_kwargs = {"sd": sd, "app_info": app_info, "conf": conf}
+
+    app = tornado.web.Application(
+        [
+            (r"/", MainHandler, handler_kwargs),
+            (URL_PREFIX, MainHandler, handler_kwargs),
+            (rf"{URL_PREFIX}/", MainHandler, handler_kwargs),
+            (rf"{URL_PREFIX}/edit", EditHandler, handler_kwargs),
+            (rf"{URL_PREFIX}/edit/", EditHandler, handler_kwargs),
+        ],
+        static_path=os.path.join(webroot, "static"),
+        static_url_prefix=URL_PREFIX + "/static/",
+        template_path=os.path.join(webroot, "templates"),
         debug=False,
     )
     _APP_SD[app] = sd
+    _APP_CONF[app] = conf
+    _APP_INFO[app] = app_info
     return app
 
 
@@ -69,16 +85,33 @@ def app_sd(app: tornado.web.Application) -> SchedData:
     return _APP_SD[app]
 
 
+def app_conf(app: tornado.web.Application) -> ConfFile:
+    """``make_app(app)`` が使った ``ConfFile`` を返す（TODO-090）。"""
+    return _APP_CONF[app]
+
+
+def app_info(app: tornado.web.Application) -> AppInfo:
+    """``make_app(app)`` が使った ``AppInfo`` を返す（TODO-090）。"""
+    return _APP_INFO[app]
+
+
 def make_handler(app, handler_class, uri=URL_PREFIX + "/"):
     """リクエストを実際に送らずに handler を作る。
 
-    ``HandlerBase`` の ``load_conf()`` などを直に試すために使う。
-    ``sd`` は ``make_app()`` が作ったものを ``initialize()`` へ渡す。
+    ``HandlerBase`` の ``get_conf()`` などを直に試すために使う。
+    ``sd``/``app_info``/``conf`` は ``make_app()`` が作ったものを
+    ``initialize()`` へ渡す。
     """
     req = tornado.httputil.HTTPServerRequest(
         method="GET", uri=uri, connection=mock.Mock()
     )
-    return handler_class(app, req, sd=app_sd(app))
+    return handler_class(
+        app,
+        req,
+        sd=app_sd(app),
+        app_info=app_info(app),
+        conf=app_conf(app),
+    )
 
 
 def run_in_c_locale(tmp_path, script, *args):
