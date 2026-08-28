@@ -10,6 +10,7 @@ __date__ = "2026/08"
 
 import json
 import os
+from pathlib import Path
 
 from .mylog import getLogger
 
@@ -22,7 +23,7 @@ class ConfFile:
     (``SchedData`` と同じ持ち方)。
 
     外部からの書き換えの検出は ``SchedDataFile.is_stale()`` と同じ
-    やり方 (``os.stat()`` の ``st_mtime``/``st_size`` の組)。未保存の
+    やり方 (``Path.stat()`` の ``st_mtime``/``st_size`` の組)。未保存の
     変更 (``set()`` してから ``save_if_dirty()`` するまでの間) が
     あるうちは、``refresh()`` しても読み直さない (読み直すと、その
     変更が消えるため)。
@@ -33,16 +34,16 @@ class ConfFile:
     FNAME = "conf.json"
     ENCODING = "utf-8"
 
-    def __init__(self, pathname: str):
+    def __init__(self, pathname: str | Path):
         """Constructor
 
         Parameters
         ----------
-        pathname: str
+        pathname: str | Path
             ``conf.json`` のパス
 
         """
-        self.pathname = pathname
+        self.pathname = Path(pathname)
 
         self._conf: dict[str, str] = {}
         self._stat_key: tuple[float, int] | None = None
@@ -67,13 +68,13 @@ class ConfFile:
         self.__log.debug("")
 
         try:
-            with open(self.pathname, mode="rb") as f:
+            with self.pathname.open(mode="rb") as f:
                 raw = f.read()
                 st = os.fstat(f.fileno())
         except FileNotFoundError:
             self._conf = {}
             # ``None`` は「無い」ことを表す。あとでファイルができれば
-            # ``os.stat()`` の結果と食い違うので、``is_stale()`` が
+            # ``Path.stat()`` の結果と食い違うので、``is_stale()`` が
             # 読み直しが要ると判断できる (``SchedDataFile`` と同じ。
             # TODO-080)
             self._stat_key = None
@@ -121,7 +122,7 @@ class ConfFile:
 
         """
         try:
-            st = os.stat(self.pathname)
+            st = self.pathname.stat()
         except OSError:
             current_key = None
         else:
@@ -201,7 +202,7 @@ class ConfFile:
         """
         self.__log.debug("")
 
-        with open(self.pathname, mode="w", encoding=self.ENCODING) as f:
+        with self.pathname.open(mode="w", encoding=self.ENCODING) as f:
             json.dump(self._conf, f, ensure_ascii=False, indent=2)
             f.write("\n")
             f.flush()

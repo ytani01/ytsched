@@ -19,7 +19,6 @@ import dataclasses
 import datetime
 import html
 import json
-import os
 import pathlib
 import re
 from typing import Any, ClassVar
@@ -259,9 +258,9 @@ class Migrator:
             f"topdir={topdir}, dry_run={dry_run}, error_file={error_file}"
         )
 
-        self.topdir = pathlib.Path(os.path.expanduser(topdir))
+        self.topdir = pathlib.Path(topdir).expanduser()
         self.dry_run = dry_run
-        self.error_file = pathlib.Path(os.path.expanduser(error_file))
+        self.error_file = pathlib.Path(error_file).expanduser()
 
         self.stat = MigrateStat()
         self.error_lines: list[str] = []
@@ -323,7 +322,7 @@ class Migrator:
         if self.dry_run:
             return
 
-        with open(new_path, mode="w", encoding=SchedDataFile.ENCODING) as f:
+        with new_path.open(mode="w", encoding=SchedDataFile.ENCODING) as f:
             f.writelines(line + "\n" for line in out_lines)
 
     def conv_conf(self, path: pathlib.Path) -> dict[str, str]:
@@ -380,7 +379,7 @@ class Migrator:
         if self.dry_run:
             return
 
-        with open(new_path, mode="w", encoding=SchedDataFile.ENCODING) as f:
+        with new_path.open(mode="w", encoding=SchedDataFile.ENCODING) as f:
             json.dump(conf, f, ensure_ascii=False, indent=2)
             f.write("\n")
 
@@ -389,8 +388,8 @@ class Migrator:
         if not self.error_lines or self.dry_run:
             return
 
-        with open(
-            self.error_file, mode="w", encoding=SchedDataFile.ENCODING
+        with self.error_file.open(
+            mode="w", encoding=SchedDataFile.ENCODING
         ) as f:
             f.writelines(line + "\n" for line in self.error_lines)
 

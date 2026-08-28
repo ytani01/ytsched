@@ -4,7 +4,7 @@
 """WebServer が組み立てる Application の設定のテスト"""
 
 import json
-import os
+from pathlib import Path
 
 import pytest
 
@@ -47,12 +47,8 @@ def test_webroot_is_bundled(svr):
     """テンプレートと静的ファイルはパッケージに同梱されている。"""
     settings = svr._app.settings
 
-    assert os.path.isfile(
-        os.path.join(settings["template_path"], "main.html")
-    )
-    assert os.path.isfile(
-        os.path.join(settings["static_path"], "favicon.ico")
-    )
+    assert (Path(settings["template_path"]) / "main.html").is_file()
+    assert (Path(settings["static_path"]) / "favicon.ico").is_file()
 
 
 def test_manifest_and_icons_are_bundled(svr):
@@ -68,16 +64,14 @@ def test_manifest_and_icons_are_bundled(svr):
         "icons/icon-maskable-512.png",
         "icons/apple-touch-icon.png",
     ]:
-        assert os.path.isfile(os.path.join(static_path, name)), name
+        assert (Path(static_path) / name).is_file(), name
 
 
 def test_manifest_content(svr):
     """manifest.json の中身（TODO-039）。"""
     static_path = svr._app.settings["static_path"]
 
-    with open(
-        os.path.join(static_path, "manifest.json"), encoding="utf-8"
-    ) as f:
+    with (Path(static_path) / "manifest.json").open(encoding="utf-8") as f:
         manifest = json.load(f)
 
     # ``--urlprefix`` を変えても付いてくるよう、相対で書いている
@@ -85,7 +79,7 @@ def test_manifest_content(svr):
     assert manifest["scope"] == "../"
 
     for icon in manifest["icons"]:
-        assert os.path.isfile(os.path.join(static_path, icon["src"]))
+        assert (Path(static_path) / icon["src"]).is_file()
 
 
 def test_datadir_is_expanded(tmp_path, monkeypatch):
@@ -93,7 +87,7 @@ def test_datadir_is_expanded(tmp_path, monkeypatch):
 
     svr = WebServer(datadir="~/ytsched_test/data")
 
-    assert svr._datadir == str(tmp_path / "ytsched_test/data")
+    assert svr._datadir == tmp_path / "ytsched_test/data"
 
 
 def test_autoreload_is_not_forced(svr):

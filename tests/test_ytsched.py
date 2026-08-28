@@ -464,17 +464,17 @@ def test_sde_init_date_none_is_today():
 #
 def test_date2path(tmp_path):
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
-    assert sdf.pathname == f"{tmp_path}/2021/03/01.jsonl"
+    assert sdf.pathname == tmp_path / "2021" / "03" / "01.jsonl"
 
 
 def test_date2path_todo(tmp_path):
     sdf = SchedDataFile(None, topdir=str(tmp_path))
-    assert sdf.pathname == f"{tmp_path}/ToDo.jsonl"
+    assert sdf.pathname == tmp_path / "ToDo.jsonl"
 
 
 def test_topdir_is_expanded():
     sdf = SchedDataFile(DATE1, topdir="~/no_such_dir")
-    assert not sdf.topdir.startswith("~")
+    assert not str(sdf.topdir).startswith("~")
 
 
 def test_date2path_expands_topdir(tmp_path, monkeypatch):
@@ -483,7 +483,7 @@ def test_date2path_expands_topdir(tmp_path, monkeypatch):
 
     pathname = SchedDataFile.date2path(DATE1, "~/data")
 
-    assert pathname == f"{tmp_path}/data/2021/03/01.jsonl"
+    assert pathname == tmp_path / "data" / "2021" / "03" / "01.jsonl"
 
 
 def test_date2path_todo_expands_topdir(tmp_path, monkeypatch):
@@ -492,7 +492,7 @@ def test_date2path_todo_expands_topdir(tmp_path, monkeypatch):
 
     assert (
         SchedDataFile.date2path(None, "~/data")
-        == f"{tmp_path}/data/ToDo.jsonl"
+        == tmp_path / "data" / "ToDo.jsonl"
     )
 
 
@@ -649,7 +649,7 @@ def test_load_broken_line_is_skipped(tmp_path, bad_line, reason):
 def test_load_broken_encoding_line_is_skipped(tmp_path):
     """utf-8 でデコードできない行だけが飛ばされる。"""
     path = write_data(tmp_path, DATE1, [DATALINE1, DATALINE2])
-    with open(path, mode="ab") as f:
+    with path.open(mode="ab") as f:
         f.write(
             b'{"sde_id": "id-x", "date": "2021-03-01",'
             b' "title": "\xb2\xf1\xb5\xc4"}\n'
@@ -767,7 +767,7 @@ EMPTY_RAW_LINES = [
 def test_broken_line_bytes_are_kept(tmp_path, raw_line):
     """飛ばした行は、元のバイトのまま書き戻される。"""
     path = write_data(tmp_path, DATE1, [DATALINE1])
-    with open(path, mode="ab") as f:
+    with path.open(mode="ab") as f:
         f.write(raw_line + b"\n")
 
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
@@ -784,7 +784,7 @@ def test_broken_line_bytes_are_kept(tmp_path, raw_line):
 def test_broken_line_is_skipped_again(tmp_path, raw_line):
     """書き戻した行は、読み直すとまた飛ばされる（警告も出続ける）。"""
     path = write_data(tmp_path, DATE1, [DATALINE1])
-    with open(path, mode="ab") as f:
+    with path.open(mode="ab") as f:
         f.write(raw_line + b"\n")
 
     SchedDataFile(DATE1, topdir=str(tmp_path)).save()
@@ -801,7 +801,7 @@ def test_broken_line_is_skipped_again(tmp_path, raw_line):
 def test_empty_line_is_not_written_back(tmp_path, raw_line):
     """空行は書き戻さない（飛ばしても失うデータが無いため）。"""
     path = write_data(tmp_path, DATE1, [DATALINE1])
-    with open(path, mode="ab") as f:
+    with path.open(mode="ab") as f:
         f.write(raw_line + b"\n")
 
     sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
@@ -816,7 +816,7 @@ def test_empty_line_is_not_written_back(tmp_path, raw_line):
 def test_empty_line_warning_stops_after_save(tmp_path, raw_line):
     """空行を保存で落とせば、次の読み込みで警告が出なくなる。"""
     path = write_data(tmp_path, DATE1, [DATALINE1])
-    with open(path, mode="ab") as f:
+    with path.open(mode="ab") as f:
         f.write(raw_line + b"\n")
 
     with mock.patch.object(SchedDataFile, "_SchedDataFile__log") as log:
@@ -1091,7 +1091,7 @@ def test_get_sdf_reloads_when_file_changed_outside(tmp_path):
     assert len(sdf1.sde) == 1
 
     # mtime の分解能で不安定にならないよう、明示的に時刻をずらす
-    st = os.stat(path)
+    st = path.stat()
     path.write_text(
         "".join(l + "\n" for l in [DATALINE1, mk_dataline(sde_id="id-2")]),
         encoding="utf-8",
@@ -1184,7 +1184,7 @@ def test_get_sdf_does_not_reload_dirty_day(tmp_path):
     assert DATE1 in sd._dirty_sdf
 
     # mtime の分解能で不安定にならないよう、明示的に時刻をずらす
-    st = os.stat(path)
+    st = path.stat()
     path.write_text(DATALINE1 + "\n", encoding="utf-8")
     os.utime(path, (st.st_atime + 10, st.st_mtime + 10))
 

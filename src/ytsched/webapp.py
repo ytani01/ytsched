@@ -8,7 +8,7 @@ Web Interface
 __author__ = "ytani01"
 __date__ = "2021/01"
 
-import os
+from pathlib import Path
 
 import tornado.httpserver
 import tornado.ioloop
@@ -36,19 +36,17 @@ class WebServer:
 
     DEF_PORT = 10085
     # パッケージに同梱した webroot（templates/, static/）
-    DEF_WEBROOT = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "webroot"
-    )
-    DEF_WORKDIR = os.path.expanduser("~/ytsched")
-    DEF_DATADIR = os.path.join(DEF_WORKDIR, "data")
+    DEF_WEBROOT = Path(__file__).absolute().parent / "webroot"
+    DEF_WORKDIR = Path("~/ytsched").expanduser()
+    DEF_DATADIR = DEF_WORKDIR / "data"
 
     DEF_SIZE_LIMIT = 100 * 1024 * 1024  # 100MB
 
     def __init__(
         self,
         port: int = DEF_PORT,
-        webroot: str = DEF_WEBROOT,
-        datadir: str = DEF_DATADIR,
+        webroot: str | Path = DEF_WEBROOT,
+        datadir: str | Path = DEF_DATADIR,
         url_prefix: str = DEF_URL_PREFIX,
         size_limit: int = DEF_SIZE_LIMIT,
         debug: bool = False,
@@ -59,9 +57,9 @@ class WebServer:
         ----------
         port: int
             port number
-        webroot: str
+        webroot: str | Path
 
-        datadir: str
+        datadir: str | Path
 
         url_prefix: str
 
@@ -73,21 +71,21 @@ class WebServer:
         self.__log.debug(f"size_limit={size_limit}")
 
         self._port = port
-        self._webroot = os.path.expanduser(webroot)
-        self._datadir = os.path.expanduser(datadir)
+        self._webroot = Path(webroot).expanduser()
+        self._datadir = Path(datadir).expanduser()
         self._url_prefix = url_prefix
         self._sd = SchedData(self._datadir)
         self._size_limit = size_limit
 
-        os.makedirs(self._datadir, exist_ok=True)
+        self._datadir.mkdir(parents=True, exist_ok=True)
 
-        self._conf = ConfFile(os.path.join(self._datadir, ConfFile.FNAME))
+        self._conf = ConfFile(self._datadir / ConfFile.FNAME)
         self._app_info = AppInfo(
             title=PROG_NAME,
             author=AUTHOR,
             version=VERSION,
             url_prefix=self._url_prefix + "/",
-            datadir=self._datadir,
+            datadir=str(self._datadir),
         )
 
         # 5 つの ``URLSpec`` すべてで同じ dict を使い回す (TODO-090)
@@ -105,9 +103,9 @@ class WebServer:
                 (rf"{self._url_prefix}/edit", EditHandler, handler_kwargs),
                 (rf"{self._url_prefix}/edit/", EditHandler, handler_kwargs),
             ],
-            static_path=os.path.join(self._webroot, "static"),
+            static_path=self._webroot / "static",
             static_url_prefix=self._url_prefix + "/static/",
-            template_path=os.path.join(self._webroot, "templates"),
+            template_path=self._webroot / "templates",
             autoreload=self._dbg,
             debug=self._dbg,
         )

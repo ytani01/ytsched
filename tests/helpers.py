@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import weakref
+from pathlib import Path
 from unittest import mock
 
 import tornado.httputil
@@ -50,7 +51,7 @@ def make_app(datadir):
     datadir = str(datadir)
     webroot = WebServer.DEF_WEBROOT
     sd = SchedData(datadir)
-    conf = ConfFile(os.path.join(datadir, ConfFile.FNAME))
+    conf = ConfFile(Path(datadir) / ConfFile.FNAME)
     app_info = AppInfo(
         title="Ytsched",
         author="ytani01",
@@ -69,9 +70,9 @@ def make_app(datadir):
             (rf"{URL_PREFIX}/edit", EditHandler, handler_kwargs),
             (rf"{URL_PREFIX}/edit/", EditHandler, handler_kwargs),
         ],
-        static_path=os.path.join(webroot, "static"),
+        static_path=Path(webroot) / "static",
         static_url_prefix=URL_PREFIX + "/static/",
-        template_path=os.path.join(webroot, "templates"),
+        template_path=Path(webroot) / "templates",
         debug=False,
     )
     _APP_SD[app] = sd
@@ -133,7 +134,7 @@ def run_in_c_locale(tmp_path, script, *args):
         LC_ALL="C",
         PYTHONUTF8="0",
         PYTHONCOERCECLOCALE="0",
-        PYTHONPATH=os.path.dirname(os.path.abspath(__file__)),
+        PYTHONPATH=str(Path(__file__).resolve().parent),
     )
 
     return subprocess.run(

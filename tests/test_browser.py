@@ -14,13 +14,13 @@ chromium を動かして、URL だけでなく**画面が変わったか**まで
 """
 
 import datetime
-import os
 import socket
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 import pytest
 
@@ -101,7 +101,7 @@ def server(tmp_path):
 @pytest.fixture
 def page(server):
     """chromium のタブを 1 つ開く。"""
-    if not os.path.exists(CHROMIUM):
+    if not Path(CHROMIUM).exists():
         pytest.skip(f"chromium が無い: {CHROMIUM}")
 
     with playwright_api.sync_playwright() as pw:

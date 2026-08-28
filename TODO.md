@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-100**
-これまでに 97 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086**
+これまでに 98 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-101` から**。
 
@@ -45,31 +45,12 @@ TODO-087..TODO-095 と TODO-097 は、2026-08-27 の基本設計のレビュー
 
 ---
 
-## TODO-100. `os.path` を `pathlib` へ移す
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort medium | implementer + verifier |
-
-- [ ] `os.path.join` / `open` / `os.stat` などを `pathlib.Path` に置き換える
-- [ ] `pyproject.toml` の `extend-select` に `PTH` を足す
-
-TODO-095 で ruff の規則を見直したときに出てきたもの。`PTH` を有効にすると
-約 45 件の指摘が出る（`PTH118` os-path-join が 14 件、`PTH123` builtin-open
-が 13 件、`PTH111` os-path-expanduser と `PTH116` os-stat が各 7 件、
-`PTH113` os-path-isfile と `PTH120` os-path-dirname が各 3〜5 件）。
-
-TODO-095 では `PTH` を有効にしていない。書き換えが済んでいない状態で
-有効にすると `lint` が通らなくなるため、**この項目の中で書き換えと同時に
-足す**。
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-100.** `os.path` を `pathlib` へ移す](archives/todo/TODO-100.%20os.path%20を%20pathlib%20へ移す.md)
 - [**TODO-095.** ruff の規則を増やすか決める](archives/todo/TODO-095.%20ruff%20の規則を増やすか決める.md)
 - [**TODO-094.** 細かいもの](archives/todo/TODO-094.%20細かいもの.md)
 - [**TODO-093.** 表示中の週の月曜日の日付を DOM から `ytState` へ移す](archives/todo/TODO-093.%20表示中の週の月曜日の日付を%20DOM%20から%20ytState%20へ移す.md)

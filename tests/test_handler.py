@@ -52,7 +52,7 @@ def test_settings_are_read(datadir):
     assert handler._app_info.url_prefix == URL_PREFIX + "/"
     assert handler._app_info.datadir == str(datadir)
     assert handler._sd is app_sd(app)
-    assert handler._conf.pathname == os.path.join(str(datadir), CONF_FNAME)
+    assert handler._conf.pathname == datadir / CONF_FNAME
 
 
 def test_load_conf_no_file(datadir):
@@ -125,7 +125,7 @@ def test_conf_reloads_when_file_changed_outside(datadir):
     # mtime の分解能で不安定にならないよう、明示的に時刻をずらす
     conf_path = datadir / CONF_FNAME
     conf_path.write_text('{"ToDo_Days": "30"}', encoding="utf-8")
-    st = os.stat(conf_path)
+    st = conf_path.stat()
     os.utime(conf_path, (st.st_atime + 10, st.st_mtime + 10))
 
     # 次のリクエスト (＝新しい handler) の __init__ で読み直す
@@ -144,7 +144,7 @@ def test_conf_keeps_unsaved_changes(datadir):
     # 保存する (on_finish()) 前に、外からファイルが書き換わる
     conf_path = datadir / CONF_FNAME
     conf_path.write_text('{"ToDo_Days": "30"}', encoding="utf-8")
-    st = os.stat(conf_path)
+    st = conf_path.stat()
     os.utime(conf_path, (st.st_atime + 10, st.st_mtime + 10))
 
     # 同じ app（＝同じ ConfFile）を使う次の handler は、まだ読み直さない
@@ -199,7 +199,7 @@ def test_conf_save_failure_does_not_break_next_request(datadir):
     # 次のリクエストで読み直せる（止まっていない）
     conf_path = datadir / CONF_FNAME
     conf_path.write_text('{"ToDo_Days": "30"}', encoding="utf-8")
-    st = os.stat(conf_path)
+    st = conf_path.stat()
     os.utime(conf_path, (st.st_atime + 10, st.st_mtime + 10))
 
     handler2 = make_handler(make_app(datadir), HandlerBase)

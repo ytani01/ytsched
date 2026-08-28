@@ -14,6 +14,7 @@ import json
 import os
 import shutil
 import uuid
+from pathlib import Path
 from typing import Any, ClassVar
 
 from .mylog import getLogger
@@ -378,8 +379,6 @@ class SchedDataFile:
     __log = getLogger(__qualname__)
 
     DEF_TOP_DIR = "~/ytsched/data"
-    PATH_FORMAT = "%s/%04s/%02s/%02s.jsonl"
-    TODO_PATH_FORMAT = "%s/ToDo.jsonl"
 
     BACKUP_EXT = ".bak"
     ENCODING = "utf-8"
@@ -387,12 +386,12 @@ class SchedDataFile:
     def __init__(
         self,
         date: datetime.date | None = None,
-        topdir: str = DEF_TOP_DIR,
+        topdir: str | Path = DEF_TOP_DIR,
     ):
         """
         date: datetime.date | None
             None: ToDo
-        topdir: str
+        topdir: str | Path
 
         """
         self.__log.debug(f"date={date}, topdir={topdir}")
@@ -400,7 +399,7 @@ class SchedDataFile:
         self.date = date
         # ``topdir`` は外から読める属性なので、ここでも展開しておく。
         # パスの組み立て自体は ``date2path()`` 側で展開する (TODO-034)
-        self.topdir = os.path.expanduser(topdir)
+        self.topdir = Path(topdir).expanduser()
 
         self.pathname = self.date2path(self.date, self.topdir)
 
@@ -427,8 +426,10 @@ class SchedDataFile:
 
     @classmethod
     def date2path(
-        cls, date: datetime.date | None = None, topdir: str = DEF_TOP_DIR
-    ) -> str:
+        cls,
+        date: datetime.date | None = None,
+        topdir: str | Path = DEF_TOP_DIR,
+    ) -> Path:
         """
         ファイルを開かずにパスだけ知りたいことがあるので、
         インスタンスを作らずに呼べるようにしてある (TODO-028)。
@@ -442,20 +443,20 @@ class SchedDataFile:
             None: ToDo
         Returns
         -------
-        path: str
+        path: Path
 
         """
-        topdir = os.path.expanduser(topdir)
+        topdir = Path(topdir).expanduser()
 
         if date:
-            pathname = cls.PATH_FORMAT % (
-                topdir,
-                date.strftime("%Y"),
-                date.strftime("%m"),
-                date.strftime("%d"),
+            pathname = (
+                topdir
+                / date.strftime("%Y")
+                / date.strftime("%m")
+                / f"{date.strftime('%d')}.jsonl"
             )
         else:
-            pathname = cls.TODO_PATH_FORMAT % (topdir)
+            pathname = topdir / "ToDo.jsonl"
 
         return pathname
 
@@ -481,13 +482,13 @@ class SchedDataFile:
         self.skipped_lines = []
 
         try:
-            with open(self.pathname, mode="rb") as f:
+            with self.pathname.open(mode="rb") as f:
                 data = f.read()
                 st = os.fstat(f.fileno())
         except FileNotFoundError:
             self.__log.debug(f"{self.pathname}: not found .. ignored")
             # ``None`` は「無い」ことを表す。あとでファイルができれば
-            # ``os.stat()`` の結果と食い違うので、``is_stale()`` が
+            # ``Path.stat()`` の結果と食い違うので、``is_stale()`` が
             # 読み直しが要ると判断できる（TODO-080）
             self._stat_key = None
             return []
@@ -519,7 +520,7 @@ class SchedDataFile:
     def is_stale(self) -> bool:
         """読み込んだあとに、ファイルが外部で書き換えられたか（TODO-080）。
 
-        ``os.stat()`` は 1 回だけ呼ぶ。ファイルが消えていたり
+        ``Path.stat()`` は 1 回だけ呼ぶ。ファイルが消えていたり
         権限が無い場合は ``OSError`` を握りつぶし、「無くなった」も
         変化ありとして扱う（呼び出し側を 500 にしないため）。
 
@@ -527,7 +528,7 @@ class SchedDataFile:
         値が変わらず見分けが付かないことがある。``st_size`` も
         あわせて見ることで、内容が変わっていれば大抵は取りこぼさない
         （中身の量が変わらない書き換えまでは見分けられないが、
-        毎回 ``os.stat()`` の他にハッシュを取るような重い方法は
+        毎回 ``Path.stat()`` の他にハッシュを取るような重い方法は
         取らない）。
 
         Returns
@@ -536,7 +537,7 @@ class SchedDataFile:
 
         """
         try:
-            st = os.stat(self.pathname)
+            st = self.pathname.stat()
         except OSError:
             current_key = None
         else:
@@ -655,16 +656,15 @@ class SchedDataFile:
         """
         self.__log.debug("")
 
-        if (
-            os.path.exists(self.pathname)
-            and os.path.getsize(self.pathname) > 0
-        ):
-            backup_pathname = self.pathname + self.BACKUP_EXT
+        if self.pathname.exists() and self.pathname.stat().st_size > 0:
+            backup_pathname = self.pathname.with_name(
+                self.pathname.name + self.BACKUP_EXT
+            )
             shutil.move(self.pathname, backup_pathname)
 
-        os.makedirs(os.path.dirname(self.pathname), exist_ok=True)
+        self.pathname.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(self.pathname, mode="wb") as f:
+        with self.pathname.open(mode="wb") as f:
             for sde in self.sde:
                 line = sde.mk_dataline()
                 f.write(line.encode(self.ENCODING) + b"\n")
@@ -760,7 +760,7 @@ class SchedData:
 
     def __init__(
         self,
-        topdir: str = SchedDataFile.DEF_TOP_DIR,
+        topdir: str | Path = SchedDataFile.DEF_TOP_DIR,
         cache_size: int = DEF_CACHE_SIZE,
     ):
         """Constructor
@@ -828,7 +828,7 @@ class SchedData:
             return True
 
         pathname = SchedDataFile.date2path(date, self._topdir)
-        return os.path.isfile(pathname)
+        return pathname.is_file()
 
     def get_sdf(self, date: datetime.date | None = None) -> SchedDataFile:
         """
