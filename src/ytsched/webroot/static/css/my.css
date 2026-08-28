@@ -446,6 +446,22 @@ textarea {
     height: 1.25em;
 }
 
+/* フッタで入力欄と並べるときの大きさ。検索欄・フィルタ欄の高さが
+   25.5px なので、1.6em (= 25.6px) でほぼ揃う。1.25em (20px) では
+   アイコンだけ一回り小さく、下側が浮いて見えた (TODO-102) */
+.my-icon-xl {
+    width: 1.6em;
+    height: 1.6em;
+}
+
+/* ホームボタンのアイコン。隣の日付表示 (``.my-home-date``) が
+   ``line-height: 10px`` の 3 行で 30px あるので、それに揃える
+   (1.875em = 30px。TODO-102) */
+.my-icon-home {
+    width: 1.875em;
+    height: 1.875em;
+}
+
 .my-icon-2x {
     width: 2em;
     height: 2em;

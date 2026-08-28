@@ -247,7 +247,7 @@
       <div class="col-2 p-0 text-center">
         <label for="menu-sw" class="m-0 my-btn">
           &nbsp;
-          <svg class="my-icon my-icon-lg align-middle">
+          <svg class="my-icon my-icon-xl align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#bars"></use>
           </svg>
           &nbsp;
@@ -259,7 +259,7 @@
            リスナーの登録は main-page.js) -->
       <div id="back_button" class="col-1 p-0 text-center my-btn"
         data-page-turn="-1">
-        <svg class="my-icon my-icon-lg">
+        <svg class="my-icon my-icon-xl">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-left"></use>
         </svg>
       </div><!-- col -->
@@ -267,7 +267,7 @@
       <!-- forward (ダブルタップで自動ページ送り。TODO-084) -->
       <div id="forward_button" class="col-1 p-0 text-center my-btn"
         data-page-turn="1">
-        <svg class="my-icon my-icon-lg">
+        <svg class="my-icon my-icon-xl">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-right"></use>
         </svg>
       </div><!-- col -->
@@ -284,7 +284,7 @@
           </span><br />
           &nbsp;&nbsp; {{ today.strftime('(%a)') }}
         </span>
-        <svg class="my-icon my-icon-lg align-middle">
+        <svg class="my-icon my-icon-home align-middle">
           <use href="{{ static_url('icons/icons.svg') }}#home"></use>
         </svg>
       </div><!-- col -->
@@ -294,7 +294,7 @@
         <form id="form_search" name="form_search"
           action="{{ url_prefix }}" method="POST">
 
-          <svg class="my-icon my-icon-lg my-btn align-middle"
+          <svg class="my-icon my-icon-xl my-btn align-middle"
             onmousedown="doSubmit('form_search');">
             <use href="{{ static_url('icons/icons.svg') }}#search"></use>
           </svg>
@@ -302,7 +302,7 @@
             type="text" size="6"
             class="my-fs-small align-middle"
             value="{{ search_str }}" />
-          <svg class="my-icon my-icon-lg my-btn align-middle"
+          <svg class="my-icon my-icon-xl my-btn align-middle"
             onmousedown="search_str.value='';">
             <use href="{{ static_url('icons/icons.svg') }}#backspace"></use>
           </svg>
@@ -344,7 +344,7 @@
       <div class="col-3 p-0 text-center">
         <form id="todo_days_form" name="todo_days_form"
           action="{{ url_prefix }}" method="POST">
-          <svg class="my-icon my-icon-lg align-middle">
+          <svg class="my-icon my-icon-xl align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#list"></use>
           </svg>
           <select id="todo_days" name="todo_days"
@@ -369,7 +369,7 @@
       <div class="col-4 p-0 text-center my-fs-medium">
         <form id="form_filter" name="form_filter"
           action="{{ url_prefix }}" method="POST">
-          <svg class="my-icon my-icon-lg my-btn align-middle"
+          <svg class="my-icon my-icon-xl my-btn align-middle"
             onmousedown="doSubmit('form_filter');">
             <use href="{{ static_url('icons/icons.svg') }}#filter"></use>
           </svg>
