@@ -912,7 +912,7 @@ class TestLoadSchedScan(WebTestBase):
         )
 
         # 当たった 2 日だけが、古い順に並ぶ
-        assert [s["date"] for s in sched] == [
+        assert [s.date for s in sched] == [
             self.BASE - datetime.timedelta(300),
             self.BASE,
         ]
@@ -932,7 +932,7 @@ class TestLoadSchedScan(WebTestBase):
         sched, date_from, date_to = self.assert_same_as_opening_every_day()
 
         day = datetime.timedelta(1)
-        assert [s["date"] for s in sched] == [
+        assert [s.date for s in sched] == [
             self.BASE + day * i for i in range(7)
         ]
         assert date_from == self.BASE
@@ -950,7 +950,7 @@ class TestLoadSchedScan(WebTestBase):
             date=self.BASE - datetime.timedelta(1)
         )
 
-        holiday = {s["date"] for s in sched if s["is_holiday"]}
+        holiday = {s.date for s in sched if s.is_holiday}
         assert holiday == {self.BASE - datetime.timedelta(1)}
 
     def test_todo_is_shown_on_a_day_without_data_file(self):
@@ -967,8 +967,8 @@ class TestLoadSchedScan(WebTestBase):
 
         todo_date = self.BASE - datetime.timedelta(2)
         assert not self.data_path(todo_date).exists()
-        day = next(s for s in sched if s["date"] == todo_date)
-        assert [sde.title for sde in day["sde"]] == [self.TODO_TITLE]
+        day = next(s for s in sched if s.date == todo_date)
+        assert [sde.title for sde in day.sde] == [self.TODO_TITLE]
 
     def test_days_without_file_are_not_opened(self):
         """1825 日さかのぼっても、キャッシュに積まれるのは実在する分だけ。

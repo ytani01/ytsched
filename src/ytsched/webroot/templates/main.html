@@ -142,13 +142,13 @@
     <div class="my-week-viewport">
     <div id="week_wrap" class="my-week-wrap">
     {% for w in weeks %}
-    <div class="my-week-panel{% if w['offset'] == 0 %} my-week-cur{% end %}"
-      data-offset="{{ w['offset'] }}"
-      {% if not search_mode %}data-monday="{{ w['monday'] }}"{% end %}
-      style="left: {{ w['offset'] * 100 }}%">
-    {% for sched_ent in w['sched'] %}
+    <div class="my-week-panel{% if w.offset == 0 %} my-week-cur{% end %}"
+      data-offset="{{ w.offset }}"
+      {% if not search_mode %}data-monday="{{ w.monday }}"{% end %}
+      style="left: {{ w.offset * 100 }}%">
+    {% for sched_ent in w.sched %}
 
-    {% set sched_date = sched_ent['date'] %}
+    {% set sched_date = sched_ent.date %}
 
     <!-- {{ sched_date }} -->
     {% set today_flag = False %}
@@ -226,7 +226,7 @@
       <!-- スケジュール -->
       <div class="col-11 p-0">
         <!-- Schedule -->
-        {% for sde in sched_ent['sde'] %}
+        {% for sde in sched_ent.sde %}
         {% include sde.html %}
         {% end %}
       </div><!-- col -->
@@ -327,7 +327,7 @@
       <div class="col-6 my-fs-small">
         Version {{ version }}
         <span class="my-fs-xx-small">
-          ({{ sd.get_cache_size() }})</span>
+          ({{ cache_size }})</span>
       </div>
       <div class="col-6 text-end my-fs-small">
         (c) 2026 <strong>{{ author }}</strong>

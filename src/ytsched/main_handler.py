@@ -19,7 +19,13 @@ import tornado.web
 from . import handler_util
 from .handler import HandlerBase
 from .mylog import getLogger
-from .sched_load import SchedLoadCond, SchedLoader, SchedSearchCond
+from .sched_load import (
+    SchedDay,
+    SchedLoadCond,
+    SchedLoader,
+    SchedSearchCond,
+    SchedWeek,
+)
 from .sched_update import SchedUpdateForm, SchedUpdater
 from .ytsched import SchedData, normalize
 
@@ -346,7 +352,7 @@ class MainHandler(HandlerBase):
             search_error=search_error,
             search_n=search_n,
             sde_align=sde_align,
-            sd=self._sd,
+            cache_size=self._sd.get_cache_size(),
             auto_turn_msec=auto_turn_msec,
         )
 
@@ -354,11 +360,11 @@ class MainHandler(HandlerBase):
         self,
         date: datetime.date,
         cond: SchedLoadCond,
-        sched: list[dict],
+        sched: list[SchedDay],
         date_from: datetime.date,
         search_mode: bool,
         load_months: int,
-    ) -> list[dict[str, object]]:
+    ) -> list[SchedWeek]:
         """前後の週も一緒に描くための ``weeks`` を組み立てる
         (TODO-057・TODO-069・TODO-088)。
 
@@ -375,7 +381,7 @@ class MainHandler(HandlerBase):
         ----------
         date: datetime.date
         cond: SchedLoadCond
-        sched: list[dict]
+        sched: list[SchedDay]
             いまの週 (検索モードでは検索結果) の ``sched``
         date_from: datetime.date
             通常モードでは、いまの週の月曜
@@ -384,16 +390,16 @@ class MainHandler(HandlerBase):
 
         Returns
         -------
-        list[dict[str, object]]
+        list[SchedWeek]
 
         """
         if search_mode:
             # 検索モードの範囲は週の区切りに合わないので、隣の週は
             # 持たせない (TODO-069)。DOM の中で週を移ることも無い
             monday = date - datetime.timedelta(date.weekday())
-            return [{"offset": 0, "monday": monday, "sched": sched}]
+            return [SchedWeek(offset=0, monday=monday, sched=sched)]
 
-        weeks: list[dict[str, object]] = []
+        weeks: list[SchedWeek] = []
         weeks_n = self.months2weeks(load_months)
         for offset in range(-weeks_n, weeks_n + 1):
             monday = date_from + datetime.timedelta(7 * offset)
@@ -402,11 +408,11 @@ class MainHandler(HandlerBase):
             else:
                 sched_offset, _, _ = self._loader.load_week(monday, cond)
             weeks.append(
-                {
-                    "offset": offset,
-                    "monday": monday,
-                    "sched": sched_offset,
-                }
+                SchedWeek(
+                    offset=offset,
+                    monday=monday,
+                    sched=sched_offset,
+                )
             )
 
         return weeks

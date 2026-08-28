@@ -100,6 +100,30 @@ class SchedSearchCond:
     search_n: int
 
 
+@dataclasses.dataclass
+class SchedDay:
+    """``sched`` の 1 要素 (TODO-091)。
+
+    ``load_week()``/``search()`` が返す ``sched`` の各日。
+    """
+
+    date: datetime.date
+    is_holiday: bool
+    sde: list[SchedDataEnt]
+
+
+@dataclasses.dataclass
+class SchedWeek:
+    """``weeks`` の 1 要素 (TODO-091)。
+
+    ``MainHandler.mk_weeks()`` が前後の週も含めて組み立てる。
+    """
+
+    offset: int
+    monday: datetime.date
+    sched: list[SchedDay]
+
+
 class SchedLoader:
     """スケジュールを読み集める (TODO-088)。"""
 
@@ -215,7 +239,7 @@ class SchedLoader:
         cond: SchedLoadCond,
         search_re: re.Pattern[str] | None = None,
         extra_sde: list[SchedDataEnt] | None = None,
-    ) -> tuple[dict, int]:
+    ) -> tuple[SchedDay, int]:
         """1 日ぶんのスケジュールを集める (TODO-088)。
 
         ``load_week()``・``search()`` の共通部分。``search_re`` は
@@ -232,8 +256,8 @@ class SchedLoader:
 
         Returns
         -------
-        day: dict
-            ``sched`` の 1 要素 (``date``/``is_holiday``/``sde``)
+        day: SchedDay
+            ``sched`` の 1 要素
         hit_count: int
             その日にファイルから当たった件数 (ToDo は数えない。
             検索の打ち切りに使う)
@@ -264,18 +288,18 @@ class SchedLoader:
 
         out_sde = sorted(out_sde, key=lambda x: x.get_sortkey())
 
-        day = {
-            "date": date1,
-            "is_holiday": sdf.is_holiday if sdf else False,
-            "sde": out_sde,
-        }
+        day = SchedDay(
+            date=date1,
+            is_holiday=sdf.is_holiday if sdf else False,
+            sde=out_sde,
+        )
         return day, hit_count
 
     def load_week(
         self,
         date: datetime.date,
         cond: SchedLoadCond,
-    ) -> tuple[list[dict], datetime.date, datetime.date]:
+    ) -> tuple[list[SchedDay], datetime.date, datetime.date]:
         """``date`` を含む週 (月曜〜日曜) のスケジュールを集める。
 
         Parameters
@@ -287,7 +311,7 @@ class SchedLoader:
 
         Returns
         -------
-        sched: list[dict]
+        sched: list[SchedDay]
             日付の昇順。1 件も当たらない日も落とさない
         date_from: datetime.date
             ``date`` を含む週の月曜 (TODO-049)
@@ -315,7 +339,7 @@ class SchedLoader:
         date: datetime.date,
         cond: SchedLoadCond,
         search_cond: SchedSearchCond,
-    ) -> tuple[list[dict], datetime.date, datetime.date]:
+    ) -> tuple[list[SchedDay], datetime.date, datetime.date]:
         """``date`` から過去へさかのぼって検索結果を集める。
 
         Parameters
@@ -326,7 +350,7 @@ class SchedLoader:
 
         Returns
         -------
-        sched: list[dict]
+        sched: list[SchedDay]
             日付の昇順。1 件も当たらなかった日は並べない
             (ToDo だけの日は並べる)
         date_from: datetime.date
@@ -368,7 +392,7 @@ class SchedLoader:
             )
             search_count += hit_count
 
-            if not day["sde"]:
+            if not day.sde:
                 continue
 
             sched.append(day)

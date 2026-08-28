@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-090..TODO-095**
-これまでに 88 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-090, TODO-092..TODO-095**
+これまでに 89 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-097` から**。
 
@@ -11,7 +11,7 @@ TODO-087..TODO-095 は、2026-08-27 の基本設計のレビュー（A〜P の 1
 （git の履歴にある）。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
-前後があった 3 つ（TODO-087 → TODO-088 → TODO-071・TODO-091）のうち、
+前後があった 3 つ（TODO-087 → TODO-088 → TODO-071）のうち、
 先に済ませるほうは決着したので、残りはどの順でもよい。
 
 ---
@@ -80,34 +80,6 @@ F は、1 リクエストの中で同じ日を 2 回引き、その間に外部�
 単一ユーザなのでまず起きないが、TODO-080 と TODO-077 の 2 つの仕組みが
 互いを見ていない。**`conf.json` をキャッシュする（E）ときに、同じことを
 決めることになる**ので、ここで一緒に片付ける。
-
----
-
-## TODO-091. `SchedData` の渡し方と、表示に渡す値の dataclass 化
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | implementer + verifier |
-
-- [ ] テンプレートへ `sd` そのものを渡すのをやめる（`cache_size` だけ渡す。画面に出し続けるかも決める）
-- [ ] `load_week()` / `search()` が返す `list[dict]` と、`mk_weeks()` が作る `weeks` を dataclass にする
-
-基本設計のレビュー（2026-08-27）の G・H。
-
-`sd=self._sd` は、データを持つオブジェクトがそのままテンプレートに入る
-唯一の経路で、テンプレートからはどのメソッドも呼べる。使っているのは
-`main.html` の `sd.get_cache_size()` 1 つだけ（`src/` の中では他に、
-`get_sdf()` がキャッシュの上限と比べる 1 か所があるだけ）。
-
-入力側の条件は TODO-079 で `SchedLoadCond` になったが、出力側は dict の
-まま。`SchedLoader.load_week()` / `search()` が返す `sched` は `date` /
-`is_holiday` / `sde` の 3 キーを持つ `list[dict]`、`mk_weeks()` が作る
-`weeks` は `offset` / `monday` / `sched` を持つ `list[dict[str, object]]`。
-テンプレート側は `sched_ent['date']`、`w['monday']` と文字列で引くので、
-キー名を変えても型チェッカは気づかない。**`monday` が検索モードで
-`None` になる件は TODO-088 で片付いた**（いつでも実際の月曜が入り、
-`data-monday` を出すかどうかはテンプレートが `search_mode` で決める）
-ので、`monday` を省略できる型にしなくてよい。
 
 ---
 
@@ -229,6 +201,7 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-091.** `SchedData` の渡し方と、表示に渡す値の dataclass 化](archives/todo/TODO-091.%20SchedData%20の渡し方と、表示に渡す値の%20dataclass%20化.md)
 - [**TODO-089.** `edit.html` の JavaScript を `edit-page.js` へ出す](archives/todo/TODO-089.%20edit.html%20の%20JavaScript%20を%20edit-page.js%20へ出す.md)
 - [**TODO-096.** Android の Firefox でアイコンが黒く塗りつぶされる](archives/todo/TODO-096.%20Android%20の%20Firefox%20でアイコンが黒く塗りつぶされる.md)
 - [**TODO-084.** フッターの ◀▶ をダブルタップして自動ページ送り](archives/todo/TODO-084.%20フッターの%20◀▶%20をダブルタップして自動ページ送り.md)
