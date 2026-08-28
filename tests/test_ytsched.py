@@ -320,6 +320,27 @@ def test_is_todo(sde_type, expected):
     assert mk_sde(sde_type=sde_type).is_todo() is expected
 
 
+TODAY0 = datetime.date(2022, 6, 15)
+
+
+@pytest.mark.parametrize(
+    ("offset_days", "expected"),
+    [
+        (-7, "over"),
+        (-1, "over"),
+        (0, "near"),
+        (6, "near"),
+        (7, "near"),
+        (8, ""),
+        (30, ""),
+    ],
+)
+def test_todo_urgency(offset_days, expected):
+    sde = mk_sde()
+    sde.set_date(TODAY0 + datetime.timedelta(days=offset_days))
+    assert sde.todo_urgency(TODAY0) == expected
+
+
 @pytest.mark.parametrize(
     ("sde_type", "expected"),
     [

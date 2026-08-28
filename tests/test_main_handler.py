@@ -539,8 +539,8 @@ class TestExecUpdateDeadline(WebTestBase):
 class TestDateOrder(WebTestBase):
     """``get()`` の「set Date」ブロックで、どれが勝つか。
 
-    ``cur_day`` → ``date`` → ``modified_date`` → ``year``+``month``
-    +``day`` の順に上書きされる（後のものが勝つ）。
+    ``cur_day`` → ``date`` → ``modified_date`` の順に上書きされる
+    （後のものが勝つ）。
     ``DAYS`` は 1 なので、出る日は ``date`` とその前日だけ。
     """
 
@@ -564,31 +564,6 @@ class TestDateOrder(WebTestBase):
 
         assert date_id(DATE1) in body
         assert date_id(datetime.date(2020, 1, 15)) not in body
-
-    def test_year_month_day_beats_date(self):
-        """``year`` ``month`` ``day`` が 3 つ揃えば、``date`` より強い。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="2021",
-            month="5",
-            day="6",
-        )
-
-        assert date_id(datetime.date(2021, 5, 6)) in body
-        assert date_id(DATE1) not in body
-
-    def test_incomplete_year_month_day_is_ignored(self):
-        """1 つでも欠けると、``year`` ``month`` ``day`` は無視される。"""
-        for args in [
-            {"month": "5", "day": "6"},
-            {"year": "2021", "day": "6"},
-            {"year": "2021", "month": "5"},
-        ]:
-            body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, **args)
-
-            assert date_id(DATE1) in body
-            assert date_id(datetime.date(2021, 5, 6)) not in body
 
     def test_no_argument_is_today(self):
         """どれも無ければ今日。"""
@@ -616,29 +591,6 @@ class TestDateOrder(WebTestBase):
 
         assert date_id(datetime.date.today()) in body
         assert date_id(DATE1) not in body
-
-    def test_year_month_day_beats_modified_date(self):
-        """``year`` ``month`` ``day`` は ``modified_date`` より強い。
-
-        データは ``date`` 引数の日に書かれるが、表示だけ動く。
-        """
-        body = self.post_body(
-            URL_PREFIX + "/",
-            cmd="add",
-            sde_id="",
-            date=DATE1_STR,
-            sde_type="会議",
-            title="新しい予定",
-            place="",
-            detail="",
-            year="2021",
-            month="5",
-            day="6",
-        )
-
-        assert date_id(datetime.date(2021, 5, 6)) in body
-        assert date_id(DATE1) not in body
-        assert self.data_path(DATE1).exists()
 
     def test_todo_add_moves_to_the_deadline_date(self):
         """ToDo を足すと、その期限の日付が表示される。

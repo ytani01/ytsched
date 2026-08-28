@@ -1,6 +1,15 @@
 {# -*- engine: tornado -*- #}
+{# main.html から受け取る変数 (この 5 個は宣言なしで使う):
+   {% include %} は名前空間を親と共有するので、main.html 側で
+   {% set %} された変数がそのまま見える。ここで {% set %} し直さ
+   ないため、main.html 側で {% set %} の位置を動かすと黙って壊れる。
+     sde         -- 予定 1 件 (main.html の {% for sde in sched_ent.sde %})
+     sched_date  -- いま描いている日 (sched_ent.date)
+     today_flag  -- sched_date が今日かどうか (チェックボックスの id に使う)
+     today       -- datetime.date.today() (sde.todo_urgency(today) に渡す)
+     url_prefix  -- 編集画面の URL を組み立てる
+#}
 <!--
-     {% set sde_count = sde_count + 1 %}
      {% set url = url_prefix + 'edit/' %}
 
      {% set class_bg = 'my-sde-normal' %}
@@ -12,10 +21,9 @@
 
      {% if sde.is_todo() %}
      {% set class_bg = 'my-sde-todo' %}
-     {% if sde.date < today %}
-     {% set class_bg = 'my-sde-todo-over' %}
-     {% elif sde.date <= today + delta_day1 * 7 %}
-     {% set class_bg = 'my-sde-todo-near' %}
+     {% set _urgency = sde.todo_urgency(today) %}
+     {% if _urgency %}
+     {% set class_bg = 'my-sde-todo-' + _urgency %}
      {% end %}
      {% end %}
 
@@ -80,9 +88,6 @@
                 date:'{{ sched_date }}',
                 sde_id: '{{ sde.sde_id }}',
                 todo_flag: {{ str(sde.is_todo()).lower() }},
-                cur_date: '{{ date }}',
-                date_from: '{{ date_from }}',
-                date_to: '{{ date_to }}',
                 });">
       {% if sde.is_todo() %}
       {% if sde.date != sched_date %}

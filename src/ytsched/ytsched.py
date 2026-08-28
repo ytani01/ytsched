@@ -52,6 +52,8 @@ class SchedDataEnt:
     TIME_FORMAT = "%H:%M"
 
     TYPE_PREFIX_TODO = "□"
+    #: ToDo の期限が「近い」とみなす日数（TODO-092）
+    TODO_NEAR_DAYS = 7
     TYPE_HOLYDAY: ClassVar[list[str]] = ["休日", "祝日"]
 
     TITLE_PREFIX_IMPORTANT: ClassVar[list[str]] = [
@@ -260,6 +262,28 @@ class SchedDataEnt:
     def is_todo(self):
         """ToDo かどうか（``type`` の先頭で判定する）。"""
         return self.type_is_todo(self.type)
+
+    def todo_urgency(self, today: datetime.date) -> str:
+        """ToDo の期限の近さ。
+
+        期限を過ぎていれば ``over``、1 週間以内なら ``near``、
+        それ以外は空文字を返す。``is_todo()`` の判定はしない
+        （呼ぶ側が ``is_todo()`` で分けている前提）。
+
+        Parameters
+        ----------
+        today: datetime.date
+
+        Returns
+        -------
+        str
+
+        """
+        if self.date < today:
+            return "over"
+        if self.date <= today + datetime.timedelta(days=self.TODO_NEAR_DAYS):
+            return "near"
+        return ""
 
     def is_holiday(self):
         """休日かどうか（``type`` で判定する）。"""

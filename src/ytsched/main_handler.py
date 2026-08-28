@@ -62,8 +62,6 @@ class MainHandler(HandlerBase):
     }
     DEF_TODO_DAYS = 365
 
-    DELTA_DAY1 = datetime.timedelta(1)
-
     #: 前後どれだけの週を DOM に持たせるか (ヶ月。TODO-069)。
     #: ``conf.json`` の ``LoadMonths`` で変えられる
     DEF_LOAD_MONTHS = 1
@@ -337,7 +335,6 @@ class MainHandler(HandlerBase):
             version=self._version,
             url_prefix=self._url_prefix,
             today=today,
-            delta_day1=self.DELTA_DAY1,
             date=date,
             date_from=date_from,
             date_to=date_to,
@@ -416,36 +413,6 @@ class MainHandler(HandlerBase):
             )
 
         return weeks
-
-    def str2ymd_date(self, value: str) -> datetime.date:
-        """``year/month/day`` の形の文字列を日付にする (TODO-027)。
-
-        ``convert_value()`` に渡す変換関数。``ymd2date()`` が 3 つの
-        引数を ``/`` で繋いで渡す。数が合わなければ ``ValueError``。
-
-        年・月・日は、``datetime.date()`` へ渡す**前に**、それぞれの
-        範囲を見る (``check_int_range()``)。日が月末を越えているか
-        どうかは ``datetime.date()`` が見る。
-
-        Parameters
-        ----------
-        value: str
-            ``2021/3/1`` の形 (0 詰めはしない)
-
-        Returns
-        -------
-        datetime.date
-
-        """
-        year_str, month_str, day_str = value.split("/")
-
-        year = handler_util.check_int_range(
-            "year", int(year_str), datetime.MINYEAR, datetime.MAXYEAR
-        )
-        month = handler_util.check_int_range("month", int(month_str), 1, 12)
-        day = handler_util.check_int_range("day", int(day_str), 1, 31)
-
-        return handler_util.check_date(datetime.date(year, month, day))
 
     def str2todo_days(self, value: str) -> int:
         """ToDo の期間 (日数) にする (TODO-027)。
@@ -771,8 +738,7 @@ class MainHandler(HandlerBase):
     def get_date(self, modified_date: datetime.date | None) -> datetime.date:
         """表示する日付を決める。
 
-        強い順に ``year``+``month``+``day``、``modified_date``、
-        ``date``、``cur_day``、今日。
+        強い順に ``modified_date``、``date``、``cur_day``、今日。
 
         Parameters
         ----------
@@ -808,47 +774,11 @@ class MainHandler(HandlerBase):
         if modified_date:
             date = modified_date
 
-        year = self.get_argument("year", None)
-        month = self.get_argument("month", None)
-        day = self.get_argument("day", None)
-
-        if year and month and day:
-            # 日付にならなければ「指定が無かった」のと同じ (TODO-027)
-            parsed = self.ymd2date(year, month, day)
-            if parsed is not None:
-                date = parsed
-
         if not date:
             date = cur_day
 
         self.__log.debug(f"date={date}")
         return date
-
-    def ymd2date(
-        self, year: str, month: str, day: str
-    ) -> datetime.date | None:
-        """``year``/``month``/``day`` を日付にする (TODO-027)。
-
-        数字にならない値も、``month=13``/``day=32`` のような範囲外も、
-        表示に使えないほど遠い日付も ``None`` を返して、警告を 1 行
-        出す。変換と警告は ``convert_value()`` に任せるので、3 つを
-        ``year/month/day`` の形に繋いでから渡す。
-
-        Parameters
-        ----------
-        year: str
-        month: str
-        day: str
-
-        Returns
-        -------
-        datetime.date | None
-            日付にならなければ ``None``
-
-        """
-        return handler_util.convert_value(
-            "year/month/day", f"{year}/{month}/{day}", self.str2ymd_date
-        )
 
     def get_sde_align(self) -> str:
         """スケジュールの表示位置 (``top``/``bottom``)。"""

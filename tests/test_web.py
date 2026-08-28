@@ -390,13 +390,6 @@ class TestMainHandler(WebTestBase):
 
         assert read_conf(self.datadir)["FilterStr"] == "["
 
-    def test_year_month_day_arguments(self):
-        body = self.get_body(
-            URL_PREFIX + "/", year="2021", month="3", day="1"
-        )
-
-        assert 'id="date-2021-03-01"' in body
-
     def test_cur_day_argument(self):
         """``date`` が無ければ ``cur_day`` を使う。"""
         body = self.get_body(URL_PREFIX + "/", cur_day=DATE1_STR)
@@ -882,7 +875,7 @@ class TestInvalidArgs(WebTestBase):
         assert self.week_panel_count(body) == 1
 
     #
-    # date / cur_day / year+month+day
+    # date / cur_day
     #
     def test_invalid_date_falls_back_to_cur_day(self):
         """日付として読めない ``date`` は「無し」扱い。"""
@@ -902,130 +895,9 @@ class TestInvalidArgs(WebTestBase):
 
         assert self.today_id() in body
 
-    def test_invalid_year_is_ignored(self):
-        """数字にならない ``year`` は「無し」扱いで、``date`` が残る。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="abc",
-            month="3",
-            day="1",
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_out_of_range_month_is_ignored(self):
-        """``month=13`` も「無し」扱い。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="2021",
-            month="13",
-            day="1",
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_out_of_range_day_is_ignored(self):
-        """``day=32`` も「無し」扱い。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="2021",
-            month="3",
-            day="32",
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_invalid_year_month_day_falls_back_to_today(self):
-        """``date``/``cur_day`` も無ければ今日。"""
-        body = self.get_body(
-            URL_PREFIX + "/", year="2021", month="13", day="1"
-        )
-
-        assert self.today_id() in body
-
-    def test_valid_year_month_day_still_works(self):
-        """正しい ``year``/``month``/``day`` は今までどおり効く。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date="2021-04-01",
-            year="2021",
-            month="3",
-            day="1",
-        )
-
-        assert date_id(DATE1) in body
-
     #
     # 数字・日付にはなるが、表示に使えない値（TODO-027）
     #
-    def test_huge_year_is_ignored(self):
-        """C の ``int`` に収まらない ``year`` も「無し」扱い。
-
-        ``datetime.date()`` は ``ValueError`` ではなく
-        ``OverflowError`` を投げるので、以前はここで 500 になった。
-        """
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="99999999999",
-            month="1",
-            day="1",
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_huge_month_is_ignored(self):
-        """C の ``int`` に収まらない ``month`` も「無し」扱い。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="2021",
-            month="99999999999",
-            day="1",
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_huge_day_is_ignored(self):
-        """C の ``int`` に収まらない ``day`` も「無し」扱い。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="2021",
-            month="1",
-            day="99999999999",
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_hugely_negative_day_is_ignored(self):
-        """負の側にはみ出す ``day`` も「無し」扱い。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="2021",
-            month="1",
-            day="-99999999999",
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_huge_month_logs_a_warning(self):
-        """範囲外の ``month`` も、範囲が分かる形で警告を出す。"""
-        with capture_log() as log:
-            self.get_body(
-                URL_PREFIX + "/",
-                date=DATE1_STR,
-                year="2021",
-                month="99999999999",
-                day="1",
-            )
-
-        assert "month must be in 1..12" in log.getvalue()
-
     def test_far_future_date_is_ignored(self):
         """``datetime.date.max`` に近すぎる ``date`` は「無し」扱い。
 
@@ -1042,18 +914,6 @@ class TestInvalidArgs(WebTestBase):
         """``datetime.date.min`` に近すぎる ``date`` も同じ。"""
         body = self.get_body(
             URL_PREFIX + "/", date="0001-01-01", cur_day=DATE1_STR
-        )
-
-        assert date_id(DATE1) in body
-
-    def test_far_future_year_month_day_is_ignored(self):
-        """``year``/``month``/``day`` で指定しても同じ。"""
-        body = self.get_body(
-            URL_PREFIX + "/",
-            date=DATE1_STR,
-            year="9999",
-            month="12",
-            day="31",
         )
 
         assert date_id(DATE1) in body

@@ -75,10 +75,6 @@
       type="hidden" value="{{ sde_align }}" />
     <input id="date_from" name="date_from"
       type="hidden" value="{{ date_from }}" />
-    <input name="cur_day"
-      type="hidden" value="{{ date }}" />
-    <input id="search_n" name="search_n"
-      type="hidden" value="{{ search_n }}" />
 
     {% if search_mode %}
     {% set date_from2 = str(date_from).replace('-','/') %}
@@ -127,13 +123,12 @@
           {% end %}
           {% end %}
         </select>
-        {% set days = date_to - date_from + delta_day1 %}
+        {% set days = date_to - date_from + date.resolution %}
         (in {{ str(days)[:-9] }})
       </div>
     </div>
     {% end %}
 
-    {% set sde_count = 0 %}
     {% set year=0 %}
 
     <!-- 隣の週のはみ出しを切るための枠 (TODO-061)。

@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-090, TODO-092..TODO-095**
-これまでに 89 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-090, TODO-093..TODO-095**
+これまでに 90 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-097` から**。
 
@@ -83,48 +83,6 @@ F は、1 リクエストの中で同じ日を 2 回引き、その間に外部�
 
 ---
 
-## TODO-092. テンプレートの掃除
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | implementer + verifier |
-
-- [ ] `sde.html` の先頭に、`main.html` から受け取る 10 個の変数をコメントで並べる（I）
-- [ ] ToDo の色分けの判定を `SchedDataEnt` へ移す（J）
-- [ ] どこからも読まれない hidden input・クエリ・変数を消す（K）
-- [ ] `year`+`month`+`day` の経路と `ymd2date()` / `str2ymd_date()` を、テストごと消す（L）
-
-基本設計のレビュー（2026-08-27）の I・J・K・L。
-
-I で `sde.html` が `main.html` 側から宣言なしに使っているのは、次の 10 個。
-`{% include %}` は名前空間を共有するので、`main.html` 側で `{% set %}` の
-位置を動かすと黙って壊れる。
-
-```
-sde  sched_date  today  today_flag  delta_day1  date  date_from  date_to
-url_prefix  sde_count
-```
-
-J は、期限の近さを見る判定が `sde.html` の先頭にあり、「1 週間以内」の 7 が
-直接書いてある。`is_todo()` などは `SchedDataEnt` にあるのに、この 2 つ
-だけ置き場所が違う。
-
-```
-{% if sde.date < today %}                      → my-sde-todo-over
-{% elif sde.date <= today + delta_day1 * 7 %}  → my-sde-todo-near
-```
-
-K で消すのは `main.html:77` の `cur_day`、`main.html:79` の `search_n`、
-`sde.html:83-85` の `cur_date` / `date_from` / `date_to`、`sde_count`、
-`base.html:2` の `now`。
-
-**L は消すと決めた（2026-08-28）。** TODO-050 で日付は
-`date=YYYY-mm-dd` に一本化されており、テンプレートにも `static/js/` にも
-呼び出しが無い。`str2ymd_date()` の中の `check_int_range()` 3 つも一緒に
-消す（関数そのものは `str2todo_days()` などが使う）。
-
----
-
 ## TODO-093. ブラウザ側の状態と、ファイル間の依存
 
 |      | main | 担当 |
@@ -201,6 +159,7 @@ ES モジュールにしないと決めた（TODO-083）ので `import` は書�
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-092.** テンプレートの掃除](archives/todo/TODO-092.%20テンプレートの掃除.md)
 - [**TODO-091.** `SchedData` の渡し方と、表示に渡す値の dataclass 化](archives/todo/TODO-091.%20SchedData%20の渡し方と、表示に渡す値の%20dataclass%20化.md)
 - [**TODO-089.** `edit.html` の JavaScript を `edit-page.js` へ出す](archives/todo/TODO-089.%20edit.html%20の%20JavaScript%20を%20edit-page.js%20へ出す.md)
 - [**TODO-096.** Android の Firefox でアイコンが黒く塗りつぶされる](archives/todo/TODO-096.%20Android%20の%20Firefox%20でアイコンが黒く塗りつぶされる.md)
