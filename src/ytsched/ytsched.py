@@ -867,10 +867,10 @@ class SchedData:
 
             if self.get_cache_size() >= self._cache_size:
                 discard_size = int(self._cache_size * self.CACHE_DISCARD_RATE)
-                for i in range(discard_size):
+                for _i in range(discard_size):
                     _discarded = self._sdf_cache.popitem(last=False)
                     # self.__log.debug(
-                    #     f"discard[{i + 1}/{discard_size}]:"
+                    #     f"discard[{_i + 1}/{discard_size}]:"
                     #     f" date={_discarded[0]}"
                     # )
 

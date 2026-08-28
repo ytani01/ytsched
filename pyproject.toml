@@ -45,7 +45,7 @@ line-length = 78
 # tz を付けて回ってもノイズにしかならないので、規則ごと除外する
 # (TODO-015)。
 ignore = ["DTZ005", "DTZ011"]
-extend-select = ["I"]
+extend-select = ["I", "B", "SIM", "UP"]
 
 [tool.mypy]
 python_version = "3.14"
