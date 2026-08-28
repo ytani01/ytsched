@@ -42,13 +42,20 @@ uv run mypy src tests tools
 # typecheck だけを叩いたときは fmt は走らない。
 wait_for = ["fmt"]
 
+[tasks.fmtjs]
+description = "format JavaScript (Prettier)"
+run = "npx --no-install prettier --write src/ytsched/webroot/static/js"
+
 [tasks.lintjs]
 description = "lint JavaScript (ESLint)"
 run = "npx --no-install eslint src/ytsched/webroot/static/js"
+# lint でまとめて走るときは、整形が終わった .js を見る。
+# lintjs だけを叩いたときは fmtjs は走らない（typecheck と fmt の関係と同じ）。
+wait_for = ["fmtjs"]
 
 [tasks.lint]
-description = "linting (fmt, typecheck, lintjs)"
-depends = ["fmt", "typecheck", "lintjs"]
+description = "linting (fmt, fmtjs, typecheck, lintjs)"
+depends = ["fmt", "fmtjs", "typecheck", "lintjs"]
 
 [tasks.test]
 description = "test"
