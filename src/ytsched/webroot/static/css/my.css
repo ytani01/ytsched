@@ -844,6 +844,26 @@ textarea {
     background-color: #EEE;
 }
 
+/*
+ * フッターのボタンの並び (TODO-101)。
+ *
+ * 12 列の ``.row`` に ``.col-2`` を並べていたが、ボタンの数は 4 つ
+ * (新規) と 5 つ (既存) で変わり、12 列では等間隔に割り切れない。
+ * flex にして、間隔を ``gap`` で揃えたまま中央へ寄せる。
+ */
+.my-edit-menu {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* 指で押しやすいように、アイコンの左右にも当たり判定を持たせる */
+.my-edit-menu > .my-btn {
+    padding: 0 0.5rem;
+    text-align: center;
+}
+
 /* 編集フォームの 1 行 */
 .my-edit-row {
     font-size: large;

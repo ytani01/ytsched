@@ -26,55 +26,51 @@
   
   <div id="menu" name="menu"
        class="container-fluid p-0 fixed-bottom my-bar my-follow-keyboard">
-    <div class="row p-0 m-1">
+    <!-- ボタンを一定間隔で中央に並べる (TODO-101)。数が 4 つ (新規) と
+         5 つ (既存) で変わり、12 列の ``.row`` では割り切れない -->
+    <div class="my-edit-menu m-1">
 
       <!-- 保存しないで週表示へ戻る (TODO-065)。``history.back()`` では、
            更新 (``cmd=update``) のあとに編集画面へリダイレクトして
            留まるぶん、ひとつ前の編集画面へ戻ってしまう -->
-      <div class="col-2 text-center my-btn"
+      <div class="my-btn"
            onmousedown="doGet('{{ url_prefix }}', {date: '{{ date }}'});">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#reply"></use>
         </svg>
-      </div><!-- col -->
+      </div>
 
-      <div class="col-2 text-center my-btn"
+      <div class="my-btn"
            onmousedown="submitCmd('update');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#sync"></use>
         </svg>
-      </div><!-- col -->
+      </div>
 
-      <div class="col-2 text-center my-btn"
+      <div class="my-btn"
            onmousedown="submitCmd('fix');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#check-square"></use>
         </svg>
-      </div><!-- col -->
+      </div>
 
-      {% if new_flag %}
-      <div class="col-2 text-center">
-      </div><!-- col -->
-      {% else %}
-      <div class="col-2 text-center my-btn"
+      {% if not new_flag %}
+      <div class="my-btn"
            onmousedown="submitCmd('add');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#clone"></use>
         </svg>
-      </div><!-- col -->
+      </div>
       {% end %}
 
-      <div class="col-2">
-      </div>
-      
-      <div class="col-2 text-center my-btn"
+      <div class="my-btn"
            onmousedown="submitCmd('del');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
         </svg>
-      </div><!-- col -->
+      </div>
 
-    </div><!-- row -->
+    </div><!-- my-edit-menu -->
   </div><!-- container -->
 </header>
 <main class="my-edit-main">
