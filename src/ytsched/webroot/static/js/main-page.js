@@ -21,6 +21,8 @@
 //                          activeWeekOffset・activeMonday・elGaugeR0
 //   loadingSpinner() (spinner.js)             -- onloadHdr
 //   doGet() / doPost() / scrollToDate() (nav.js)
+//   getLocaltimeDateString() (nav.js)         -- homeButtonHdr
+//   mondayOf() (gauge.js)                     -- homeButtonHdr
 //   popstateHdr() (nav.js)                    -- popstate に登録
 //   layoutWeeks() / moveToMonday() (week.js)
 //   dispGauge() / dispGaugeMarks() (gauge.js) -- onloadHdr
@@ -30,6 +32,10 @@
 let clickCount = 0;
 
 const homeButtonHdr = (event) => {
+  // シングル・ダブルとも、今日ではなく今週の月曜日へ移動する
+  // (TODO-105)。週間表示では週の頭が見えているほうが分かりやすい
+  const monday_str = getLocaltimeDateString(mondayOf(today_str));
+
   if (!clickCount) {
     // single click
     ++clickCount;
@@ -45,11 +51,11 @@ const homeButtonHdr = (event) => {
       console.log(`search_str=${search_str}`);
       // search_str は URL に載せない (TODO-050)
       doPost(url_prefix, {
-        date: today_str,
+        date: monday_str,
         search_str: search_str,
       });
     }
-    scrollToDate(url_prefix, today_str, "top");
+    scrollToDate(url_prefix, monday_str, "top");
   } else {
     // double click
     //event.preventDefault() ;
@@ -59,7 +65,7 @@ const homeButtonHdr = (event) => {
     // データを読み直す (TODO-069)。前後数ヶ月ぶんを DOM に持つ
     // ようになったので、抱えたまま古くなる。ダブルタップが、
     // 手で取り直す道
-    doGet(url_prefix, { date: today_str, sde_align: "top" });
+    doGet(url_prefix, { date: monday_str, sde_align: "top" });
   }
 };
 

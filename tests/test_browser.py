@@ -161,14 +161,17 @@ def _tap(page, locator):
 
 
 def test_home_button_moves_the_view(page, server):
-    """ホームボタンで、URL だけでなく画面も今日へ動く（TODO-049）。
+    """ホームボタンで、URL だけでなく画面も今週へ動く（TODO-049）。
 
     ``scrollToId()`` が「1 画面に収まっているか」を DOM に目的の日が
-    あるかより先に見ていたころは、**URL だけが今日に書き換わって
-    画面は前の週のまま**になった。表示中の週に無い日を指されても
+    あるかより先に見ていたころは、**URL だけが書き換わって画面は
+    前の週のまま**になった。表示中の週に無い日を指されても
     「スクロールで足りた」と答えてしまい、読み直しが飛んだため。
+
+    移動先は今日ではなく今週の月曜（TODO-105）。
     """
     today = datetime.date.today()
+    monday = _monday_of(today)
     far = today - datetime.timedelta(days=70)
 
     _open(page, server, far.strftime("%Y-%m-%d"))
@@ -179,9 +182,9 @@ def test_home_button_moves_the_view(page, server):
 
     page.locator("#home_button").click()
 
-    # URL が今日になるだけでは足りない。今日の欄が実際に出ること
+    # URL が変わるだけでは足りない。今週の欄が実際に出ること
     page.wait_for_selector(today_id, state="visible", timeout=10000)
-    assert _date_in_url(page) == today.strftime("%Y-%m-%d")
+    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
 
 
 def test_forward_button_moves_a_week(page, server):

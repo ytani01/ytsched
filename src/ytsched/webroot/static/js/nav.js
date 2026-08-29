@@ -7,7 +7,8 @@
 // 外へ出すもの:
 //   shiftDays()              -- gauge.js (mondayOf)・week.js (weekOffsetOfDate)
 //   getLocaltimeString()     -- week.js (setActiveWeek)
-//   getLocaltimeDateString() -- gauge.js・week.js・keyboard.js の日付計算から
+//   getLocaltimeDateString() -- gauge.js・week.js・keyboard.js・main-page.js の
+//                               日付計算から
 //   calcDays()               -- gauge.js (setGaugePosition)
 //   doGet()    -- main.html・sde.html・edit.html の onmousedown / onchange、
 //                week.js (moveToMonday)・main-page.js から

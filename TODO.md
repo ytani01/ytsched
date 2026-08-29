@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-105**
-これまでに 102 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086**
+これまでに 103 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-106` から**。
 
@@ -41,41 +41,12 @@
 
 ---
 
-## TODO-105. ホームボタンで今週の月曜日へ移動する
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | main + verifier + wording |
-
-- [ ] シングルクリックの移動先を、今日から今週の月曜日に変える
-- [ ] ダブルクリックの読み直しも、今週の月曜日を基準にする
-- [ ] verifier で確認する（lint・テスト・実際の画面）
-
-`main-page.js` の `homeButtonHdr()` は、シングル・ダブルとも `today_str`
-を渡している。週間表示では週の頭が見えているほうが分かりやすいので、
-どちらも今週の月曜日へ移動するようにする。
-
-直し方（方針を決めた。実装はこれから）:
-
-- `homeButtonHdr()` の先頭で
-  `const monday_str = getLocaltimeDateString(mondayOf(today_str));`
-  を求め、シングル側の `doPost` の `date`・`scrollToDate` の日付と、
-  ダブル側の `doGet` の `date` を、`today_str` からこれに差し替える
-- `mondayOf()` は `gauge.js`、`getLocaltimeDateString()` は `nav.js` にある。
-  どちらも `base.html` で `main-page.js` より先に読まれるので、そのまま呼べる
-- 呼び出し関係を先頭コメントに書く決まり（TODO-097）があるので、
-  `main-page.js`・`nav.js`・`gauge.js` のコメントも合わせて直す
-- ボタンの表示（`main.html` の `my-home-date`）は今日の日付のままにする。
-  「今日がいつか」を出す場所なので、移動先とは別
-- キーボードの Home キー（`keyboard.js`）も今日へ移動したままにする
-
----
-
 ## 完了済み
 
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-105.** ホームボタンで今週の月曜日へ移動する](archives/todo/TODO-105.%20ホームボタンで今週の月曜日へ移動する.md)
 - [**TODO-104.** 月間ミニカレンダーの表示を切り替えるスイッチ](archives/todo/TODO-104.%20月間ミニカレンダーの表示を切り替えるスイッチ.md)
 - [**TODO-103.** 月間ミニカレンダー](archives/todo/TODO-103.%20月間ミニカレンダー.md)
 - [**TODO-102.** 週間表示のフッタのアイコンを入力欄の高さに揃える](archives/todo/TODO-102.%20週間表示のフッタのアイコンを入力欄の高さに揃える.md)
