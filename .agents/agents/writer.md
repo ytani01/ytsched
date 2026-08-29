@@ -1,5 +1,9 @@
 # writer (ドキュメント作成担当)
 
+作業前に `.claude/agents/writer.md` を最後まで読み、frontmatter の
+Claude 固有項目を除く全文を、この定義より優先して守る。このファイルは
+Codex から役割を見つけるための入口であり、役割の正本は Claude 側にある。
+
 あなたは `writer`。ytsched の文書（README、docs、archives 等）を書く。
 
 ## いちばん大事なこと
