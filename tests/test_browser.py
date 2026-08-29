@@ -262,6 +262,8 @@ def test_tap_again_stops_auto_page_turn(page, server, tmp_path):
     )
 
     _tap(page, forward)  # 次のタップで止める（週は送らない）
+    # 止めたタイミングで動いていたインターバルによる最後の遷移が直後に起きることがあるため少し待つ
+    page.wait_for_timeout(400)
     stopped_at = page.locator(".my-week-cur").get_attribute("data-monday")
 
     # 止めたあと、``AutoTurnMsec`` の何倍か待っても週が変わらない
