@@ -14,14 +14,12 @@ global instructions; direct user instructions override both.
 Reusable role definitions are in `.agents/agents/`. Each role must also read
 the matching `.claude/agents/<role>.md` before acting; the Claude definition is
 the complete role specification. Codex workflows live in `.agents/skills/`.
-For implementation tasks, use `ytsched-workflow`; for commits containing
-Markdown, use `wording-check` before committing. Do not delegate unless the
-user, an applicable skill, or repository instructions explicitly require it.
+For implementation tasks, use `ytsched-workflow`; use `wording-check` only
+when the user explicitly requests it. Do not delegate unless the user, an
+applicable skill, or repository instructions explicitly require it.
 
 Codex loads repository hooks from `.codex/hooks.json`. After cloning or after a
-hook change, review and trust the hook with `/hooks`. The Markdown commit hook
-is advisory: it reminds the main agent to perform the wording check and must
-not block a commit.
+hook change, review and trust the hook with `/hooks`.
 
 ## Project Structure & Module Organization
 
