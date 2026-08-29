@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086**
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-106..TODO-108**
 これまでに 103 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-106` から**。
+**番号は `TODO-109` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
 前後があった 3 つ（TODO-087 → TODO-088 → TODO-071）のうち、
@@ -38,6 +38,48 @@
 - 消した予定をゴミ箱から復活できるようにする。
 - 書き換えた予定も、ゴミ箱から復旧できるようにする。
 - ゴミ箱に同じIDの予定が複数あるときは、内容を確認して選択できるようにする。
+
+---
+
+## TODO-106. MainHandler の引数解析とビューモデル構築の分離
+
+`MainHandler` に集中している責務のうち、引数解析・検証処理とビュー用データの組み立てを別モジュールへ切り出す。
+
+- [ ] `update_conf_args()`, `get_update_form()` などのフォーム・クエリ引数の解析・検証処理を別クラス（バインダ）へ分離
+- [ ] `mk_weeks()` やレンダリング引数の生成ロジックを整理
+- [ ] `MainHandler` を HTTP ルーティング・コマンド実行・リダイレクト制御に特化させる
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Gemini 3.7 Flash / effort high | implementer + verifier + reviewer |
+
+---
+
+## TODO-107. JavaScript の名前空間導入と ESLint ルール有効化
+
+グローバルスコープに関数が散らばっている構成を整理し、静的解析による品質保証を強化する。
+
+- [ ] `static/js/` の公開関数・変数を `ytsched` 名前空間オブジェクト（または ES Modules）へ集約
+- [ ] `eslint.config.js` で無効化されている `no-undef`, `no-unused-vars` を有効化し、静的検証を通す
+- [ ] `test_browser.py` の `page.evaluate()` 呼び出しを新しい構造に追随させる
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Gemini 3.7 Flash / effort high | implementer + verifier + reviewer |
+
+---
+
+## TODO-108. HTML テンプレートのインラインイベントハンドラをイベント委譲へ移行
+
+HTML テンプレート内のインラインスクリプトを排除し、テンプレートの可読性と保守性を向上させる。
+
+- [ ] `sde.html` や `main.html` の `onmousedown="doGet(...)"` 等を `data-action` などの `data-*` 属性に置き換え
+- [ ] 親コンテナでのイベント委譲（Event Delegation）による一括リスナー処理へ統一
+- [ ] `swipe.js` や `main-page.js` のクリック・ドラッグ判定処理を整理
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Gemini 3.7 Flash / effort medium | implementer + verifier + reviewer |
 
 ---
 
