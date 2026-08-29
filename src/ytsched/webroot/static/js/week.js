@@ -139,11 +139,14 @@ const setActiveWeek = (offset, push_flag = true) => {
   const monday = panel.dataset.monday;
   ytState.activeMonday = monday;
 
-  // 画面に出ている日付入力だけ値を合わせる。#cur_day は POST で
-  // 送るときに doSubmit() が書くので、ここでは触らない (TODO-093)
+  // 画面に出ている日付入力および #cur_day を合わせる (TODO-109)
   const el_date = document.getElementById("date");
   if (el_date) {
     el_date.value = monday;
+  }
+  const el_cur_day = document.getElementById("cur_day");
+  if (el_cur_day) {
+    el_cur_day.value = monday;
   }
 
   if (push_flag) {
