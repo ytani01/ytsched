@@ -16,6 +16,8 @@
 //   ytState (state.js)            -- onloadEdit が ytState.elLoadingSpinner をセット
 //   loadingSpinner() (spinner.js) -- submitCmd・onloadEdit
 
+(() => {
+const ytsched = window.ytsched;
 const wdayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const mkInput = (cmd) => {
@@ -28,7 +30,7 @@ const mkInput = (cmd) => {
 
 let busyFlag = false;
 
-const submitCmd = (cmd) => {
+window.ytsched.submitCmd = (cmd) => {
   if (busyFlag) {
     return;
   }
@@ -36,11 +38,11 @@ const submitCmd = (cmd) => {
   console.log(`cmd=${cmd}`);
   const form = document.forms["input_form"];
   form.appendChild(mkInput(cmd));
-  loadingSpinner(true);
+  ytsched.loadingSpinner(true);
   form.submit();
 };
 
-const update_wday = (el_date) => {
+window.ytsched.update_wday = (el_date) => {
   if (el_date === undefined) {
     el_date = document.getElementById("date");
   }
@@ -50,7 +52,7 @@ const update_wday = (el_date) => {
   el_wday.innerHTML = wdayList[d1.getDay()];
 };
 
-const setElDate = (date_value, el_date) => {
+window.ytsched.setElDate = (date_value, el_date) => {
   let d1 = new Date(); // today
   if (date_value) {
     d1 = new Date(date_value);
@@ -60,17 +62,17 @@ const setElDate = (date_value, el_date) => {
   }
   el_date.value = d1.toISOString().replace(/T.*$/, "");
 
-  update_wday(el_date);
+  ytsched.update_wday(el_date);
 };
 
-const changeElDate = (d, el_date) => {
+window.ytsched.changeElDate = (d, el_date) => {
   if (el_date === undefined) {
     el_date = document.getElementById("date");
   }
   let d1 = new Date(el_date.value);
   d1.setDate(d1.getDate() + d);
 
-  setElDate(d1, el_date);
+  ytsched.setElDate(d1, el_date);
 };
 
 const changeDetailHeight = () => {
@@ -89,12 +91,13 @@ const changeDetailHeight = () => {
   el_detail.style.height = `${detail_h}px`;
 };
 
-const onloadEdit = (event) => {
-  ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
-  loadingSpinner(false);
+const onloadEdit = () => {
+  ytsched.ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
+  ytsched.loadingSpinner(false);
 };
 
 window.addEventListener("load", function () {
   changeDetailHeight();
 });
 window.addEventListener("load", onloadEdit);
+})();

@@ -83,7 +83,7 @@
     <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
          ここからは送らない (TODO-034) -->
     <div class="col-11 p-0 my-btn {{ class_canceled_items }}"
-      onmousedown="doGet('{{ url }}',
+      onmousedown="window.ytsched.doGet('{{ url }}',
                 {
                 date:'{{ sched_date }}',
                 sde_id: '{{ sde.sde_id }}',

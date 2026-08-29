@@ -23,7 +23,11 @@
 //   calcDays() (nav.js)              -- setGaugePosition
 //   scrollToDate() (nav.js)          -- gaugeBarClickHdr
 //   ytState (state.js)               -- ytState.elGaugeR0
-const DAYS_YEAR = 365.25;
+(() => {
+const ytsched = window.ytsched;
+
+window.ytsched.DAYS_YEAR = 365.25;
+const DAYS_YEAR = ytsched.DAYS_YEAR;
 const DAYS_MONTH = DAYS_YEAR / 12;
 const DAYS_GAUGE_MAX = DAYS_YEAR * 30;
 // 中心の近くをどれだけ詰めるか (TODO-059)
@@ -37,7 +41,7 @@ const DAYS_GAUGE_K = 10.0;
  *
  * @return {number} xPercent
  */
-const days2xPercent = (days) => {
+window.ytsched.days2xPercent = (days) => {
   // console.log(`days=${days}`);
   let xPercent =
     (50.0 * Math.log10(1 + Math.abs(days) / DAYS_GAUGE_K)) /
@@ -49,7 +53,6 @@ const days2xPercent = (days) => {
   }
   return xPercent;
 };
-
 /**
  * ``days2xPercent()`` の逆算 (TODO-074)。ゲージの帯をタップしたときに、
  * その位置 (中央からの割合 %) から、今週の月曜との日数の差を出すために使う。
@@ -60,7 +63,7 @@ const days2xPercent = (days) => {
  *
  * @return {number} days
  */
-const xPercent2days = (xPercent) => {
+window.ytsched.xPercent2days = (xPercent) => {
   const abs_xPercent = Math.abs(xPercent);
   const exponent =
     (abs_xPercent / 50.0) * Math.log10(1 + DAYS_GAUGE_MAX / DAYS_GAUGE_K);
@@ -100,7 +103,7 @@ const GAUGE_MARKS = [
  * 検索モードでは週バーごと ``.my-gauge-bar`` が無いので、そのときは
  * 何もしない。
  */
-const dispGaugeMarks = () => {
+window.ytsched.dispGaugeMarks = () => {
   const elGaugeBar = document.querySelector(".my-gauge-bar");
   if (!elGaugeBar) {
     return;
@@ -109,7 +112,7 @@ const dispGaugeMarks = () => {
   for (const mark of GAUGE_MARKS) {
     const elMark = document.createElement("div");
     elMark.className = "my-gauge-label";
-    elMark.style.left = `${(50 + days2xPercent(mark.days)).toFixed(2)}%`;
+    elMark.style.left = `${(50 + ytsched.days2xPercent(mark.days)).toFixed(2)}%`;
     elMark.textContent = mark.label;
     elGaugeBar.appendChild(elMark);
   }
@@ -122,13 +125,13 @@ const dispGaugeMarks = () => {
  *
  * @return {Date} monday
  */
-const mondayOf = (date_str) => {
+window.ytsched.mondayOf = (date_str) => {
   const d = new Date(date_str.split("/").join("-"));
   let wday = d.getDay(); // 0:Sun, 1:Mon, ..
   if (wday == 0) {
     wday = 7; // Sun: 0 --> 7
   }
-  return shiftDays(d, 1 - wday);
+  return ytsched.shiftDays(d, 1 - wday);
 };
 
 /**
@@ -146,7 +149,7 @@ const mondayOf = (date_str) => {
  *
  * @return {String} label
  */
-const gaugeDiffLabel = (days) => {
+window.ytsched.gaugeDiffLabel = (days) => {
   if (days === 0) {
     return "\u00b10";
   }
@@ -173,16 +176,16 @@ const gaugeDiffLabel = (days) => {
  *   月曜へ丸めてから、今週の月曜との差を見る)
  */
 const setGaugePosition = (date_str) => {
-  const monday = mondayOf(date_str);
-  const this_monday = mondayOf(getLocaltimeDateString(new Date()));
-  const top_rel_days = calcDays(this_monday, monday);
+  const monday = ytsched.mondayOf(date_str);
+  const this_monday = ytsched.mondayOf(ytsched.getLocaltimeDateString(new Date()));
+  const top_rel_days = ytsched.calcDays(this_monday, monday);
 
-  ytState.elGaugeR0.style.left = `${50 + days2xPercent(top_rel_days)}%`;
+  ytsched.ytState.elGaugeR0.style.left = `${50 + ytsched.days2xPercent(top_rel_days)}%`;
 
   // どちらも月曜なので、7 で割り切れる
   const elLabel = document.getElementById("gauge_r_label");
   if (elLabel) {
-    elLabel.textContent = gaugeDiffLabel(Math.round(top_rel_days / 7) * 7);
+    elLabel.textContent = ytsched.gaugeDiffLabel(Math.round(top_rel_days / 7) * 7);
   }
 };
 
@@ -236,10 +239,10 @@ const setGaugeMonday = (monday_str) => {
  * @param {String} date_str   'YYYY-mm-dd'
  */
 const placeGaugeWithoutTransition = (date_str) => {
-  ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
+  ytsched.ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
   setGaugePosition(date_str);
-  ytState.elGaugeR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
-  ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+  ytsched.ytState.elGaugeR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
+  ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
 };
 
 /**
@@ -255,18 +258,18 @@ const placeGaugeWithoutTransition = (date_str) => {
  *
  * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
  */
-const dispGauge = (date_str) => {
+window.ytsched.dispGauge = (date_str) => {
   // 検索モードでは週バーごと帯が出ないので、gauge_r が無い (TODO-058)
-  if (!ytState.elGaugeR0) {
+  if (!ytsched.ytState.elGaugeR0) {
     return;
   }
 
   if (!date_str) {
-    ytState.elGaugeR0.style.display = "none";
+    ytsched.ytState.elGaugeR0.style.display = "none";
     return;
   }
 
-  const monday_str = getLocaltimeDateString(mondayOf(date_str));
+  const monday_str = ytsched.getLocaltimeDateString(ytsched.mondayOf(date_str));
   const prev_monday_str = getGaugeMonday();
   setGaugeMonday(monday_str);
 
@@ -307,7 +310,7 @@ const dispGauge = (date_str) => {
  *
  * @param {Event} event
  */
-const gaugeBarClickHdr = (event) => {
+window.ytsched.gaugeBarClickHdr = (event) => {
   const el_bar = document.querySelector(".my-gauge-bar");
   if (!el_bar) {
     return;
@@ -315,12 +318,13 @@ const gaugeBarClickHdr = (event) => {
 
   const rect = el_bar.getBoundingClientRect();
   const x_percent = ((event.clientX - rect.left) / rect.width) * 100 - 50;
-  const days = xPercent2days(x_percent);
+  const days = ytsched.xPercent2days(x_percent);
 
-  const this_monday = mondayOf(getLocaltimeDateString(new Date()));
-  const target_date = shiftDays(this_monday, Math.round(days));
-  const monday = mondayOf(getLocaltimeDateString(target_date));
+  const this_monday = ytsched.mondayOf(ytsched.getLocaltimeDateString(new Date()));
+  const target_date = ytsched.shiftDays(this_monday, Math.round(days));
+  const monday = ytsched.mondayOf(ytsched.getLocaltimeDateString(target_date));
 
   // パスは onloadHdr() と同じく location.pathname でよい (TODO-074)
-  scrollToDate(location.pathname, getLocaltimeDateString(monday));
+  ytsched.scrollToDate(location.pathname, ytsched.getLocaltimeDateString(monday));
 };
+})();

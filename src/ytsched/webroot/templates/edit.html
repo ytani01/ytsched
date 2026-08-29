@@ -34,21 +34,21 @@
            更新 (``cmd=update``) のあとに編集画面へリダイレクトして
            留まるぶん、ひとつ前の編集画面へ戻ってしまう -->
       <div class="my-btn"
-           onmousedown="doGet('{{ url_prefix }}', {date: '{{ date }}'});">
+           onmousedown="window.ytsched.doGet('{{ url_prefix }}', {date: '{{ date }}'});">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#reply"></use>
         </svg>
       </div>
 
       <div class="my-btn"
-           onmousedown="submitCmd('update');">
+           onmousedown="window.ytsched.submitCmd('update');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#sync"></use>
         </svg>
       </div>
 
       <div class="my-btn"
-           onmousedown="submitCmd('fix');">
+           onmousedown="window.ytsched.submitCmd('fix');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#check-square"></use>
         </svg>
@@ -56,7 +56,7 @@
 
       {% if not new_flag %}
       <div class="my-btn"
-           onmousedown="submitCmd('add');">
+           onmousedown="window.ytsched.submitCmd('add');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#clone"></use>
         </svg>
@@ -64,7 +64,7 @@
       {% end %}
 
       <div class="my-btn"
-           onmousedown="submitCmd('del');">
+           onmousedown="window.ytsched.submitCmd('del');">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
         </svg>
@@ -115,19 +115,19 @@
       <div class="row p-1 my-edit-row">
         <div class="col-1 p-0 text-center my-btn">
           <svg class="my-icon my-icon-lg align-bottom"
-             onmousedown="changeElDate(-1);">
+             onmousedown="window.ytsched.changeElDate(-1);">
             <use href="{{ static_url('icons/icons.svg') }}#circle-up"></use>
           </svg>
         </div>
         <div class="col-1 p-0 text-center my-btn">
           <svg class="my-icon my-icon-lg align-bottom"
-             onmousedown="setElDate();">
+             onmousedown="window.ytsched.setElDate();">
             <use href="{{ static_url('icons/icons.svg') }}#dot-circle"></use>
           </svg>
         </div>
         <div class="col-1 p-0 text-center my-btn">
           <svg class="my-icon my-icon-lg align-bottom"
-             onmousedown="changeElDate(1);">
+             onmousedown="window.ytsched.changeElDate(1);">
             <use href="{{ static_url('icons/icons.svg') }}#circle-down"></use>
           </svg>
         </div>
@@ -135,7 +135,7 @@
         <div class="col-9 p-1 text-start">
           <input id="date" name="date"
                  type="date" value="{{ sde.date }}"
-                 onchange="update_wday();" />
+                 onchange="window.ytsched.update_wday();" />
           (<span id="wday" class="my-edit-wday">
             {{ date.strftime('%a') }}</span>)
         </div><!-- col -->
@@ -196,7 +196,7 @@
       <div id="div_detail" class="row p-0 my-edit-row">
         <div class="col p-0">
           <textarea id="detail" name="detail" class="my-input-full"
-                    onchange="submitCmd('update');">
+                    onchange="window.ytsched.submitCmd('update');">
             {{ sde.detail }}</textarea>
         </div><!-- col -->
       </div><!-- row -->

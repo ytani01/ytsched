@@ -35,11 +35,13 @@
  *
  * @return {Date} d
  */
-const shiftDays = (d, days) => {
+(() => {
+const ytsched = window.ytsched;
+
+window.ytsched.shiftDays = (d, days) => {
   d.setDate(d.getDate() + days);
   return d;
 };
-
 /**
  * get Localtime string: "YYYY-mm-ddTHH:MM:SS.SSSZ"
  *
@@ -68,7 +70,7 @@ const shiftDays = (d, days) => {
  *
  * @return {String} localtime_str "2021-01-01T12:34:56.789"
  */
-const getLocaltimeString = (d) => {
+window.ytsched.getLocaltimeString = (d) => {
   const utc_msec = d.getTime();
   const offset_msec = (d.getTimezoneOffset() / 60) * 3600 * 1000;
   const localtime_msec = utc_msec - offset_msec;
@@ -84,8 +86,8 @@ const getLocaltimeString = (d) => {
  *
  * @return {String} jst_date_str  ex. "2021-01-01"
  */
-const getLocaltimeDateString = (d) => {
-  return getLocaltimeString(d).replace(/T.*$/, "");
+window.ytsched.getLocaltimeDateString = (d) => {
+  return ytsched.getLocaltimeString(d).replace(/T.*$/, "");
 };
 
 /**
@@ -96,7 +98,7 @@ const getLocaltimeDateString = (d) => {
  *
  * @return {number} days
  */
-const calcDays = (d_from, d_to) => {
+window.ytsched.calcDays = (d_from, d_to) => {
   const days = (d_to - d_from) / (24 * 60 * 60 * 1000);
   return days;
 };
@@ -104,12 +106,12 @@ const calcDays = (d_from, d_to) => {
 /**
  *
  */
-const doSubmit = (id) => {
-  loadingSpinner(true);
+window.ytsched.doSubmit = (id) => {
+  ytsched.loadingSpinner(true);
   const el = document.getElementById(id);
   // 表示中の週の月曜を hidden の cur_day に載せてから送る (TODO-093)
   for (const cd of el.querySelectorAll('[name="cur_day"]')) {
-    cd.value = ytState.activeMonday;
+    cd.value = ytsched.ytState.activeMonday;
   }
   el.submit();
 };
@@ -153,8 +155,8 @@ const mkUrl = (path, data) => {
  * @param {String} path
  * @param {Object} data   {param1_name: value1, param2_name: value2, ..}
  */
-const doGet = (path, data) => {
-  loadingSpinner(true);
+window.ytsched.doGet = (path, data) => {
+  ytsched.loadingSpinner(true);
   location.href = mkUrl(path, data);
 };
 
@@ -171,8 +173,8 @@ const doGet = (path, data) => {
  * @param {String} path
  * @param {Object} data   {param1_name: value1, param2_name: value2, ..}
  */
-const doPost = (path, data) => {
-  loadingSpinner(true);
+window.ytsched.doPost = (path, data) => {
+  ytsched.loadingSpinner(true);
 
   const form = document.createElement("form");
   form.setAttribute("action", path);
@@ -205,7 +207,7 @@ const doPost = (path, data) => {
  *
  * @param {String} date   'YYYY-mm-dd'
  */
-const pushDateInUrl = (date) => {
+window.ytsched.pushDateInUrl = (date) => {
   const url = new URL(location.href);
   url.searchParams.set("date", date);
   history.pushState({ date: date }, "", url.toString());
@@ -244,7 +246,7 @@ const replaceDateInUrl = (date) => {
  * 「持っている範囲の外」ではないので、``scrollToDate()`` と同じく、
  * スクロールを試してから決める。
  */
-const popstateHdr = (event) => {
+window.ytsched.popstateHdr = () => {
   const date = new URL(location.href).searchParams.get("date");
   console.log(`popstateHdr:date=${date}`);
 
@@ -253,14 +255,14 @@ const popstateHdr = (event) => {
     return;
   }
 
-  const offset = weekOffsetOfDate(date);
-  if (offset !== null && offset !== ytState.activeWeekOffset) {
-    setActiveWeek(offset, false);
+  const offset = ytsched.weekOffsetOfDate(date);
+  if (offset !== null && offset !== ytsched.ytState.activeWeekOffset) {
+    ytsched.setActiveWeek(offset, false);
   }
 
   // 画面内にあればスクロールで済ませる。無ければ読み直す
-  if (scrollToId(`date-${date}`, "top", "auto")) {
-    ytState.activeMonday = date;
+  if (ytsched.scrollToId(`date-${date}`, "top", "auto")) {
+    ytsched.ytState.activeMonday = date;
     return;
   }
 
@@ -273,29 +275,29 @@ const popstateHdr = (event) => {
  * @param {number} days
  * @param {String} sde_align
  */
-const doGetDate = (path, date, days = 0, sde_align = undefined) => {
+window.ytsched.doGetDate = (path, date, days = 0, sde_align = undefined) => {
   console.log(`doGetDate: sde_align=${sde_align}`);
 
   // dateをJSTとみなすために、区切りを '/'に変換
   let d1 = new Date(date.split("-").join("/"));
-  d1 = shiftDays(d1, days);
-  d1_str = getLocaltimeDateString(d1);
+  d1 = ytsched.shiftDays(d1, days);
+  const d1_str = ytsched.getLocaltimeDateString(d1);
   console.log(`date=${date}, d1_str=${d1_str}`);
 
-  data_obj = { date: d1_str };
+  const data_obj = { date: d1_str };
   if (sde_align) {
     data_obj.sde_align = sde_align;
   }
-  doGet(path, data_obj);
+  ytsched.doGet(path, data_obj);
 };
 
 /**
  *
  */
-const scrollToId = (id, sde_align = "top", behavior = "smooth") => {
+window.ytsched.scrollToId = (id, sde_align = "top", behavior = "smooth") => {
   console.log(`scrollToId:id=${id}`);
 
-  ytState.elMain.style.visibility = "visible";
+  ytsched.ytState.elMain.style.visibility = "visible";
 
   // 目的の要素が DOM にあるかどうかを、「1 画面に収まっているか」
   // より先に見る (TODO-049)。週表示になり、予定の少ない週では
@@ -350,7 +352,7 @@ const scrollToId = (id, sde_align = "top", behavior = "smooth") => {
 /**
  *
  */
-const scrollToDate = (
+window.ytsched.scrollToDate = (
   path,
   date,
   sde_align = "top",
@@ -364,17 +366,17 @@ const scrollToDate = (
   // 週を移さずにスクロールすると、隠れている週へ寄せてしまう。
   // URL はこのあとこの関数が ``date`` で書き換えるので、ここでは
   // 積まない
-  const offset = weekOffsetOfDate(date);
-  if (offset !== null && offset !== ytState.activeWeekOffset) {
-    setActiveWeek(offset, false);
+  const offset = ytsched.weekOffsetOfDate(date);
+  if (offset !== null && offset !== ytsched.ytState.activeWeekOffset) {
+    ytsched.setActiveWeek(offset, false);
   }
 
-  if (scrollToId(`date-${date}`, sde_align, behavior)) {
-    ytState.activeMonday = date;
+  if (ytsched.scrollToId(`date-${date}`, sde_align, behavior)) {
+    ytsched.ytState.activeMonday = date;
     // 読み直した直後 (``push_flag``が偽) は履歴に積まない。
     // 読み直しそのもので 1つ増えているため (TODO-050)
     if (push_flag) {
-      pushDateInUrl(date);
+      ytsched.pushDateInUrl(date);
     } else {
       replaceDateInUrl(date);
     }
@@ -382,6 +384,7 @@ const scrollToDate = (
   }
 
   console.log(`path=${path}`);
-  doGet(path, { date: date, sde_align: sde_align });
+  ytsched.doGet(path, { date: date, sde_align: sde_align });
   return false;
 };
+})();

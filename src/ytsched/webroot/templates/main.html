@@ -4,9 +4,9 @@
 <header>
   <script>
    // main-page.js から使う。テンプレートの値はここでしか取れない
-   const search_str0 = '{{ search_str }}';
-   const today_str = '{{ today }}';
-   const auto_turn_msec = {{ auto_turn_msec }};
+   window.ytsched.search_str0 = '{{ search_str }}';
+   window.ytsched.today_str = '{{ today }}';
+   window.ytsched.auto_turn_msec = {{ auto_turn_msec }};
   </script>
   <script type="text/javascript"
           src="{{ static_url('js/main-page.js') }}"></script>
@@ -28,7 +28,7 @@
          週の月曜へ移る (TODO-074)。日付セルなどと同じ onmousedown で
          登録し、mouseDownHdr()/mouseUpHdr() (swipe.js) にドラッグと
          クリックの区別を任せる -->
-    <div class="my-gauge-bar" onmousedown="gaugeBarClickHdr(event);">
+    <div class="my-gauge-bar" onmousedown="window.ytsched.gaugeBarClickHdr(event);">
       <div class="my-gauge-axis"></div>
       <div class="my-gauge-base"></div>
       <!-- 針と、今週からの差 (TODO-066)。
@@ -51,7 +51,7 @@
       <div class="col-12 p-0 text-center">
         <input id="header_date" name="date"
           type="date" value="{{ date }}"
-          onchange="doGet('{{ url_prefix }}',
+          onchange="window.ytsched.doGet('{{ url_prefix }}',
                    {date:this.value});"/>
       </div>
     </div>
@@ -92,7 +92,7 @@
     <div class="row m-0 my-bar">
       <!-- backward -->
       <div class="col-2 p-0 text-center my-btn"
-        onmousedown="doGetDate(
+        onmousedown="window.ytsched.doGetDate(
                   '{{ url_prefix }}',
                   '{{ date }}',
                   {{ str(date_from - date_to)[:-14] }} );">
@@ -115,12 +115,12 @@
         </svg>
 
         <input type="date" value="{{ date_to }}"
-          onchange="doGetDate('{{ url_prefix }}',
+          onchange="window.ytsched.doGetDate('{{ url_prefix }}',
                      this.value, 0);" />
         <br />
         <span class="my-fs-small">目標件数</span>
         <select id="search_n_in" name="search_n_in"
-          onchange="changeSearchN(this.value);">
+          onchange="window.ytsched.changeSearchN(this.value);">
           {% for v in [1, 2, 3, 4, 5, 10, 20, 50, 100] %}
           {% if v == search_n %}
           <option value="{{ v }}" selected>{{ v }}件</option>
@@ -192,10 +192,10 @@
          書き換えるので POST。URL には載せない (TODO-050) #}
       {% if search_mode %}
       {% set obj = {'date': str(sched_date), 'search_str': '' } %}
-      {% set on_date_col = "doPost('%s', %s);" % (url_prefix, obj) %}
+      {% set on_date_col = "window.ytsched.doPost('%s', %s);" % (url_prefix, obj) %}
       {% else %}
       {% set obj = {'date': str(sched_date), 'sde_id': '' } %}
-      {% set on_date_col = "doGet('%sedit/', %s);" % (url_prefix, obj) %}
+      {% set on_date_col = "window.ytsched.doGet('%sedit/', %s);" % (url_prefix, obj) %}
       {% end %}
       <div class="col-1 p-0 text-center my-btn my-date-col
                   my-wday-{{ weekday }}"
@@ -249,7 +249,7 @@
     <div class="my-mini-cal-row">
       {% set month_cal_arg = '0' if month_cal else '1' %}
       <div class="my-mini-cal-sw my-btn"
-        onmousedown="doPost('{{ url_prefix }}',
+        onmousedown="window.ytsched.doPost('{{ url_prefix }}',
                   {'date': '{{ w.monday }}',
                    'month_cal': '{{ month_cal_arg }}'});">
         <svg class="my-icon my-icon-lg">
@@ -284,7 +284,7 @@
           {% end %}
           <td class="{{ td_class }}"
             {% if d.in_month %}
-            onmousedown="scrollToDate('{{ url_prefix }}', '{{ d.date }}');"
+            onmousedown="window.ytsched.scrollToDate('{{ url_prefix }}', '{{ d.date }}');"
             {% end %}>
             <div class="my-mini-cal-daynum">{{ d.date.day }}</div>
             {% if d.has_sched %}
@@ -346,7 +346,7 @@
       <!-- home -->
       <div id="home_button"
         class="col-3 p-0 text-center my-btn"
-        onMouseDown="homeButtonHdr();">
+        onMouseDown="window.ytsched.homeButtonHdr();">
         <span class="my-home-date">
           {{ today.year }}<br />
           {{ today.strftime('%m/') }}
@@ -366,7 +366,7 @@
           action="{{ url_prefix }}" method="POST">
 
           <svg class="my-icon my-icon-xl my-btn align-middle"
-            onmousedown="doSubmit('form_search');">
+            onmousedown="window.ytsched.doSubmit('form_search');">
             <use href="{{ static_url('icons/icons.svg') }}#search"></use>
           </svg>
           <input id="search_str" name="search_str"
@@ -407,7 +407,7 @@
       <div class="col-5 p-0 text-center">
         <input id="footer_date" name="date"
           type="date" value="{{ date }}"
-          onchange="doGet('{{ url_prefix }}',
+          onchange="window.ytsched.doGet('{{ url_prefix }}',
                    {date:this.value});"/>
       </div><!-- col -->
       
@@ -420,7 +420,7 @@
           </svg>
           <select id="todo_days" name="todo_days"
             class="align-middle"
-            onchange="doSubmit('todo_days_form');">
+            onchange="window.ytsched.doSubmit('todo_days_form');">
             {% for opt in todo_days_list %}
             {% if todo_days_list[opt] == todo_days_value %}
             <option value="{{ todo_days_list[opt] }}" selected>
@@ -441,7 +441,7 @@
         <form id="form_filter" name="form_filter"
           action="{{ url_prefix }}" method="POST">
           <svg class="my-icon my-icon-xl my-btn align-middle"
-            onmousedown="doSubmit('form_filter');">
+            onmousedown="window.ytsched.doSubmit('form_filter');">
             <use href="{{ static_url('icons/icons.svg') }}#filter"></use>
           </svg>
           <input id="filter_str" name="filter_str" type="text" size="7"

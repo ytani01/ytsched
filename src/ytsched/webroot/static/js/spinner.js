@@ -5,20 +5,20 @@
 // スピナー (TODO-083)
 //
 // 外へ出すもの:
-//   loadingSpinner() -- nav.js (doSubmit / doGet / doPost)・main-page.js
+//   window.ytsched.loadingSpinner() -- nav.js (doSubmit / doGet / doPost)・main-page.js
 //     (onloadHdr)・edit-page.js (submitCmd / onloadEdit) から呼ぶ。
 //     ほかに window の pageshow リスナーをこのファイルで登録する
 // 外から使うもの:
-//   ytState (state.js) -- ytState.elLoadingSpinner
+//   window.ytsched.ytState (state.js) -- elLoadingSpinner
 
 /**
  *
  */
-const loadingSpinner = (on) => {
+window.ytsched.loadingSpinner = (on) => {
   if (on) {
-    ytState.elLoadingSpinner.style.display = "block";
+    window.ytsched.ytState.elLoadingSpinner.style.display = "block";
   } else {
-    ytState.elLoadingSpinner.style.display = "none";
+    window.ytsched.ytState.elLoadingSpinner.style.display = "none";
   }
 };
 
@@ -35,8 +35,8 @@ window.addEventListener("pageshow", (event) => {
   if (!event.persisted) {
     return;
   }
-  ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
-  if (ytState.elLoadingSpinner) {
-    loadingSpinner(false);
+  window.ytsched.ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
+  if (window.ytsched.ytState.elLoadingSpinner) {
+    window.ytsched.loadingSpinner(false);
   }
 });

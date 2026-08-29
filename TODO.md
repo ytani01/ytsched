@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-106..TODO-108, TODO-112**
-これまでに 108 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-106, TODO-108, TODO-112**
+これまでに 109 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-113` から**。
 
@@ -55,40 +55,6 @@
 
 ---
 
-## TODO-107. JavaScript のグローバルスコープ整理と ESLint ルール有効化
-
-グローバルスコープに関数が散らばっている構成を整理し、ESLint が
-未定義の変数や不要な変数を検出できるようにする。
-
-この項目では ES Modules へは移さず、素の `<script>` を維持する。
-ES Modules への移行まで含めると、ファイル間の `import` / `export` と
-スクリプトの読み込み方も同時に変える必要があり、変更が大きくなるため。
-ブラウザへ公開する名前は `window.ytsched` の下にまとめる。
-インラインイベントハンドラの廃止は TODO-108 で扱う。
-
-- [ ] ファイル間で使う関数・状態と、テンプレートから渡す
-  `url_prefix` / `search_str0` / `today_str` / `auto_turn_msec` を
-  `window.ytsched` の下へまとめる。ブラウザテストから直接使う
-  `pushDateInUrl` / `gaugeDiffLabel` / `days2xPercent` / `xPercent2days` /
-  `DAYS_YEAR` も公開し、それ以外のファイル内だけで使う名前は外へ出さない
-- [ ] `main.html` / `edit.html` / `sde.html` のインラインイベントハンドラを
-  `window.ytsched` の関数名に追随させる（イベント委譲への変更は TODO-108）
-- [ ] `eslint.config.js` の `no-undef` / `no-unused-vars` の無効化をやめ、
-  `nav.js` と `week.js` の暗黙のグローバル変数や、複数ファイルの
-  不要な引数を含む指摘を直す
-- [ ] `test_browser.py` で関数・定数を直接参照している
-  `page.evaluate()` 5 種類を `window.ytsched` 経由に直す
-- [ ] 各 JavaScript ファイル先頭の呼び出し関係と `src/README.md` を、
-  変更後の公開範囲と値の渡し方に合わせる
-- [ ] 一覧画面と編集画面を開いて `pageerror` を収集するブラウザテストを
-  足し、`mise run lintjs` と `tests/test_browser.py` が通ることを確認する
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Gemini 3.7 Flash / effort high | implementer + verifier + reviewer |
-
----
-
 ## TODO-108. HTML テンプレートのインラインイベントハンドラをイベント委譲へ移行
 
 HTML テンプレート内のインラインスクリプトを排除し、テンプレートの可読性と保守性を向上させる。
@@ -126,6 +92,7 @@ HTML テンプレート内のインラインスクリプトを排除し、テン
 1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-107.** JavaScript のグローバルスコープ整理と ESLint ルール有効化](archives/todo/TODO-107.%20JavaScript%20のグローバルスコープ整理と%20ESLint%20ルール有効化.md)
 - [**TODO-111.** フッターの日付が週切り替えに連動しないのを直す](archives/todo/TODO-111.%20フッターの日付が週切り替えに連動しないのを直す.md)
 - [**TODO-110.** フッターの日付表示が週の表示と連動するようにする](archives/todo/TODO-110.%20フッターの日付表示が週の表示と連動するようにする.md)
 - [**TODO-109.** ヘッダーのゲージの下に日付入力欄を常時表示する](archives/todo/TODO-109.%20ヘッダーのゲージの下に日付入力欄を常時表示する.md)

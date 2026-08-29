@@ -15,11 +15,14 @@
 //   SWIPE_X_PER_Y / SWIPE_EDGE_PX / SWIPE_FAST_PX_PER_MSEC /
 //   MOUSE_AFTER_TOUCH_MSEC)・上記の状態はこのファイル内だけで使う
 // 外から使うもの:
-//   ytState (state.js)         -- elWeekWrap
+//   window.ytsched.ytState (state.js) -- elWeekWrap
 //   slideWeekWrap() (week.js)  -- cancelSwipeDrag
 //   hasAdjacentWeek() (week.js) -- swipeDragTo
 //   moveToMonday() (week.js)   -- swipeFinish
-//   url_prefix (base.html の <script>) -- swipeFinish が moveToMonday へ渡す
+//   window.ytsched.url_prefix (base.html の <script>) -- swipeFinish が moveToMonday へ渡す
+
+(() => {
+const ytsched = window.ytsched;
 
 /**
  * 左右のスワイプ・ドラッグで週を送るための、始点を覚えておく場所
@@ -71,14 +74,13 @@ const cancelSwipeDrag = () => {
     return;
   }
   swipeDragging = false;
-  slideWeekWrap(0, () => {
-    if (ytState.elWeekWrap) {
-      ytState.elWeekWrap.style.transform = "";
-      ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
+  ytsched.slideWeekWrap(0, () => {
+    if (ytsched.ytState.elWeekWrap) {
+      ytsched.ytState.elWeekWrap.style.transform = "";
+      ytsched.ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
     }
   });
 };
-
 /**
  * 動いている間、隣の週を指・マウスに追従させる (TODO-057)。
  *
@@ -100,17 +102,17 @@ const swipeDragTo = (dx, dy) => {
     ) {
       return false;
     }
-    if (!hasAdjacentWeek()) {
+    if (!ytsched.hasAdjacentWeek()) {
       return false;
     }
     swipeDragging = true;
-    if (ytState.elWeekWrap) {
-      ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
+    if (ytsched.ytState.elWeekWrap) {
+      ytsched.ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
     }
   }
 
-  if (ytState.elWeekWrap) {
-    ytState.elWeekWrap.style.transform = `translateX(${dx}px)`;
+  if (ytsched.ytState.elWeekWrap) {
+    ytsched.ytState.elWeekWrap.style.transform = `translateX(${dx}px)`;
   }
   return true;
 };
@@ -148,7 +150,7 @@ const swipeFinish = (dx, dy, elapsed_msec) => {
 
   console.log(`swipeFinish:dx=${dx}, dy=${dy}, velocity=${velocity}`);
   swipeDragging = false;
-  moveToMonday(dx < 0 ? 1 : -1, url_prefix);
+  ytsched.moveToMonday(dx < 0 ? 1 : -1, ytsched.url_prefix);
   return true;
 };
 
@@ -166,7 +168,7 @@ const swipeFinish = (dx, dy, elapsed_msec) => {
  *   ボタン側は ``pointerdown``/``pointerup`` (main-page.js) で拾うので、
  *   ここで拾うと週送りが二重に効く (TODO-084)
  */
-const touchStartHdr = (event) => {
+window.ytsched.touchStartHdr = (event) => {
   lastTouchMsec = Date.now();
   swipeStart = null;
   cancelSwipeDrag(); // 前の指が離れ損なっていたときの後始末 (念のため)
@@ -204,7 +206,7 @@ const touchStartHdr = (event) => {
  * **念のための二重の確認**で、``touchstart`` を取りこぼした場合に
  * だけ効く (TODO-054)。
  */
-const touchMoveHdr = (event) => {
+window.ytsched.touchMoveHdr = (event) => {
   lastTouchMsec = Date.now();
 
   if (event.touches.length !== 1) {
@@ -231,7 +233,7 @@ const touchMoveHdr = (event) => {
  *
  * 送るかどうかの判定は ``swipeFinish()`` に任せる。
  */
-const touchEndHdr = (event) => {
+window.ytsched.touchEndHdr = (event) => {
   lastTouchMsec = Date.now();
 
   const start = swipeStart;
@@ -252,11 +254,10 @@ const touchEndHdr = (event) => {
     Date.now() - start.t,
   );
 };
-
 /**
  * 途中で割り込まれたとき (TODO-054)。
  */
-const touchCancelHdr = () => {
+window.ytsched.touchCancelHdr = () => {
   lastTouchMsec = Date.now();
   swipeStart = null;
   cancelSwipeDrag();
@@ -283,7 +284,7 @@ const touchCancelHdr = () => {
  *   を邪魔しないよう、``stopPropagation()``/``preventDefault()`` の前で
  *   返す (TODO-084)
  */
-const mouseDownHdr = (event) => {
+window.ytsched.mouseDownHdr = (event) => {
   if (Date.now() - lastTouchMsec < MOUSE_AFTER_TOUCH_MSEC) {
     return;
   }
@@ -322,7 +323,7 @@ const mouseDownHdr = (event) => {
  * ボタンが離れていたら (ウィンドウの外で離したときなど) 後始末する。
  * ``mouseup`` はウィンドウの外では来ないので、ここで気づくしかない。
  */
-const mouseMoveHdr = (event) => {
+window.ytsched.mouseMoveHdr = (event) => {
   if (!swipeStart) {
     return;
   }
@@ -343,7 +344,7 @@ const mouseMoveHdr = (event) => {
  * 止めておいた ``onmousedown`` を呼ぶ。追従していれば、週を送るか
  * どうかを ``swipeFinish()`` が決める。
  */
-const mouseUpHdr = (event) => {
+window.ytsched.mouseUpHdr = (event) => {
   const start = swipeStart;
   const el = mouseDownEl;
   swipeStart = null;
@@ -378,3 +379,4 @@ const mouseUpHdr = (event) => {
     Date.now() - start.t,
   );
 };
+})();

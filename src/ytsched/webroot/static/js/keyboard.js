@@ -12,7 +12,7 @@
 //   moveToMonday() (week.js)          -- keyHdr (← →)
 //   getLocaltimeDateString() (nav.js) -- keyHdr (Home)
 //   scrollToDate() (nav.js)           -- keyHdr (Home)
-//   url_prefix (base.html の <script>) -- keyHdr が moveToMonday / scrollToDate へ渡す
+//   window.ytsched.url_prefix (base.html の <script>) -- keyHdr が moveToMonday / scrollToDate へ渡す
 // keyHdr 内の today_str はこの関数のローカル変数で、main.html の today_str とは別物
 
 /**
@@ -28,6 +28,9 @@
  * 拡大中も `visualViewport` は小さくなるが、それはキーボードのせいでは
  * ないので、その分を持ち上げると位置が狂う。
  */
+(() => {
+const ytsched = window.ytsched;
+
 const followKeyboard = () => {
   const vv = window.visualViewport;
   if (!vv) {
@@ -43,7 +46,6 @@ const followKeyboard = () => {
     el.style.transform = `translateY(${-offset}px)`;
   }
 };
-
 if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", followKeyboard);
   window.visualViewport.addEventListener("scroll", followKeyboard);
@@ -67,7 +69,6 @@ const isTyping = () => {
   }
   return el.isContentEditable === true;
 };
-
 /**
  * キーボードで操作する (TODO-050)。
  *
@@ -82,7 +83,7 @@ const isTyping = () => {
  * 一覧 (``main.html``) でだけ登録する。編集画面で ←→ が効くと、
  * 入力の途中で画面が変わってしまう。
  */
-const keyHdr = (event) => {
+window.ytsched.keyHdr = (event) => {
   if (isTyping()) {
     if (event.key === "Escape") {
       document.activeElement.blur();
@@ -97,18 +98,18 @@ const keyHdr = (event) => {
   switch (event.key) {
     case "ArrowLeft":
       event.preventDefault();
-      moveToMonday(-1, url_prefix);
+      ytsched.moveToMonday(-1, ytsched.url_prefix);
       break;
 
     case "ArrowRight":
       event.preventDefault();
-      moveToMonday(1, url_prefix);
+      ytsched.moveToMonday(1, ytsched.url_prefix);
       break;
 
     case "Home": {
       event.preventDefault();
-      const today_str = getLocaltimeDateString(new Date());
-      scrollToDate(url_prefix, today_str, "top");
+      const today_str = ytsched.getLocaltimeDateString(new Date());
+      ytsched.scrollToDate(ytsched.url_prefix, today_str, "top");
       break;
     }
 
@@ -122,3 +123,4 @@ const keyHdr = (event) => {
     }
   }
 };
+})();

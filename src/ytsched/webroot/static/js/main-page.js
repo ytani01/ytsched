@@ -29,12 +29,14 @@
 //   keyHdr() (keyboard.js)                    -- keydown に登録
 //   swipe.js の touch* / mouse* の 7 ハンドラ -- 各イベントに登録
 
+(() => {
+const ytsched = window.ytsched;
 let clickCount = 0;
 
-const homeButtonHdr = (event) => {
+window.ytsched.homeButtonHdr = () => {
   // シングル・ダブルとも、今日ではなく今週の月曜日へ移動する
   // (TODO-105)。週間表示では週の頭が見えているほうが分かりやすい
-  const monday_str = getLocaltimeDateString(mondayOf(today_str));
+  const monday_str = ytsched.getLocaltimeDateString(ytsched.mondayOf(ytsched.today_str));
 
   if (!clickCount) {
     // single click
@@ -44,18 +46,18 @@ const homeButtonHdr = (event) => {
     }, 350);
     console.log("single click");
 
-    console.log(`search_str0=${search_str0}`);
-    if (search_str0) {
+    console.log(`search_str0=${ytsched.search_str0}`);
+    if (ytsched.search_str0) {
       const el_search = document.getElementById("search_str");
       const search_str = el_search.value;
       console.log(`search_str=${search_str}`);
       // search_str は URL に載せない (TODO-050)
-      doPost(url_prefix, {
+      ytsched.doPost(ytsched.url_prefix, {
         date: monday_str,
         search_str: search_str,
       });
     }
-    scrollToDate(url_prefix, monday_str, "top");
+    ytsched.scrollToDate(ytsched.url_prefix, monday_str, "top");
   } else {
     // double click
     //event.preventDefault() ;
@@ -65,27 +67,27 @@ const homeButtonHdr = (event) => {
     // データを読み直す (TODO-069)。前後数ヶ月ぶんを DOM に持つ
     // ようになったので、抱えたまま古くなる。ダブルタップが、
     // 手で取り直す道
-    doGet(url_prefix, { date: monday_str, sde_align: "top" });
+    ytsched.doGet(ytsched.url_prefix, { date: monday_str, sde_align: "top" });
   }
 };
 
 const onloadHdr = (event) => {
   console.log(`onloadHdr(${event}`);
-  ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
-  loadingSpinner(false);
+  ytsched.ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
+  ytsched.loadingSpinner(false);
 
-  ytState.elMain = document.getElementById("main"); // declared in state.js
-  ytState.elWeekWrap = document.getElementById("week_wrap"); // declared in state.js
+  ytsched.ytState.elMain = document.getElementById("main"); // declared in state.js
+  ytsched.ytState.elWeekWrap = document.getElementById("week_wrap"); // declared in state.js
 
   // 表示中の週の月曜 (検索表示なら結果の一番古い日)。サーバが
   // #week_wrap の data-monday に入れて渡す (TODO-093)
-  ytState.activeMonday = ytState.elWeekWrap.dataset.monday;
+  ytsched.ytState.activeMonday = ytsched.ytState.elWeekWrap.dataset.monday;
 
   // 読み込んだ直後は、真ん中の週 (offset 0) を見ている。
   // サーバも同じ形で描いているので並べ直す必要は無いが、
   // ``my-week-near`` はサーバが付けないのでここで付ける (TODO-069)
-  ytState.activeWeekOffset = 0; // declared in state.js
-  layoutWeeks();
+  ytsched.ytState.activeWeekOffset = 0; // declared in state.js
+  ytsched.layoutWeeks();
 
   const elMenuBar = document.getElementById("menu_bar");
   const menu_bar_height = elMenuBar.offsetHeight;
@@ -102,16 +104,16 @@ const onloadHdr = (event) => {
   const body_h = document.body.clientHeight;
   const win_h = document.documentElement.clientHeight;
 
-  ytState.elGaugeR0 = document.getElementById("gauge_r"); // declared in state.js
+  ytsched.ytState.elGaugeR0 = document.getElementById("gauge_r"); // declared in state.js
   // 目盛りの位置は日付によらないので、ここで一度だけ描く (TODO-078)
-  dispGaugeMarks();
+  ytsched.dispGaugeMarks();
 
   if (body_h < win_h) {
     console.log(`body_h=${body_h} < win_h=${win_h}`);
     // ゲージの都合で画面が出ないのはおかしいので、dispGauge() より
     // 先に visible にする (TODO-049 reviewer 指摘 1)
-    ytState.elMain.style.visibility = "visible";
-    dispGauge(ytState.activeMonday);
+    ytsched.ytState.elMain.style.visibility = "visible";
+    ytsched.dispGauge(ytsched.ytState.activeMonday);
     return;
   }
 
@@ -123,7 +125,7 @@ const onloadHdr = (event) => {
   // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
   // アニメーションになってしまう (TODO-041)
   // 読み直した直後なので、履歴には積まない (TODO-050)
-  scrollToDate(
+  ytsched.scrollToDate(
     location.pathname,
     el_date.value,
     el_sde_align.value,
@@ -133,14 +135,14 @@ const onloadHdr = (event) => {
 
   // 週表示になり、スクロールでの追加読み込みが無くなったので、
   // 検索の有無によらず一度だけゲージを合わせる (TODO-049)
-  dispGauge(ytState.activeMonday);
+  ytsched.dispGauge(ytsched.ytState.activeMonday);
 }; // onloadHdr()
 
-const changeSearchN = (val) => {
+window.ytsched.changeSearchN = (val) => {
   console.log(`changeSearchN: val=${val}`);
   // search_n は URL に載せない (TODO-050)
-  doPost(url_prefix, {
-    date: ytState.activeMonday,
+  ytsched.doPost(ytsched.url_prefix, {
+    date: ytsched.ytState.activeMonday,
     search_n: val,
   });
 };
@@ -189,8 +191,8 @@ const stopAutoPageTurn = () => {
 const startAutoPageTurn = (direction) => {
   stopAutoPageTurn();
   autoTurnTimerId = setInterval(() => {
-    moveToMonday(direction, url_prefix);
-  }, auto_turn_msec);
+    ytsched.moveToMonday(direction, ytsched.url_prefix);
+  }, ytsched.auto_turn_msec);
 };
 
 /**
@@ -252,7 +254,7 @@ const pageTurnPointerUpHdr = (event) => {
   }
 
   const direction = Number(el.dataset.pageTurn);
-  moveToMonday(direction, url_prefix);
+  ytsched.moveToMonday(direction, ytsched.url_prefix);
 
   const now = Date.now();
   if (
@@ -275,25 +277,25 @@ const pageTurnPointerCancelHdr = () => {
 
 window.addEventListener("load", onloadHdr);
 // キーボードでの操作は一覧だけ (TODO-050)
-window.addEventListener("keydown", keyHdr);
+window.addEventListener("keydown", ytsched.keyHdr);
 // 画面内で完結した移動から戻ってきたとき (TODO-050)
-window.addEventListener("popstate", popstateHdr);
+window.addEventListener("popstate", ytsched.popstateHdr);
 // 左右のスワイプで週を送るのも一覧だけ (TODO-054)。
 // touchmove だけ passive: false (TODO-057)。横の動きと判定した
 // あと preventDefault() で縦スクロールを止めないと、指に追従
 // できない。他の 3 つは縦スクロールを邪魔しないので passive のまま
-window.addEventListener("touchstart", touchStartHdr, { passive: true });
-window.addEventListener("touchmove", touchMoveHdr, { passive: false });
-window.addEventListener("touchend", touchEndHdr, { passive: true });
-window.addEventListener("touchcancel", touchCancelHdr, { passive: true });
+window.addEventListener("touchstart", ytsched.touchStartHdr, { passive: true });
+window.addEventListener("touchmove", ytsched.touchMoveHdr, { passive: false });
+window.addEventListener("touchend", ytsched.touchEndHdr, { passive: true });
+window.addEventListener("touchcancel", ytsched.touchCancelHdr, { passive: true });
 // PC のマウスの左右ドラッグでも週を送る (TODO-064)。
 // mousedown だけ capture で拾って伝播を止める。日付セルなどの
 // onmousedown は押した瞬間に遷移してしまい、そのままでは
 // セルの上からドラッグを始められない。動かずに離したときは、
 // mouseUpHdr が止めておいた onmousedown を自前で呼ぶ
-window.addEventListener("mousedown", mouseDownHdr, true);
-window.addEventListener("mousemove", mouseMoveHdr);
-window.addEventListener("mouseup", mouseUpHdr);
+window.addEventListener("mousedown", ytsched.mouseDownHdr, true);
+window.addEventListener("mousemove", ytsched.mouseMoveHdr);
+window.addEventListener("mouseup", ytsched.mouseUpHdr);
 // フッターの ◀▶ のダブルタップで自動ページ送り (TODO-084)。
 // pointerdown は capture で拾う (画面の他の場所を押したら止める分岐が、
 // ボタン側の分岐より先に効いてよい)
@@ -309,3 +311,4 @@ document.addEventListener("visibilitychange", () => {
     stopAutoPageTurn();
   }
 });
+})();

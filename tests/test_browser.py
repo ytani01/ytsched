@@ -473,6 +473,19 @@ def test_long_search_result_loads_without_javascript_error(
     assert errors == []
 
 
+def test_main_and_edit_pages_load_without_javascript_error(page, server):
+    """一覧・編集画面の読み込みで pageerror が出ない（TODO-107）。"""
+    today = datetime.date.today().isoformat()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(error))
+
+    _open(page, server, today)
+    page.goto(f"{server}edit/?date={today}", wait_until="load")
+    page.wait_for_selector("#input_form", state="visible")
+
+    assert errors == []
+
+
 def test_popstate_in_search_mode_does_not_reload(page, server, tmp_path):
     """検索モードの「戻る」で、画面内にある日なら読み直さない（TODO-069）。
 
@@ -501,7 +514,10 @@ def test_popstate_in_search_mode_does_not_reload(page, server, tmp_path):
     _mark(page)
 
     # 画面内で完結する移動を 1 つ履歴に積んでから、戻る
-    page.evaluate("(d) => pushDateInUrl(d)", other.strftime("%Y-%m-%d"))
+    page.evaluate(
+        "(d) => window.ytsched.pushDateInUrl(d)",
+        other.strftime("%Y-%m-%d"),
+    )
     page.go_back()
     page.wait_for_timeout(1000)
 
@@ -573,7 +589,9 @@ def test_gauge_diff_label_reflects_the_week_offset(page, server):
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
     for weeks, expected in [(3, "+3w"), (-1, "-1w")]:
-        got = page.evaluate("(days) => gaugeDiffLabel(days)", weeks * 7)
+        got = page.evaluate(
+            "(days) => window.ytsched.gaugeDiffLabel(days)", weeks * 7
+        )
         assert got == expected, f"weeks={weeks}"
 
 
@@ -587,7 +605,9 @@ def test_gauge_diff_label_switches_unit(page, server):
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
     for weeks, expected in [(5, "+1.1m"), (-5, "-1.1m"), (53, "+1.0y")]:
-        got = page.evaluate("(days) => gaugeDiffLabel(days)", weeks * 7)
+        got = page.evaluate(
+            "(days) => window.ytsched.gaugeDiffLabel(days)", weeks * 7
+        )
         assert got == expected, f"weeks={weeks}"
 
 
@@ -597,7 +617,7 @@ def test_days2x_percent_zero(page, server):
     """
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
-    assert page.evaluate("days2xPercent(0)") == 0.0
+    assert page.evaluate("window.ytsched.days2xPercent(0)") == 0.0
 
 
 def test_days2x_percent_sign(page, server):
@@ -606,8 +626,8 @@ def test_days2x_percent_sign(page, server):
     """
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
-    plus7 = page.evaluate("days2xPercent(7)")
-    minus7 = page.evaluate("days2xPercent(-7)")
+    plus7 = page.evaluate("window.ytsched.days2xPercent(7)")
+    minus7 = page.evaluate("window.ytsched.days2xPercent(-7)")
     assert plus7 == pytest.approx(-minus7)
     assert plus7 > 0
     assert minus7 < 0
@@ -620,7 +640,7 @@ def test_days2x_percent_is_monotonic(page, server):
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
     values = [
-        page.evaluate("(d) => days2xPercent(d)", d)
+        page.evaluate("(d) => window.ytsched.days2xPercent(d)", d)
         for d in [1, 3, 7, 30, 365]
     ]
     assert values == sorted(values)
@@ -632,12 +652,12 @@ def test_days2x_percent_clamps_at_30y(page, server):
     """
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
-    days_year = page.evaluate("DAYS_YEAR")
+    days_year = page.evaluate("window.ytsched.DAYS_YEAR")
     assert page.evaluate(
-        "(d) => days2xPercent(d)", days_year * 30
+        "(d) => window.ytsched.days2xPercent(d)", days_year * 30
     ) == pytest.approx(50.0)
     assert page.evaluate(
-        "(d) => days2xPercent(d)", -days_year * 30
+        "(d) => window.ytsched.days2xPercent(d)", -days_year * 30
     ) == pytest.approx(-50.0)
 
 
@@ -648,12 +668,12 @@ def test_days2x_percent_stays_clamped_beyond_30y(page, server):
     """
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
-    days_year = page.evaluate("DAYS_YEAR")
+    days_year = page.evaluate("window.ytsched.DAYS_YEAR")
     assert page.evaluate(
-        "(d) => days2xPercent(d)", days_year * 60
+        "(d) => window.ytsched.days2xPercent(d)", days_year * 60
     ) == pytest.approx(50.0)
     assert page.evaluate(
-        "(d) => days2xPercent(d)", -days_year * 60
+        "(d) => window.ytsched.days2xPercent(d)", -days_year * 60
     ) == pytest.approx(-50.0)
 
 
@@ -699,7 +719,9 @@ def test_x_percent2days_inverts_days2x_percent(page, server):
 
     for days in (0, 1, 7, 30, 100, 365, 3650, -1, -7, -100, -3650):
         got = page.evaluate(
-            "(days) => xPercent2days(days2xPercent(days))", days
+            "(days) => window.ytsched.xPercent2days("
+            "window.ytsched.days2xPercent(days))",
+            days,
         )
         assert got == pytest.approx(days, abs=1e-6), f"days={days}"
 
@@ -716,7 +738,9 @@ def test_gauge_bar_click_moves_to_the_tapped_week(page, server):
     _open(page, server, monday.strftime("%Y-%m-%d"))
 
     target_days = 21
-    x_percent = page.evaluate("(d) => days2xPercent(d)", target_days)
+    x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", target_days
+    )
 
     box = page.locator(".my-gauge-bar").bounding_box()
     assert box is not None

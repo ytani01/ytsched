@@ -296,10 +296,9 @@ sequenceDiagram
 ## ブラウザ側のスクリプト
 
 `static/js/` に 9 本ある（TODO-083・TODO-089）。ES モジュールではなく素の
-`<script>` で、関数と定数はグローバルに置いたまま。テンプレートの
-`onmousedown="doGet(...)"` と、`tests/test_browser.py` の
-`page.evaluate("days2xPercent(0)")` が、どちらもグローバルの名前を直に
-呼ぶため。
+`<script>` のまま、公開する関数・状態・テンプレートから渡す値を
+`window.ytsched` の下に置く。テンプレートのインラインイベントと
+`tests/test_browser.py` の `page.evaluate()` も、この名前空間経由で呼ぶ。
 
 | ファイル | 中身 |
 |---|---|
@@ -318,14 +317,16 @@ sequenceDiagram
 それぞれ自分で読む（`base.html` に入れると、もう一方の画面でも
 `onloadHdr()` / `onloadEdit()` が走ってしまう）。
 
-**ファイルをまたぐ状態は `state.js` の `ytState` にまとめてある**
+**ファイルをまたぐ状態は `window.ytsched.ytState` にまとめてある**
 （`elLoadingSpinner` / `elMain` / `elGaugeR0` / `elWeekWrap` /
 `activeWeekOffset`）。1 つのファイルの中で閉じている状態（`swipeStart`
 など）は、そのファイルのトップレベルに置いたまま。以前は `main.html` の
 `<script>` がグローバル変数へ直に代入していて、それがファイルを分け
-にくくしていた（TODO-083）。テンプレートの値は、`main.html` に残した
-2 つの定数（`search_str0`・`today_str`）と、`base.html` の `url_prefix`
-から渡す。
+にくくしていた（TODO-083）。テンプレートの値は `main.html` の
+`search_str0`・`today_str`・`auto_turn_msec` と、`base.html` の
+`url_prefix` を `window.ytsched` へ入れて渡す。ブラウザテストから直接
+使う `pushDateInUrl`、`gaugeDiffLabel`、`days2xPercent`、
+`xPercent2days`、`DAYS_YEAR` も同じ場所に公開する。
 
 ## 週の移動（ブラウザ側）
 

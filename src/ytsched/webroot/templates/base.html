@@ -24,7 +24,8 @@
     <link rel="stylesheet" href="{{ static_url('css/my.css') }}">
 
     <script>
-     const url_prefix = '{{url_prefix}}';
+     window.ytsched = {};
+     window.ytsched.url_prefix = '{{url_prefix}}';
     </script>
     <script type="text/javascript"
             src="{{ static_url('js/state.js') }}"></script>

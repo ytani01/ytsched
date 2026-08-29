@@ -3,13 +3,14 @@
  */
 
 // ファイルをまたいで参照・更新する状態 (TODO-083)。他のスクリプトから
-// ``ytState.xxx`` の形で読み書きする
+// ``window.ytsched.ytState.xxx`` の形で読み書きする
 //
 // 外へ出すもの:
-//   ytState -- spinner / gauge / nav / week / swipe / main-page / edit-page の
+//   window.ytsched.ytState -- spinner / gauge / nav / week / swipe / main-page / edit-page の
 //     ほぼ全ファイルが読み書きする
 // 外から使うもの: なし (このファイルは一番先に読み込まれる)
-const ytState = {
+window.ytsched ??= {};
+window.ytsched.ytState = {
   elLoadingSpinner: null,
   elMain: null,
   elGaugeR0: null,
