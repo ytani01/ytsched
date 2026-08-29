@@ -1,7 +1,7 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086, TODO-106..TODO-110**
-これまでに 105 件を決着させた。
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-106..TODO-108**
+これまでに 107 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-111` から**。
 
@@ -80,32 +80,6 @@ HTML テンプレート内のインラインスクリプトを排除し、テン
 |      | main | 担当 |
 |------|------|------|
 | 見込み | Gemini 3.7 Flash / effort medium | implementer + verifier + reviewer |
-
----
-
-## TODO-109. ヘッダーのゲージの下に日付入力欄を常時表示する（完了）
-
-- [x] `main.html` のヘッダー部（横ゲージの下）に、フッターにあるものと同様の `<input id="date" ...>`（または対応する日付入力欄）を常時表示する
-- [x] ほかの部分は変更しない
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Gemini 3.7 Flash / effort medium | implementer + verifier |
-| 実施 | Gemini 3.7 Flash / effort medium | main のみ |
-| 消費 | output 1,100 / cache_creation 15,000 / 概算 $0.2 |
-|      | main 100% |
-
----
-
-## TODO-110. フッターの日付表示が週の表示と連動するようにする（完了）
-
-- [x] `setActiveWeek()` や関連する週切り替え時に、フッターの日付入力欄や関連要素を更新する
-- [x] テストの実行と通過確認
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | main のみ |
-| 実施 | Sonnet 5 / effort medium | main のみ |
 
 ---
 
