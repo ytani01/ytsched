@@ -47,6 +47,14 @@
       <!-- 目盛り (.my-gauge-label) は、読み込み時に JavaScript の
            dispGaugeMarks() が描く (TODO-078) -->
     </div>
+    <div class="row m-0 mt-1">
+      <div class="col-12 p-0 text-center">
+        <input id="date" name="date"
+          type="date" value="{{ date }}"
+          onchange="doGet('{{ url_prefix }}',
+                   {date:this.value});"/>
+      </div>
+    </div>
   </div><!-- container -->
   {% end %}
 
