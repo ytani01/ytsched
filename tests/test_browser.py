@@ -343,6 +343,26 @@ def test_week_move_does_not_reload_the_page(page, server):
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
+def test_week_move_updates_date_inputs(page, server):
+    """週送りで、ヘッダーとフッターの日付を月曜に揃える（TODO-111）。"""
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    page.locator("#forward_button").click()
+
+    expected = (monday + datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+    page.wait_for_function(
+        "(monday) => document.querySelector('.my-week-cur')"
+        ".dataset.monday === monday",
+        arg=expected,
+        timeout=10000,
+    )
+
+    assert page.locator("#header_date").input_value() == expected
+    assert page.locator("#footer_date").input_value() == expected
+    assert page.locator("#cur_day").input_value() == expected
+
+
 def test_week_move_reloads_outside_the_loaded_range(page, server):
     """持っている範囲の外へ出るときは読み直す（TODO-069）。
 
@@ -422,6 +442,35 @@ def _write_sched(tmp_path, date, title):
     (path / (date.strftime("%d") + ".jsonl")).write_text(
         line + "\n", encoding="utf-8"
     )
+
+
+def test_long_search_result_loads_without_javascript_error(
+    page, server, tmp_path
+):
+    """ヘッダーが無い長い検索表示でも読み込み処理が完了する（TODO-111）。"""
+    today = datetime.date.today()
+    for days in range(20):
+        _write_sched(
+            tmp_path,
+            today - datetime.timedelta(days=days),
+            "けんさくよう",
+        )
+    write_conf(tmp_path / "data", {"SearchN": "20"})
+
+    errors = []
+    page.on("pageerror", lambda error: errors.append(error))
+    _open(page, server, today.strftime("%Y-%m-%d"))
+    page.locator("#search_str").fill("けんさくよう")
+    page.evaluate("document.forms['form_search'].submit()")
+    page.wait_for_load_state("load")
+    page.wait_for_selector("#main", state="visible")
+
+    assert page.locator("#header_date").count() == 0
+    assert page.locator("#footer_date").input_value() == today.isoformat()
+    assert page.evaluate(
+        "document.body.clientHeight >= document.documentElement.clientHeight"
+    )
+    assert errors == []
 
 
 def test_popstate_in_search_mode_does_not_reload(page, server, tmp_path):

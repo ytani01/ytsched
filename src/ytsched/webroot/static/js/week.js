@@ -112,7 +112,8 @@ const layoutWeeks = () => {
  *
  * ページを読み直さずに、DOM の中だけで週を移る。並べ直したうえで、
  * 週に付いて回るもの (``ytState.activeMonday``・画面に出ている
- * ``#date``・ヘッダのゲージ) を、その週の月曜に揃える。
+ * ヘッダーとフッターの日付入力欄・ヘッダーのゲージ) を、その週の月曜に
+ * 揃える。
  *
  * ``push_flag`` が真なら URL を履歴に積む。戻る/進むから呼ぶときは
  * 偽にする (``popstate`` で来た時点で URL はもう動いている)。
@@ -139,10 +140,12 @@ const setActiveWeek = (offset, push_flag = true) => {
   const monday = panel.dataset.monday;
   ytState.activeMonday = monday;
 
-  // 画面に出ている日付入力および #cur_day を合わせる (TODO-109)
-  const el_date = document.getElementById("date");
-  if (el_date) {
-    el_date.value = monday;
+  // 画面に出ている日付入力欄および #cur_day を合わせる (TODO-111)
+  for (const id of ["header_date", "footer_date"]) {
+    const el_date = document.getElementById(id);
+    if (el_date) {
+      el_date.value = monday;
+    }
   }
   const el_cur_day = document.getElementById("cur_day");
   if (el_cur_day) {

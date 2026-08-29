@@ -116,7 +116,9 @@ const onloadHdr = (event) => {
   }
 
   const el_sde_align = document.getElementById("sde_align");
-  const el_date = document.getElementById("date");
+  const el_date =
+    document.getElementById("header_date") ||
+    document.getElementById("footer_date");
   // 読み直したあとの位置合わせは一度で移す。"auto" は CSS の
   // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
   // アニメーションになってしまう (TODO-041)

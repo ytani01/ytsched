@@ -49,7 +49,7 @@
     </div>
     <div class="row m-0 mt-1">
       <div class="col-12 p-0 text-center">
-        <input id="date" name="date"
+        <input id="header_date" name="date"
           type="date" value="{{ date }}"
           onchange="doGet('{{ url_prefix }}',
                    {date:this.value});"/>
@@ -405,7 +405,7 @@
 
       <!-- date -->
       <div class="col-5 p-0 text-center">
-        <input id="date" name="date"
+        <input id="footer_date" name="date"
           type="date" value="{{ date }}"
           onchange="doGet('{{ url_prefix }}',
                    {date:this.value});"/>
