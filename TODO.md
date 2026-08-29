@@ -49,13 +49,25 @@
 
 - [ ] シングルクリックの移動先を、今日から今週の月曜日に変える
 - [ ] ダブルクリックの読み直しも、今週の月曜日を基準にする
+- [ ] verifier で確認する（lint・テスト・実際の画面）
 
 `main-page.js` の `homeButtonHdr()` は、シングル・ダブルとも `today_str`
 を渡している。週間表示では週の頭が見えているほうが分かりやすいので、
-どちらも今週の月曜日へ移動するようにする。月曜は `gauge.js` の
-`mondayOf()` で求められる。
+どちらも今週の月曜日へ移動するようにする。
 
-キーボードの Home キー（`keyboard.js`）は今日へ移動したままにする。
+直し方（方針を決めた。実装はこれから）:
+
+- `homeButtonHdr()` の先頭で
+  `const monday_str = getLocaltimeDateString(mondayOf(today_str));`
+  を求め、シングル側の `doPost` の `date`・`scrollToDate` の日付と、
+  ダブル側の `doGet` の `date` を、`today_str` からこれに差し替える
+- `mondayOf()` は `gauge.js`、`getLocaltimeDateString()` は `nav.js` にある。
+  どちらも `base.html` で `main-page.js` より先に読まれるので、そのまま呼べる
+- 呼び出し関係を先頭コメントに書く決まり（TODO-097）があるので、
+  `main-page.js`・`nav.js`・`gauge.js` のコメントも合わせて直す
+- ボタンの表示（`main.html` の `my-home-date`）は今日の日付のままにする。
+  「今日がいつか」を出す場所なので、移動先とは別
+- キーボードの Home キー（`keyboard.js`）も今日へ移動したままにする
 
 ---
 
