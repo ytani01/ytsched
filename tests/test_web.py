@@ -655,8 +655,8 @@ class TestMonthMiniCal(WebTestBase):
         panel = week_panel(body)
 
         assert (
-            f"onmousedown=\"scrollToDate('{URL_PREFIX}/', '2021-03-15');\""
-            in panel
+            f"onmousedown=\"window.ytsched.scrollToDate('{URL_PREFIX}/', "
+            "'2021-03-15');\"" in panel
         )
 
     def test_out_of_month_day_is_not_clickable(self):
@@ -942,8 +942,8 @@ class TestInvalidArgs(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
         assert (
-            f"const auto_turn_msec = {MainHandler.DEF_AUTO_TURN_MSEC};"
-            in body
+            "window.ytsched.auto_turn_msec = "
+            f"{MainHandler.DEF_AUTO_TURN_MSEC};" in body
         )
 
     def test_auto_turn_msec_from_conf(self):
@@ -952,7 +952,7 @@ class TestInvalidArgs(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
-        assert "const auto_turn_msec = 500;" in body
+        assert "window.ytsched.auto_turn_msec = 500;" in body
 
     def test_broken_auto_turn_msec_falls_back_to_the_default(self):
         """数字にならない値も、範囲の外も既定値へ落とす。"""
@@ -962,8 +962,8 @@ class TestInvalidArgs(WebTestBase):
             body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
             assert (
-                f"const auto_turn_msec = {MainHandler.DEF_AUTO_TURN_MSEC};"
-                in body
+                "window.ytsched.auto_turn_msec = "
+                f"{MainHandler.DEF_AUTO_TURN_MSEC};" in body
             ), value
 
     def test_auto_turn_msec_is_not_overwritten(self):

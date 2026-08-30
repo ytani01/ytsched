@@ -237,7 +237,7 @@ def test_double_tap_starts_auto_page_turn(page, server, tmp_path):
     expected = monday + datetime.timedelta(days=7 * 5)
     page.wait_for_function(
         "(monday) => document.querySelector('.my-week-cur')"
-        ".dataset.monday === monday",
+        ".dataset.monday >= monday",
         arg=expected.strftime("%Y-%m-%d"),
         timeout=10000,
     )
@@ -253,10 +253,13 @@ def test_tap_again_stops_auto_page_turn(page, server, tmp_path):
     _tap(page, forward)
     _tap(page, forward)  # ダブルタップで自動送りが始まる
 
+    # ダブルタップでの 2 回に加え、自動送りで少なくとも 1 回進んだことを
+    # 確認する。300msec ごとの途中の週を正確に待つと、Playwright が
+    # 確認する前に通り過ぎたときに待ち続けてしまう。
     expected = monday + datetime.timedelta(days=7 * 3)
     page.wait_for_function(
         "(monday) => document.querySelector('.my-week-cur')"
-        ".dataset.monday === monday",
+        ".dataset.monday >= monday",
         arg=expected.strftime("%Y-%m-%d"),
         timeout=10000,
     )
