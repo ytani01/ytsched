@@ -10,6 +10,7 @@ __date__ = "2026/08"
 
 import dataclasses
 import datetime
+import re
 
 from .mylog import getLogger
 from .ytsched import SchedData, SchedDataEnt
@@ -38,6 +39,11 @@ class SchedUpdater:
     """``cmd`` (add/fix/update/del) を実行する (TODO-087)。"""
 
     __log = getLogger(__qualname__)
+
+    # タイトル末尾の半角 ``#`` + 半角数字 (TODO-127)。``#`` の前の
+    # 空白の有無は問わない。``\d`` は全角数字にもマッチするので、
+    # ``[0-9]`` で半角だけに絞る
+    TITLE_COUNTER_RE = re.compile(r"#([0-9]+)$")
 
     def __init__(self, sd: SchedData) -> None:
         """Constructor
@@ -99,6 +105,16 @@ class SchedUpdater:
 
         if cmd in ["add"]:
             sde_id = None
+
+            # 複製 (TODO-127)。タイトル末尾が ``#N`` のときだけ、
+            # ``#N+1`` にする。ToDo は締切日を動かさない
+            new_title = self.increment_title_counter(title)
+            if new_title is not None:
+                title = new_title
+                if date is not None and not SchedDataEnt.type_is_todo(
+                    sde_type
+                ):
+                    date = date + datetime.timedelta(days=1)
 
         # ``cmd_del()``/``cmd_add()`` は変更を覚えるだけで保存しない。
         # 同じファイルへの保存が 1 回で済むよう、ここでまとめて
@@ -206,6 +222,26 @@ class SchedUpdater:
         self.__log.debug(f"[fix] detail={detail}")
 
         return date, time_start, time_end, detail
+
+    def increment_title_counter(self, title: str) -> str | None:
+        """タイトル末尾の ``#N`` を ``#N+1`` にする (TODO-127)。
+
+        Parameters
+        ----------
+        title: str
+
+        Returns
+        -------
+        str | None
+            末尾が ``#N`` でなければ ``None``
+
+        """
+        m = self.TITLE_COUNTER_RE.search(title)
+        if not m:
+            return None
+
+        n = int(m.group(1)) + 1
+        return title[: m.start(1)] + str(n)
 
     def cmd_add(
         self,

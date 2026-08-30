@@ -1507,6 +1507,104 @@ class TestUpdate(WebTestBase):
         )
         assert json.loads(line)["title"] == "ノートを買う"
 
+    def test_add_duplicate_increments_title_and_date(self):
+        """タイトル末尾が ``#N`` の複製は、翌日・``#N+1`` になる(TODO-127)。"""
+        self.write_data(DATE1, [mk_dataline(title="定例会議 #1")])
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            time_start="09:05",
+            time_end="10:30",
+            sde_type="会議",
+            title="定例会議 #1",
+            place="会議室",
+            detail="詳細",
+        )
+
+        next_day = DATE1 + datetime.timedelta(days=1)
+        line = (
+            self.data_path(next_day).read_text(encoding="utf-8").rstrip("\n")
+        )
+        assert json.loads(line)["title"] == "定例会議 #2"
+
+    def test_add_without_counter_keeps_date_and_title(self):
+        """タイトル末尾が ``#N`` でなければ、日付もタイトルも変わらない。"""
+        sde_id = self.add_sde(title="会議1")
+
+        line = self.data_path(DATE1).read_text(encoding="utf-8").rstrip("\n")
+        data = json.loads(line)
+        assert data["sde_id"] == sde_id
+        assert data["title"] == "会議1"
+        assert data["date"] == DATE1_STR
+
+    def test_add_with_fullwidth_digit_counter_keeps_date_and_title(self):
+        """半角 ``#`` + 全角数字は対象外(TODO-127)。
+
+        ``\\d`` は全角数字にもマッチするので、半角 ``[0-9]`` だけに
+        絞っていないと、ここで日付・タイトルが変わってしまう。
+        """
+        self.write_data(DATE1, [mk_dataline(title="定例会議 #１")])
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            time_start="09:05",
+            time_end="10:30",
+            sde_type="会議",
+            title="定例会議 #１",
+            place="会議室",
+            detail="詳細",
+        )
+
+        lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 2
+        assert not self.data_path(DATE1 + datetime.timedelta(days=1)).exists()
+        data = json.loads(lines[-1])
+        assert data["title"] == "定例会議 #１"
+        assert data["date"] == DATE1_STR
+
+    def test_add_todo_duplicate_keeps_date(self):
+        """ToDo の複製は、締切日は動かさず番号だけ +1 になる(TODO-127)。"""
+        (self.datadir / "ToDo.jsonl").write_text(
+            mk_dataline(
+                sde_id="id-t",
+                time_start=None,
+                time_end=None,
+                type="□買い物",
+                title="ノートを買う #1",
+                place="",
+                detail="",
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            sde_type="□買い物",
+            title="ノートを買う #1",
+            place="",
+            detail="",
+        )
+
+        lines = (
+            (self.datadir / "ToDo.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
+        titles = {json.loads(line)["title"] for line in lines}
+        dates = {json.loads(line)["date"] for line in lines}
+        assert titles == {"ノートを買う #1", "ノートを買う #2"}
+        assert dates == {DATE1_STR}
+
 
 class TestInvalidUpdateArgs(WebTestBase):
     """``cmd=add``/``fix``/``update``/``del`` の日付・時刻が読めないとき
