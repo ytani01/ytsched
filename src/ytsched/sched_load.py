@@ -123,6 +123,9 @@ class MonthCalDay:
     date: datetime.date
     in_month: bool
     has_sched: bool
+    has_important: bool
+    is_holiday: bool
+    has_todo: bool
 
 
 @dataclasses.dataclass
@@ -173,6 +176,10 @@ class SchedLoader:
         #: 同じ月が複数の週パネルで要るので、1 リクエスト内で使い回す
         #: (``SchedLoader`` はリクエストごとに作られる。TODO-103)
         self._month_cal_cache: dict[tuple[int, int], MonthCal] = {}
+        #: ToDo の締切日の集合 (``load_month_cal()`` が使う。フィルタ・
+        #: 検索・``todo_days`` は反映しない。1 リクエスト内で 1 回だけ
+        #: 集める (TODO-129)。
+        self._todo_dates: set[datetime.date] | None = None
 
     def load_todo(
         self,
@@ -263,12 +270,31 @@ class SchedLoader:
 
         return by_date
 
-    def load_month_cal(self, year: int, month: int) -> MonthCal:
-        """月間ミニカレンダー 1 か月分を組み立てる (TODO-103)。
+    def _get_todo_dates(self) -> set[datetime.date]:
+        """ToDo の締切日の集合を作る (初回だけ。TODO-129)。
 
-        予定の有無は ``SchedData.sdf_has_sde()`` で見る。**ファイルを
-        開かない**ので軽い。ToDo は数えない。フィルタ・検索は反映
-        しない。
+        ``load_month_cal()`` がミニカレンダーの印に使う。フィルタ・
+        検索・``todo_days`` は反映しない (ミニカレンダーは元からそう)。
+
+        Returns
+        -------
+        set[datetime.date]
+
+        """
+        if self._todo_dates is None:
+            self._todo_dates = {
+                sde.date for sde in self._sd.get_sdf(None).sde
+            }
+        return self._todo_dates
+
+    def load_month_cal(self, year: int, month: int) -> MonthCal:
+        """月間ミニカレンダー 1 か月分を組み立てる (TODO-103・TODO-129)。
+
+        予定の有無・重要・祝日は ``SchedData.get_sdf(date).sde`` で
+        中身を読んで判定する。``SchedData`` のキャッシュに載るので
+        2 回目以降は速いが、初回はファイルを開くぶん重くなる。ToDo の
+        締切は ``_get_todo_dates()`` の集合を引くだけ。フィルタ・検索は
+        反映しない。
 
         1 リクエスト内で同じ月が複数の週パネルから要求されるので、
         ``self._month_cal_cache`` に積んで使い回す。
@@ -289,6 +315,8 @@ class SchedLoader:
         if cached is not None:
             return cached
 
+        todo_dates = self._get_todo_dates()
+
         first_day = datetime.date(year, month, 1)
         days_in_month = calendar.monthrange(year, month)[1]
         last_day = datetime.date(year, month, days_in_month)
@@ -301,13 +329,26 @@ class SchedLoader:
         while date1 <= last_week_monday:
             week: list[MonthCalDay] = []
             for _ in range(7):
+                day_sde = self._sd.get_sdf(date1).sde
+                sde_list = [sde for sde in day_sde if not sde.is_todo()]
+                # 日付ファイル側に ToDo 型の行が混ざっていても印が
+                # 消えないよう、四角のほうで拾う (TODO-129 の reviewer
+                # の指摘)。正常な操作では ``SchedUpdater`` が ToDo を
+                # ``ToDo.jsonl`` へ書くので混ざらないが、``migrate``
+                # したデータや手で直したファイルでは起こりうる
+                has_todo = date1 in todo_dates or len(day_sde) > len(sde_list)
                 week.append(
                     MonthCalDay(
                         date=date1,
                         in_month=(
                             date1.year == year and date1.month == month
                         ),
-                        has_sched=self._sd.sdf_has_sde(date1),
+                        has_sched=len(sde_list) > 0,
+                        has_important=any(
+                            sde.is_important() for sde in sde_list
+                        ),
+                        is_holiday=any(sde.is_holiday() for sde in sde_list),
+                        has_todo=has_todo,
                     )
                 )
                 date1 += datetime.timedelta(1)

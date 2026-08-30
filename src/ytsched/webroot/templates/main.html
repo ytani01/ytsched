@@ -266,11 +266,25 @@
           {% if w.monday <= d.date <= w.monday + datetime.timedelta(6) %}
           {% set td_class = td_class + ' my-mini-cal-day-cur-week' %}
           {% end %}
+          {% if d.in_month %}
+          {% if d.is_holiday or d.date.weekday() == 6 %}
+          {% set td_class = td_class + ' my-mini-cal-day-holiday' %}
+          {% elif d.date.weekday() == 5 %}
+          {% set td_class = td_class + ' my-mini-cal-day-sat' %}
+          {% end %}
+          {% end %}
           <td class="{{ td_class }}"
             {% if d.in_month %}data-action="scroll-date" data-date="{{ d.date }}"{% end %}>
             <div class="my-mini-cal-daynum">{{ d.date.day }}</div>
-            {% if d.has_sched %}
-            <div class="my-mini-cal-dot"></div>
+            {% if d.has_sched or d.has_todo %}
+            <div class="my-mini-cal-marks">
+              {% if d.has_sched %}
+              <div class="my-mini-cal-dot{% if d.has_important %} my-mini-cal-dot-important{% end %}"></div>
+              {% end %}
+              {% if d.has_todo %}
+              <div class="my-mini-cal-sq"></div>
+              {% end %}
+            </div><!-- my-mini-cal-marks -->
             {% end %}
           </td>
           {% end %}<!-- for d -->
