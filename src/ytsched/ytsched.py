@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from .mylog import getLogger
+from .trash import TrashFile
 
 
 def normalize(text: str) -> str:
@@ -773,6 +774,7 @@ class SchedData:
 
         self._cache_size = cache_size
         self._topdir = topdir
+        self._trash = TrashFile(topdir)
 
         # ToDo は ``date`` が None のキーで扱う
         self._sdf_cache: collections.OrderedDict[
@@ -989,6 +991,15 @@ class SchedData:
         self.__log.debug(f"date={date}, sde_id={sde_id}")
 
         sdf = self.get_sdf(date)
+
+        # ゴミ箱への追記は、``save()`` まで待たずにその場で行う。
+        # ゴミ箱は追記のみで書き直さないので、失敗しても既存の行は
+        # 消えない。余分に残る方向の失敗（例えば、このあと編集や削除が
+        # 取り消されても行は残る）は害が小さいため、ここで確定させる。
+        sde = sdf.get_sde(sde_id)
+        if sde is not None:
+            self._trash.add(sde)
+
         sdf.del_sde(sde_id)
         self._dirty_sdf[date] = sdf
 
