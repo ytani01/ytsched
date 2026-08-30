@@ -1,0 +1,3 @@
+# このリポジトリだけ、Git 操作を含むローカルコマンドの確認を省く。
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
