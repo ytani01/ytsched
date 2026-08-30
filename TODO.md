@@ -1,9 +1,9 @@
 # TODO
 
-**残っている項目: TODO-071, TODO-085..TODO-086**
+**残っている項目: TODO-071, TODO-085..TODO-086, TODO-115**
 これまでに 114 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-115` から**。
+**番号は `TODO-116` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
 前後があった 3 つ（TODO-087 → TODO-088 → TODO-071）のうち、
@@ -40,6 +40,39 @@
 - ゴミ箱に同じIDの予定が複数あるときは、内容を確認して選択できるようにする。
 
 ----
+
+## TODO-115. implementer の effort を medium に下げる
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | main のみ |
+
+- [ ] `.claude/agents/implementer.md` の `effort` を `high` から `medium` にする
+- [ ] 次に implementer を立てる 1〜2 項目で、品質が落ちていないかを見る
+- [ ] 落ちていたら `high` に戻し、その判断をこのファイルに残す
+
+サブエージェントのモデルを下げてトークン消費を減らせないか、という相談から。
+implementer と runner を Haiku にする案が出たが、runner は既に
+`model: haiku` / `effort: low` になっている。implementer を Haiku に
+するのは見送る。理由は次の 3 つ。
+
+- `~/.claude/CLAUDE.md` の基準では、判断の要らない担当が Sonnet 以下。
+  implementer は「最小限の変更にとどめる」「ついでの整理に手を出さない」と、
+  変更の範囲を自分で線引きする担当で、ここに当たらない
+- ytsched のコードは `HandlerBase` / `MainHandler` / `EditHandler` の関係や
+  `SchedData` 周りなど、既存の書き方に揃える判断が要る
+- 雑な変更を verifier / reviewer が拾い、main が指示し直すと、やり直し 1 回で
+  Sonnet と Haiku の差額はほぼ消える
+
+モデルは sonnet のまま、`effort` だけ下げて様子を見る。地力を保ったまま
+消費を減らせるかどうかの確認。
+
+担当を `main のみ` にしたのは、変えるのが frontmatter の 1 行で、
+確かめられることがこの項目の中に無いため（効果の判定は、次に implementer を
+立てる項目での観察になる）。`.claude/agents/*.md` は Claude Code の起動時に
+しか読まれないので、**変更後の再起動は利用者が行う**。
+
+---
 
 ## 完了済み
 
