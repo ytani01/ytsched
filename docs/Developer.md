@@ -1,7 +1,8 @@
 # 開発者向けドキュメント
 
 開発環境の用意、開発ツールの使い方、テストとログの決まりをまとめる。
-利用者向けの説明は [../README.md](../README.md)、ソースコードの構成は
+利用者向けの説明は [../README.md](../README.md) と
+[User.md](User.md)、ソースコードの構成は
 [../src/README.md](../src/README.md)、テストの構成は
 [../tests/README.md](../tests/README.md)、データ形式は
 [data-format.md](data-format.md) を見ること。
