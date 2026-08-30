@@ -858,18 +858,20 @@ textarea {
 
 /* ゴミ箱 */
 .my-trash-main {
-    padding-top: 55px;
+    min-height: 100vh;
+    padding: 55px 0.5rem 0.5rem;
 }
 
 .my-trash-group {
-    margin: 0.5rem 0;
+    margin-bottom: 0.75rem;
 }
 
 .my-trash-entry {
-    background-color: #FFF;
-    border-radius: 8px;
-    margin: 0.25rem 0;
-    padding: 0.3rem 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.my-trash-title {
+    font-weight: bold;
 }
 
 .my-trash-detail {
@@ -884,6 +886,7 @@ textarea {
 .my-trash-restore {
     background: none;
     border: 0;
+    font-size: 1rem;
     padding: 0;
 }
 

@@ -2,17 +2,17 @@
 
 {% block content %}
 <header class="container-fluid p-2 fixed-top my-bar">
-  <div class="row align-items-center">
+  <div class="row my-row-middle">
     <div class="col-2">
       <a href="{{ url_prefix }}" class="my-btn" aria-label="一覧へ戻る">
-        <svg class="my-icon my-icon-xl"><use href="{{ static_url('icons/icons.svg') }}#reply"></use></svg>
+        <svg class="my-icon my-icon-2x"><use href="{{ static_url('icons/icons.svg') }}#reply"></use></svg>
       </a>
     </div>
-    <div class="col-8 text-center">ゴミ箱</div>
+    <div class="col-8 text-center my-trash-title">ゴミ箱</div>
     <div class="col-2 text-end my-fs-small">{{ entry_count }}件</div>
   </div>
 </header>
-<main class="container-fluid my-trash-main">
+<main class="container-fluid my-trash-main my-edit-body">
   {% for group in groups %}
   <section class="my-trash-group">
     {% if len(group) > 1 %}
@@ -20,8 +20,8 @@
     {% end %}
     {% for entry in group %}
     {% set sde = entry.sde %}
-    <article class="my-trash-entry">
-      <div class="row m-0">
+    <article class="my-sde my-sde-normal border my-trash-entry">
+      <div class="row m-0 p-1">
         <div class="col-3 p-0 my-fs-small">{{ sde.date.strftime('%Y/%m/%d (%a)') }}</div>
         <div class="col-3 p-0 my-fs-small">{{ sde.get_timestr() }}</div>
         <div class="col-5 p-0 text-truncate"><span class="my-sde-type">【{{ sde.type }}】</span> <span class="my-sde-title">{{ sde.title }}</span></div>
@@ -31,14 +31,14 @@
             <input type="hidden" name="sde_id" value="{{ sde.sde_id }}">
             <input type="hidden" name="trashed_at" value="{{ entry.trashed_at }}">
             <button class="my-btn my-trash-restore" type="submit" aria-label="復活">
-              <svg class="my-icon"><use href="{{ static_url('icons/icons.svg') }}#rotate-left"></use></svg>
+              <svg class="my-icon my-icon-xl"><use href="{{ static_url('icons/icons.svg') }}#rotate-left"></use></svg>
             </button>
           </form>
         </div>
       </div>
-      {% if sde.place %}<div class="my-sde-place text-truncate">@{{ sde.place }}</div>{% end %}
-      {% if sde.detail %}<div class="my-trash-detail">{{ sde.detail }}</div>{% end %}
-      <div class="my-fs-x-small">{{ entry.trashed_at.replace('T', ' ') }} に削除</div>
+      {% if sde.place %}<div class="my-sde-place text-truncate px-1">@{{ sde.place }}</div>{% end %}
+      {% if sde.detail %}<div class="my-trash-detail px-1">{{ sde.detail }}</div>{% end %}
+      <div class="my-fs-x-small px-1">{{ entry.trashed_at.replace('T', ' ') }} に削除</div>
     </article>
     {% end %}
   </section>
