@@ -967,6 +967,7 @@ textarea {
 .my-mini-cal-row {
     display: flex;
     justify-content: center;
+    align-items: flex-start; /* 上端揃え */
     gap: 10px;
     margin-top: 8px;
     position: relative;
