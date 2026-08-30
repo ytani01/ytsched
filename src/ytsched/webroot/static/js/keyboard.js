@@ -29,98 +29,98 @@
  * ないので、その分を持ち上げると位置が狂う。
  */
 (() => {
-const ytsched = window.ytsched;
+  const ytsched = window.ytsched;
 
-const followKeyboard = () => {
-  const vv = window.visualViewport;
-  if (!vv) {
-    return;
-  }
-  let offset = 0;
-  if (vv.scale <= 1.01) {
-    const gap = window.innerHeight - vv.height - vv.offsetTop;
-    offset = Math.max(0, Math.round(gap));
-  }
-  const els = document.getElementsByClassName("my-follow-keyboard");
-  for (const el of els) {
-    el.style.transform = `translateY(${-offset}px)`;
-  }
-};
-if (window.visualViewport) {
-  window.visualViewport.addEventListener("resize", followKeyboard);
-  window.visualViewport.addEventListener("scroll", followKeyboard);
-  window.addEventListener("load", followKeyboard);
-}
-
-/**
- * 入力欄にフォーカスがあるかどうか (TODO-050)。
- *
- * キーの割り当てを拾う前に見る。検索欄で ``/``が打てなくなったり、
- * 日付の入力欄で ←→ が週送りになったりしないようにする。
- */
-const isTyping = () => {
-  const el = document.activeElement;
-  if (!el) {
-    return false;
-  }
-  const tag = el.tagName.toLowerCase();
-  if (tag === "input" || tag === "textarea" || tag === "select") {
-    return true;
-  }
-  return el.isContentEditable === true;
-};
-/**
- * キーボードで操作する (TODO-050)。
- *
- * | キー    | 動き                          |
- * |---------|-------------------------------|
- * | ← / →   | 前の週へ / 次の週へ           |
- * | ↑ / ↓   | 今までどおりスクロール        |
- * | Home    | 今日へ                        |
- * | /       | 検索欄へ移る                  |
- * | Esc     | 検索欄から抜ける              |
- *
- * 一覧 (``main.html``) でだけ登録する。編集画面で ←→ が効くと、
- * 入力の途中で画面が変わってしまう。
- */
-window.ytsched.keyHdr = (event) => {
-  if (isTyping()) {
-    if (event.key === "Escape") {
-      document.activeElement.blur();
+  const followKeyboard = () => {
+    const vv = window.visualViewport;
+    if (!vv) {
+      return;
     }
-    return;
-  }
-
-  if (event.ctrlKey || event.altKey || event.metaKey) {
-    return;
-  }
-
-  switch (event.key) {
-    case "ArrowLeft":
-      event.preventDefault();
-      ytsched.moveToMonday(-1, ytsched.url_prefix);
-      break;
-
-    case "ArrowRight":
-      event.preventDefault();
-      ytsched.moveToMonday(1, ytsched.url_prefix);
-      break;
-
-    case "Home": {
-      event.preventDefault();
-      const today_str = ytsched.getLocaltimeDateString(new Date());
-      ytsched.scrollToDate(ytsched.url_prefix, today_str, "top");
-      break;
+    let offset = 0;
+    if (vv.scale <= 1.01) {
+      const gap = window.innerHeight - vv.height - vv.offsetTop;
+      offset = Math.max(0, Math.round(gap));
     }
+    const els = document.getElementsByClassName("my-follow-keyboard");
+    for (const el of els) {
+      el.style.transform = `translateY(${-offset}px)`;
+    }
+  };
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", followKeyboard);
+    window.visualViewport.addEventListener("scroll", followKeyboard);
+    window.addEventListener("load", followKeyboard);
+  }
 
-    case "/": {
-      event.preventDefault();
-      const el_search = document.getElementById("search_str");
-      if (el_search) {
-        el_search.focus();
+  /**
+   * 入力欄にフォーカスがあるかどうか (TODO-050)。
+   *
+   * キーの割り当てを拾う前に見る。検索欄で ``/``が打てなくなったり、
+   * 日付の入力欄で ←→ が週送りになったりしないようにする。
+   */
+  const isTyping = () => {
+    const el = document.activeElement;
+    if (!el) {
+      return false;
+    }
+    const tag = el.tagName.toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") {
+      return true;
+    }
+    return el.isContentEditable === true;
+  };
+  /**
+   * キーボードで操作する (TODO-050)。
+   *
+   * | キー    | 動き                          |
+   * |---------|-------------------------------|
+   * | ← / →   | 前の週へ / 次の週へ           |
+   * | ↑ / ↓   | 今までどおりスクロール        |
+   * | Home    | 今日へ                        |
+   * | /       | 検索欄へ移る                  |
+   * | Esc     | 検索欄から抜ける              |
+   *
+   * 一覧 (``main.html``) でだけ登録する。編集画面で ←→ が効くと、
+   * 入力の途中で画面が変わってしまう。
+   */
+  window.ytsched.keyHdr = (event) => {
+    if (isTyping()) {
+      if (event.key === "Escape") {
+        document.activeElement.blur();
       }
-      break;
+      return;
     }
-  }
-};
+
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+      return;
+    }
+
+    switch (event.key) {
+      case "ArrowLeft":
+        event.preventDefault();
+        ytsched.moveToMonday(-1, ytsched.url_prefix);
+        break;
+
+      case "ArrowRight":
+        event.preventDefault();
+        ytsched.moveToMonday(1, ytsched.url_prefix);
+        break;
+
+      case "Home": {
+        event.preventDefault();
+        const today_str = ytsched.getLocaltimeDateString(new Date());
+        ytsched.scrollToDate(ytsched.url_prefix, today_str, "top");
+        break;
+      }
+
+      case "/": {
+        event.preventDefault();
+        const el_search = document.getElementById("search_str");
+        if (el_search) {
+          el_search.focus();
+        }
+        break;
+      }
+    }
+  };
 })();

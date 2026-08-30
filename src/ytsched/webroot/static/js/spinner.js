@@ -35,7 +35,8 @@ window.addEventListener("pageshow", (event) => {
   if (!event.persisted) {
     return;
   }
-  window.ytsched.ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
+  window.ytsched.ytState.elLoadingSpinner =
+    document.getElementById("loadingSpinner");
   if (window.ytsched.ytState.elLoadingSpinner) {
     window.ytsched.loadingSpinner(false);
   }
