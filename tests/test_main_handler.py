@@ -29,6 +29,7 @@ TODO-021 のリファクタリングは「挙動を一切変えない」のが�
 import datetime
 import json
 import re
+from typing import Any, cast
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -44,6 +45,7 @@ from test_web import (
 )
 
 from ytsched import handler_util
+from ytsched.main_binder import MainBinder
 from ytsched.main_handler import MainHandler
 from ytsched.sched_load import SchedLoadCond, SchedLoader, SchedSearchCond
 from ytsched.sched_update import SchedUpdater
@@ -61,8 +63,8 @@ def test_cookie_todo_days_is_removed():
     assert not hasattr(MainHandler, "COOKIE_TODO_DAYS")
 
 
-def test_update_conf_args_returns_and_saves_all_four(tmp_path):
-    """``update_conf_args()`` が 4 つの値を ``ConfArgs`` にまとめて
+def test_binder_update_conf_args_returns_and_saves_all_four(tmp_path):
+    """``MainBinder.update_conf_args()`` が 4 つの値を ``ConfArgs`` にまとめて
     返し、``conf.json`` へも反映する（C・TODO-090）。
     """
     datadir = tmp_path / "data"
@@ -86,7 +88,7 @@ def test_update_conf_args_returns_and_saves_all_four(tmp_path):
         ),
     )
 
-    conf_args = handler.update_conf_args()
+    conf_args = MainBinder(cast(Any, handler)).update_conf_args()
 
     assert conf_args.search_str == "abc"
     assert conf_args.filter_str == "def"
@@ -861,7 +863,7 @@ class TestLoadSchedScan(WebTestBase):
 
         ``date`` を省くと ``BASE``（TODO-049）。
         """
-        loader = handler._loader
+        loader = SchedLoader(handler._sd)
         search_re = re.compile(search_str) if search_str else None
         todo_sde, todo_today_sde = loader.load_todo(
             None, False, search_re, todo_days_value
@@ -1023,7 +1025,7 @@ class TestMonthCal(WebTestBase):
 
     def loader(self):
         handler = make_handler(self._app, MainHandler)
-        return handler._loader
+        return SchedLoader(handler._sd)
 
     def test_weeks_start_monday_and_cover_the_month(self):
         """月曜始まりで、月の最初と最後の日を含む週まで並ぶ。

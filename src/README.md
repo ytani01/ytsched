@@ -14,7 +14,9 @@ src/ytsched/
   handler.py       # HandlerBase（tornado.web.RequestHandler の共通部分）と AppInfo
   conf.py          # ConfFile（conf.json の読み書きとキャッシュ。tornado を知らない）
   handler_util.py  # 引数と設定値の変換・検証（self を使わない純粋な関数）
-  main_handler.py  # MainHandler（一覧表示と、追加/修正/削除の受け取り）
+  main_handler.py  # MainHandler（一覧の HTTP 受付と更新コマンドの制御）
+  main_binder.py   # MainBinder（一覧のフォーム・クエリ引数の解析と検証）
+  main_view.py     # MainViewBuilder（一覧のビュー用データの組み立て）
   sched_update.py  # SchedUpdater（追加/修正/削除の実行。tornado を知らない）
   sched_load.py    # SchedLoader（一覧の組み立てと検索。tornado を知らない）
   edit_handler.py  # EditHandler（編集画面）
@@ -135,6 +137,8 @@ classDiagram
         +get()
         +post()
     }
+    class MainBinder
+    class MainViewBuilder
     class EditHandler {
         +get()
         +post()
@@ -158,7 +162,9 @@ classDiagram
     HandlerBase ..> AppInfo : initialize() で受け取る
     HandlerBase --> ConfFile : initialize() で受け取り、委譲する
     MainHandler ..> SchedUpdater : cmd の実行
-    MainHandler ..> SchedLoader : 一覧の組み立て
+    MainHandler --> MainBinder : 引数の解析
+    MainHandler --> MainViewBuilder : 表示データの組み立て
+    MainViewBuilder ..> SchedLoader : 一覧の組み立て
     WebServer ..> MainHandler : "/", url_prefix, url_prefix/
     WebServer ..> EditHandler : url_prefix/edit, url_prefix/edit/
     WebServer --> AppInfo : 1 つ作る
@@ -191,7 +197,9 @@ classDiagram
   `check_date()` / `date_range()` / `check_int_range()`。
   TODO-027・TODO-081）
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
-  受け取り（`cmd=add/fix/update/del`）を兼ねる。**`GET` が描画、`POST` が
+  受け取り（`cmd=add/fix/update/del`）を兼ねる。`MainBinder` がフォーム・
+  クエリ引数の解析と検証を、`MainViewBuilder` が週データとテンプレートへ
+  渡す値を組み立てる（TODO-106）。**`GET` が描画、`POST` が
   実行**で、`post()` は描かずに `redirect()` する（POST-Redirect-GET、
   TODO-050）。リロードで再送信にならないようにするため。`cmd` を
   実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
@@ -205,9 +213,9 @@ classDiagram
   フッターの ◀▶ をダブルタップしたときの自動ページ送りの間隔（msec）は
   `conf.json` の `AutoTurnMsec` で変えられる（既定 700、範囲
   300〜10000。TODO-084）。**この 2 つは利用者が手で書く設定**で、
-  画面から変える UI は無く、アプリは読むだけ（`get_load_months()`・
-  `get_auto_turn_msec()`）なので手で書いた値は消えない。どちらも
-  読み方は同じなので、共通の `get_conf_int(key, default, min_value,
+  画面から変える UI は無く、アプリは読むだけなので手で書いた値は消えない。
+  どちらも `MainBinder` の共通処理で読み、
+  `get_conf_int(key, default, min_value,
   max_value)` にまとめてある。検索モードでは週の区切りに合わないので
   1 週だけ。
   **URL に持たせるのは日付だけ**（`?date=2026-08-24`）。検索語・
@@ -216,7 +224,7 @@ classDiagram
   （`nav.js` の `doPost()`。表示を変えるだけの移動は `doGet()`）
 - **`SchedUpdater`**（`sched_update.py`）が `cmd` の実行そのものを担う
   （TODO-087）。**tornado を知らない**ので、ハンドラを組み立てずに
-  呼べる。フォームの値は `MainHandler` が取り出して `SchedUpdateForm`
+  呼べる。フォームの値は `MainBinder` が取り出して `SchedUpdateForm`
   1 つに詰めて渡す。**読めない値（不正な日付・時刻）で 400 にするのも、
   見つからない `sde_id` で 404 にするのも `MainHandler` 側**
   （`SchedUpdater.get_modified_sde()` は `None` を返すだけ）。400 は
@@ -237,7 +245,7 @@ classDiagram
   `sdf_exists()` ではなく大きさを見るのは、`save()` が 1 件も無いときも
   空のファイルを書くため（全部削除した日にドットが残ってしまう）。
   `SchedWeek.month_cals`
-  （`MainHandler.mk_weeks()` が「週の月曜が含まれる月」と「その翌月」の
+  （`MainViewBuilder` が「週の月曜が含まれる月」と「その翌月」の
   2 つを詰める。検索モードでは空リスト）に 1 つずつ入る。同じ月が
   複数の週パネルから要るので、`SchedLoader` インスタンスの dict に
   キャッシュして 1 リクエスト内で使い回す
@@ -386,7 +394,7 @@ flowchart TD
 ## フィルタ・検索文字列の扱い
 
 利用者の入力を正規表現として扱う（利用者本人しか使わないアプリという
-前提）。`MainHandler.get()` の中で 1 回だけコンパイルし、**不正なら
+前提）。`MainBinder` が 1 回だけコンパイルし、**不正なら
 その条件を無視して全件を出す**。不正な文字列でも入力欄と `conf.json` から
 消さず、マッチに使うかどうかだけを分けている。`filter_str` も
 `search_str` も、照合される側（`SchedDataEnt.search_str()`）と同じ
