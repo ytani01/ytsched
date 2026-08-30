@@ -361,8 +361,8 @@ def test_week_move_does_not_reload_the_page(page, server):
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
-def test_week_move_updates_date_inputs(page, server):
-    """週送りで、ヘッダーとフッターの日付を月曜に揃える（TODO-111）。"""
+def test_week_move_updates_header_date_and_hides_footer_date(page, server):
+    """週送りでヘッダーの日付を揃え、フッターには日付欄を出さない。"""
     monday = _monday_of(datetime.date.today())
     _open(page, server, monday.strftime("%Y-%m-%d"))
 
@@ -377,7 +377,7 @@ def test_week_move_updates_date_inputs(page, server):
     )
 
     assert page.locator("#header_date").input_value() == expected
-    assert page.locator("#footer_date").input_value() == expected
+    assert page.locator("#footer_date").count() == 0
     assert page.locator("#cur_day").input_value() == expected
 
 
@@ -484,7 +484,7 @@ def test_long_search_result_loads_without_javascript_error(
     page.wait_for_selector("#main", state="visible")
 
     assert page.locator("#header_date").count() == 0
-    assert page.locator("#footer_date").input_value() == today.isoformat()
+    assert page.locator("#footer_date").count() == 0
     assert page.evaluate(
         "document.body.clientHeight >= document.documentElement.clientHeight"
     )
@@ -557,7 +557,7 @@ def _open_search(page, server, tmp_path, today, search_n=1):
     page.evaluate("document.forms['form_search'].submit()")
     page.wait_for_load_state("load")
     page.wait_for_selector("#main", state="visible")
-    assert page.locator("#footer_date").input_value() == today.isoformat()
+    assert page.locator("#footer_date").count() == 0
 
 
 def test_footer_forward_button_moves_search_date_by_a_week(

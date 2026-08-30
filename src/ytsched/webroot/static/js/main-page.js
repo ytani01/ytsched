@@ -221,16 +221,16 @@
     }
 
     const el_sde_align = document.getElementById("sde_align");
-    const el_date =
-      document.getElementById("header_date") ||
-      document.getElementById("footer_date");
+    const el_header_date = document.getElementById("header_date");
+    // 検索表示にはヘッダーの日付入力欄が無いので、検索の基準日を使う。
+    const date = el_header_date ? el_header_date.value : ytsched.search_date_to;
     // 読み直したあとの位置合わせは一度で移す。"auto" は CSS の
     // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
     // アニメーションになってしまう (TODO-041)
     // 読み直した直後なので、履歴には積まない (TODO-050)
     ytsched.scrollToDate(
       location.pathname,
-      el_date.value,
+      date,
       el_sde_align.value,
       "instant",
       false,

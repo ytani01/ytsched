@@ -350,7 +350,7 @@ flowchart TD
     A["moveToMonday(direction)"] --> B["slideWeekWrap()<br/>隣の週まで滑らせる"]
     B --> C{"送り先の週が<br/>DOM にあるか"}
     C -- ある --> D["setActiveWeek()<br/>my-week-cur を付け替え、<br/>left を振り直す"]
-    D --> E["#cur_day / #header_date / #footer_date /<br/>#date_from / ゲージを、その週の月曜に揃える"]
+    D --> E["#cur_day / #header_date /<br/>#date_from / ゲージを、その週の月曜に揃える"]
     E --> F["pushDateInUrl()<br/>URL を履歴に積む"]
     C -- 無い --> G["doGet()<br/>その日を中心に読み直す"]
 ```
