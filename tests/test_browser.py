@@ -115,6 +115,25 @@ def page(server):
             browser.close()
 
 
+@pytest.fixture
+def touch_page(server):
+    """タッチ操作を有効にした chromium のタブを 1 つ開く。"""
+    if not Path(CHROMIUM).exists():
+        pytest.skip(f"chromium が無い: {CHROMIUM}")
+
+    with playwright_api.sync_playwright() as pw:
+        browser = pw.chromium.launch(executable_path=CHROMIUM)
+        context = browser.new_context(
+            viewport=VIEWPORT, is_mobile=True, has_touch=True
+        )
+        pg = context.new_page()
+        try:
+            yield pg
+        finally:
+            context.close()
+            browser.close()
+
+
 def _open(page, base_url, date):
     """``date`` の週を開いて、描画が終わるまで待つ。"""
     page.goto(f"{base_url}?date={date}", wait_until="load")
@@ -200,6 +219,35 @@ def test_date_column_and_edit_menu_are_delegated(page, server):
     page.locator('[data-action="back"]').click()
     page.wait_for_selector("#main", state="visible")
     assert _date_in_url(page) == date
+
+
+def _open_edit(page, server, date, sde_id=None):
+    """編集画面を開いて、描画が終わるまで待つ。"""
+    url = f"{server}edit/?date={date}"
+    if sde_id:
+        url += f"&sde_id={sde_id}"
+    page.goto(url, wait_until="load")
+    page.wait_for_selector("#input_form", state="visible")
+
+
+def test_detail_click_does_not_submit(page, server):
+    """詳細欄をクリックしただけでは更新せず、入力欄へフォーカスする。"""
+    _open_edit(page, server, datetime.date.today().isoformat())
+
+    page.locator("#detail").click()
+
+    assert page.evaluate("document.activeElement.id") == "detail"
+    assert "/edit/" in page.url
+
+
+def test_detail_tap_does_not_submit(touch_page, server):
+    """タッチで詳細欄を押しただけでは更新せず、入力欄へフォーカスする。"""
+    _open_edit(touch_page, server, datetime.date.today().isoformat())
+
+    touch_page.locator("#detail").tap()
+
+    assert touch_page.evaluate("document.activeElement.id") == "detail"
+    assert "/edit/" in touch_page.url
 
 
 def test_forward_button_moves_a_week(page, server):
@@ -460,6 +508,32 @@ def _write_sched(tmp_path, date, title):
     (path / (date.strftime("%d") + ".jsonl")).write_text(
         line + "\n", encoding="utf-8"
     )
+
+
+def test_detail_change_submits_update_on_blur(page, server, tmp_path):
+    """詳細を変えてフォーカスを外すと、更新して編集画面に戻る。"""
+    date = datetime.date.today()
+    _write_sched(tmp_path, date, "変更前")
+    _open_edit(page, server, date.isoformat(), f"id-{date}")
+
+    page.locator("#detail").fill("変更後の詳細")
+    with page.expect_navigation(wait_until="load"):
+        page.locator("#title").click()
+
+    assert page.locator("#detail").input_value() == "変更後の詳細"
+
+
+def test_update_button_still_submits(page, server, tmp_path):
+    """更新ボタンは、これまでどおり予定を更新する。"""
+    date = datetime.date.today()
+    _write_sched(tmp_path, date, "変更前")
+    _open_edit(page, server, date.isoformat(), f"id-{date}")
+
+    page.locator("#title").fill("更新ボタンで変更")
+    with page.expect_navigation(wait_until="load"):
+        page.locator('[data-action="submit-cmd"][data-cmd="update"]').click()
+
+    assert page.locator("#title").input_value() == "更新ボタンで変更"
 
 
 def test_long_search_result_loads_without_javascript_error(

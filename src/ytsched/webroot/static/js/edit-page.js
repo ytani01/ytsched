@@ -126,8 +126,8 @@
     }
     if (el.dataset.action === "update-wday") {
       ytsched.update_wday(el);
-    } else if (el.dataset.action === "submit-cmd") {
-      ytsched.submitCmd(el.dataset.cmd);
+    } else if (el.dataset.action === "update-detail") {
+      ytsched.submitCmd("update");
     }
   };
 
