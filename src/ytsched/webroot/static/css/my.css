@@ -1029,7 +1029,7 @@ textarea {
    (テンプレート側で in_month のときしかクラスを足さない) ので、ここは
    薄いグレーのままになる。 */
 .my-mini-cal-day {
-    background-color: #E4E4E4;
+    background-color: #EaEaEa;
 }
 
 /* ↑ より後に置くこと (同じ詳細度なので、後のほうが勝つ) */
