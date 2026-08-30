@@ -542,6 +542,99 @@ def test_popstate_in_search_mode_does_not_reload(page, server, tmp_path):
     assert _marked(page), "検索モードの戻るでページが読み直された"
 
 
+def _open_search(page, server, tmp_path, today, search_n=1):
+    """``today`` にヒットする 1 件を書き、検索モードで開く（TODO-116）。
+
+    ``doSubmit()`` を通さず ``form_search`` を直に送ることで、hidden の
+    ``cur_day`` を ``today`` のまま送る。これで検索の基準日（``date_to``）
+    が ``today`` になる。
+    """
+    _write_sched(tmp_path, today, "けんさくよう")
+    write_conf(tmp_path / "data", {"SearchN": str(search_n)})
+
+    _open(page, server, today.strftime("%Y-%m-%d"))
+    page.locator("#search_str").fill("けんさくよう")
+    page.evaluate("document.forms['form_search'].submit()")
+    page.wait_for_load_state("load")
+    page.wait_for_selector("#main", state="visible")
+    assert page.locator("#footer_date").input_value() == today.isoformat()
+
+
+def test_footer_forward_button_moves_search_date_by_a_week(
+    page, server, tmp_path
+):
+    """検索モードのフッターの ＞ は、検索の基準日を 1 週間進める（TODO-116）。
+
+    ``moveToMonday()`` を通すと、いったん月曜へ丸められてしまい、表示
+    期間が長いほど先へ進まなくなる。丸めずに ±7 日するだけになったか
+    を見る。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    page.locator("#forward_button").click()
+
+    expected = today + datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
+def test_footer_back_button_moves_search_date_by_a_week(
+    page, server, tmp_path
+):
+    """検索モードのフッターの ＜ は、検索の基準日を 1 週間戻す（TODO-116）。"""
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    page.locator("#back_button").click()
+
+    expected = today - datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
+def test_double_tap_in_search_mode_does_not_start_auto_page_turn(
+    page, server, tmp_path
+):
+    """検索モードのダブルタップは、シングルタップと同じ扱い（TODO-116）。
+
+    検索モードではタップのたびにページごと読み直すので、2 回タップす
+    ると（1 回目の読み直しのあとに 2 回目が乗る形で）1 週間ぶんの
+    移動が 2 回起きる。一覧画面のように、そこから自動送りが始まって
+    ``AutoTurnMsec`` ごとに際限なく進み続けることが無いのを見る。
+    """
+    today = datetime.date.today()
+    _write_sched(tmp_path, today, "けんさくよう")
+    write_conf(tmp_path / "data", {"SearchN": "1", "AutoTurnMsec": "300"})
+
+    _open(page, server, today.strftime("%Y-%m-%d"))
+    page.locator("#search_str").fill("けんさくよう")
+    page.evaluate("document.forms['form_search'].submit()")
+    page.wait_for_load_state("load")
+    page.wait_for_selector("#main", state="visible")
+
+    forward = page.locator("#forward_button")
+    _tap(page, forward)
+    _tap(page, forward)  # 350msec 以内の 2 回目（一覧画面ならダブルタップ）
+
+    # 検索モードでは 1 回ごとにページを読み直すので、2 回タップした
+    # ぶんだけ (1 週間 x 2) 進む
+    expected = today + datetime.timedelta(days=7 * 2)
+    page.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+
+    # 自動送りが始まっていれば、待つだけでさらに先へ進む
+    page.wait_for_timeout(1500)
+    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+
+
 def _center_x(page, selector):
     """要素の左右の中心（px）。"""
     box = page.locator(selector).bounding_box()

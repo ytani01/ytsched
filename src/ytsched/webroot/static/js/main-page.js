@@ -14,7 +14,8 @@
 //     pageTurnPointerDownHdr / pageTurnPointerUpHdr / pageTurnPointerCancelHdr)
 //     はこのファイル内だけで使う
 // 外から使うもの:
-//   search_str0 / today_str / auto_turn_msec (main.html の <script>)
+//   search_str0 / search_date_to / today_str / auto_turn_msec
+//     (main.html の <script>)
 //   url_prefix (base.html の <script>)
 //   ytState (state.js)  -- elLoadingSpinner・elMain・elWeekWrap・
 //                          activeWeekOffset・activeMonday・elGaugeR0
@@ -165,6 +166,9 @@
     ytsched.ytState.elMain = document.getElementById("main"); // declared in state.js
     ytsched.ytState.elWeekWrap = document.getElementById("week_wrap"); // declared in state.js
     ytsched.search_str0 = ytsched.ytState.elMain.dataset.searchStr0;
+    // 検索モードのときだけ #main に付く。検索の基準日 (date_to)。
+    // フッターの ＜ ＞ が、月曜へ丸めずにこれを ±7 日する (TODO-116)
+    ytsched.search_date_to = ytsched.ytState.elMain.dataset.searchDateTo;
     ytsched.today_str = ytsched.ytState.elMain.dataset.today;
     ytsched.auto_turn_msec = Number(
       ytsched.ytState.elMain.dataset.autoTurnMsec,
@@ -353,6 +357,20 @@
     }
 
     const direction = Number(el.dataset.pageTurn);
+
+    // 検索モードでは、月曜へ丸めずに検索の基準日 (date_to) を ±7 日
+    // するだけ (TODO-116)。moveToMonday() を通らないので、週枠を
+    // 滑らせるアニメーションも出ない。ページごと読み直すので、
+    // ダブルタップもシングルタップと同じ扱いにする (自動ページ送りの
+    // ためのタップ間隔の記録もしない)
+    if (ytsched.search_date_to) {
+      let d1 = new Date(ytsched.search_date_to);
+      d1 = ytsched.shiftDays(d1, direction * 7);
+      const d1_str = ytsched.getLocaltimeDateString(d1);
+      ytsched.doGet(ytsched.url_prefix, { date: d1_str, sde_align: "top" });
+      return;
+    }
+
     ytsched.moveToMonday(direction, ytsched.url_prefix);
 
     const now = Date.now();

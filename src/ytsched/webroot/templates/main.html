@@ -7,7 +7,11 @@
 </header>
 <main id="main" style="background-color:#FFF; visibility: hidden;"
       data-search-str0="{{ search_str }}" data-today="{{ today }}"
-      data-auto-turn-msec="{{ auto_turn_msec }}">
+      data-auto-turn-msec="{{ auto_turn_msec }}"
+      {# 検索モードのときだけ、検索の基準日 (date_to) を渡す
+         (TODO-116)。フッターの ＜ ＞ は、検索モードではこれを
+         ±7 日するだけで、週へは丸めない #}
+      {% if search_mode %}data-search-date-to="{{ date_to }}"{% end %}>
   <div id="loadingSpinner" class="my-spinner">
     <svg class="my-icon my-icon-9x my-icon-spin">
       <use href="{{ static_url('icons/icons.svg') }}#spinner"></use>
