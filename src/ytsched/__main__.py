@@ -9,6 +9,7 @@ import click
 
 from . import __prog_name__, __version__
 from .click_utils import click_common_opts
+from .holiday import DEF_URL, HolidayRegistrar
 from .migrate import Migrator
 from .mylog import getLogger, loggerInit
 from .webapp import WebServer
@@ -90,6 +91,50 @@ def migrate(ctx, datadir, dry_run, error_file, debug):
     loggerInit(debug=debug)
 
     app = Migrator(datadir, dry_run=dry_run, error_file=error_file)
+    try:
+        app.main()
+    finally:
+        _log.info("end")
+
+
+@cli.command(
+    help="""
+内閣府の CSV から日本の祝日を取得して登録する
+
+年を 1 つ以上指定する。同じ日付・同じ名称の予定が既にあれば飛ばす。
+指定した年が CSV に無ければ、その年は飛ばして他の年は続ける。
+"""
+)
+@click.argument("years", type=int, nargs=-1, required=True)
+@click.option(
+    "--datadir",
+    "--data",
+    "datadir",
+    type=click.Path(),
+    default=SchedDataFile.DEF_TOP_DIR,
+    help=f"data directory, default='{SchedDataFile.DEF_TOP_DIR}'",
+)
+@click.option(
+    "--dry-run",
+    "dry_run",
+    is_flag=True,
+    default=False,
+    help="書き出さずに、件数だけ出す",
+)
+@click.option(
+    "--url",
+    "url",
+    type=str,
+    default=DEF_URL,
+    help=f"取得元の URL, default='{DEF_URL}'",
+)
+@click_common_opts(__version__)
+def holiday(ctx, years, datadir, dry_run, url, debug):
+    """holiday"""
+    debug = _is_debug(ctx, debug)
+    loggerInit(debug=debug)
+
+    app = HolidayRegistrar(datadir, list(years), dry_run=dry_run, url=url)
     try:
         app.main()
     finally:

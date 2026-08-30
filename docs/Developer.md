@@ -103,6 +103,23 @@ uv run ytsched webapp --datadir ~/ytsched/data --port 10085
 uv run ytsched migrate --datadir ~/ytsched/data
 ```
 
+日本の祝日の取得・登録（`ytsched holiday`、TODO-126）:
+
+```sh
+uv run ytsched holiday 2028 2029 --datadir ~/ytsched/data
+```
+
+| オプション | 内容 |
+| --- | --- |
+| `--datadir` | データディレクトリ。既定は `~/ytsched/data` |
+| `--dry-run` | 書き出さずに、足す件数だけ出す |
+| `--url` | 取得元の URL。既定は内閣府の CSV（`https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv`） |
+| `--debug` / `-d` | デバッグログ |
+
+年は 1 つ以上の引数で受ける（省くとエラー）。重なりの判定は、**同じ日付で
+`title` も一致する予定があれば飛ばす**（`type` は見ない）。指定した年が
+CSV に無ければ、その年は「データが無い」と報告して飛ばし、他の年は続ける。
+
 ## 画面を撮る
 
 見た目を変えたときは、テストだけでは確かめられない。`tools/screenshot.py`

@@ -27,6 +27,9 @@
 - `test_webapp.py` — `WebServer` の組み立てそのもののテスト
 - `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
   移行のテスト
+- `test_holiday.py` — 日本の祝日を内閣府の CSV から取得して登録する
+  `ytsched holiday`（`holiday.py`）のテスト（TODO-126）。取得はネットに
+  出るので呼ばず、`tests/data/syukujitsu-sample.csv` を解析させる
 - `test_mylog.py` — `mylog.py` のテスト
 - `test_browser.py` — chromium を実際に動かして、`static/js/` の
   スクリプトの動きを見るテスト（TODO-056）。ホームボタンと週送りを押して、URL だけで
