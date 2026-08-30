@@ -967,6 +967,7 @@ textarea {
 .my-mini-cal-row {
     display: flex;
     justify-content: center;
+    align-items: flex-start; /* 上端揃え */
     gap: 10px;
     margin-top: 8px;
     position: relative;
@@ -1021,9 +1022,27 @@ textarea {
     color: #CCC;
 }
 
+/* 背景色は 祝日・日曜 ＞ 土曜 ＞ 表示中の週 ＞ それ以外 の優先度。
+   同じ詳細度なので、下に書いたものほど勝つ (TODO-129)。まず「それ
+   以外」を全体の既定にし、優先度の低いものから順に上書きしていく。
+   前後の月の埋めセル (``.my-mini-cal-day-out``) は曜日の色を付けない
+   (テンプレート側で in_month のときしかクラスを足さない) ので、ここは
+   薄いグレーのままになる。 */
+.my-mini-cal-day {
+    background-color: #F0F0F0;
+}
+
 /* ↑ より後に置くこと (同じ詳細度なので、後のほうが勝つ) */
 .my-mini-cal-day-cur-week {
-    background-color: #FFF6C0;
+    background-color: #FFF;
+}
+
+.my-mini-cal-day-sat {
+    background-color: #FFEEEE;
+}
+
+.my-mini-cal-day-holiday {
+    background-color: #FFCCCC;
 }
 
 .my-mini-cal-day-today {
@@ -1034,10 +1053,27 @@ textarea {
     line-height: 14px;
 }
 
+.my-mini-cal-marks {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1px;
+    margin-top: 1px;
+}
+
 .my-mini-cal-dot {
     width: 4px;
     height: 4px;
-    margin: 1px auto 0;
     border-radius: 50%;
+    background-color: #28F;
+}
+
+.my-mini-cal-dot-important {
+    background-color: #E33;
+}
+
+.my-mini-cal-sq {
+    width: 4px;
+    height: 4px;
     background-color: #28F;
 }

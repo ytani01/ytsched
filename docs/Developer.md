@@ -2,7 +2,8 @@
 
 開発環境の用意、開発ツールの使い方、テストとログの決まりをまとめる。
 利用者向けの説明は [../README.md](../README.md) と
-[User.md](User.md)、ソースコードの構成は
+[User.md](User.md)、導入と運用は [Install.md](Install.md)、
+ソースコードの構成は
 [../src/README.md](../src/README.md)、テストの構成は
 [../tests/README.md](../tests/README.md)、データ形式は
 [data-format.md](data-format.md) を見ること。
@@ -23,6 +24,22 @@
 | [ESLint](https://eslint.org/) | JavaScript の lint |
 | [Prettier](https://prettier.io/) | JavaScript の整形 |
 | [Node.js](https://nodejs.org/) | ESLint・Prettier の実行環境。`mise.toml` の `[tools]` で固定 |
+
+## 外部のライブラリ
+
+**画面側では使っていない。** 外部の CDN も読まないので、ネットワークが
+届かない環境でも表示は崩れない。
+
+CSS は `src/ytsched/webroot/static/css/my.css` 1 つだけ。土台の指定
+（`body` のフォント・文字色・行の高さ、`box-sizing` など）は Bootstrap
+5.3.8（MIT License）から写したもので、ライセンス文書は
+[licenses/bootstrap-LICENSE](licenses/bootstrap-LICENSE) に置いてある。
+
+アイコンは自作の線画で、`src/ytsched/webroot/static/icons/icons.svg` に
+`<symbol>` としてまとめ、画面からは `<use>` で参照している。元は 1 つの
+SVG（`src/ytsched/webroot/static/icons/icon.svg`）で、ImageMagick が
+入っていれば `tools/make-icons.sh` で PNG と ICO を作り直せる。
+ホーム画面に追加したときのアイコンはこれを使う。
 
 ## 開発環境の用意
 
@@ -102,6 +119,23 @@ uv run ytsched webapp --datadir ~/ytsched/data --port 10085
 ```sh
 uv run ytsched migrate --datadir ~/ytsched/data
 ```
+
+日本の祝日の取得・登録（`ytsched holiday`、TODO-126）:
+
+```sh
+uv run ytsched holiday 2028 2029 --datadir ~/ytsched/data
+```
+
+| オプション | 内容 |
+| --- | --- |
+| `--datadir` | データディレクトリ。既定は `~/ytsched/data` |
+| `--dry-run` | 書き出さずに、足す件数だけ出す |
+| `--url` | 取得元の URL。既定は内閣府の CSV（`https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv`） |
+| `--debug` / `-d` | デバッグログ |
+
+年は 1 つ以上の引数で受ける（省くとエラー）。重なりの判定は、**同じ日付で
+`title` も一致する予定があれば飛ばす**（`type` は見ない）。指定した年が
+CSV に無ければ、その年は「データが無い」と報告して飛ばし、他の年は続ける。
 
 ## 画面を撮る
 

@@ -1055,7 +1055,7 @@ class TestMonthCal(WebTestBase):
                 assert day.in_month == expected
 
     def test_has_sched_reflects_existing_files(self):
-        """予定があるかは ``sdf_has_sde()`` で見る。"""
+        """予定があるかはファイルの中身（``SchedDataEnt``）で見る。"""
         target = datetime.date(2021, 3, 15)
         self.write_data(target, [mk_dataline(date=target.isoformat())])
 
@@ -1099,3 +1099,122 @@ class TestMonthCal(WebTestBase):
         second = loader.load_month_cal(2021, 3)
 
         assert first is second
+
+    def test_has_important_reflects_important_title(self):
+        """タイトルが「!」始まりの日は ``has_important`` が真になる（TODO-129）。"""
+        important_day = datetime.date(2021, 3, 15)
+        plain_day = datetime.date(2021, 3, 16)
+        self.write_data(
+            important_day,
+            [
+                mk_dataline(
+                    date=important_day.isoformat(), title="!重要な会議"
+                )
+            ],
+        )
+        self.write_data(
+            plain_day,
+            [mk_dataline(date=plain_day.isoformat(), title="ふつうの会議")],
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.has_important for week in month_cal.weeks for d in week
+        }
+        assert by_date[important_day] is True
+        assert by_date[plain_day] is False
+
+    def test_canceled_important_is_not_important(self):
+        """取り消し済み（「(欠)」始まり）は ``has_important`` が偽（TODO-129）。"""
+        target = datetime.date(2021, 3, 15)
+        self.write_data(
+            target,
+            [mk_dataline(date=target.isoformat(), title="(欠)重要な会議")],
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.has_important for week in month_cal.weeks for d in week
+        }
+        assert by_date[target] is False
+
+    def test_is_holiday_reflects_holiday_type(self):
+        """``type`` が「祝日」の予定がある日は ``is_holiday`` が真（TODO-129）。"""
+        target = datetime.date(2021, 3, 15)
+        self.write_data(
+            target,
+            [
+                mk_dataline(
+                    date=target.isoformat(), type="祝日", title="春分の日"
+                )
+            ],
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.is_holiday for week in month_cal.weeks for d in week
+        }
+        assert by_date[target] is True
+        assert by_date[datetime.date(2021, 3, 16)] is False
+
+    def test_todo_deadline_sets_has_todo_but_not_has_sched(self):
+        """ToDo の締切がある日は ``has_todo`` が真、``has_sched`` は偽
+        （ToDo は通常の予定として数えない。TODO-129）。
+        """
+        target = datetime.date(2021, 3, 15)
+        todo_path = self.datadir / "ToDo.jsonl"
+        todo_path.write_text(
+            mk_dataline(date=target.isoformat(), type="□ToDo", title="報告書")
+            + "\n",
+            encoding="utf-8",
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date_todo = {
+            d.date: d.has_todo for week in month_cal.weeks for d in week
+        }
+        by_date_sched = {
+            d.date: d.has_sched for week in month_cal.weeks for d in week
+        }
+        assert by_date_todo[target] is True
+        assert by_date_sched[target] is False
+
+    def test_todo_in_day_file_is_shown_as_todo(self):
+        """日付ファイルに ToDo 型の行が混ざっていても印が消えない
+        （TODO-129）。
+
+        正常な操作では ``SchedUpdater`` が ToDo を ``ToDo.jsonl`` へ
+        書くので混ざらないが、``migrate`` したデータや手で直した
+        ファイルでは起こりうる。そのとき ``has_sched`` は偽になるので、
+        四角のほうで拾う。
+        """
+        target = datetime.date(2021, 3, 15)
+        self.write_data(
+            target,
+            [
+                mk_dataline(
+                    date=target.isoformat(), type="□ToDo", title="報告書"
+                )
+            ],
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: (d.has_sched, d.has_todo)
+            for week in month_cal.weeks
+            for d in week
+        }
+        assert by_date[target] == (False, True)
+
+    def test_no_todo_file_does_not_raise(self):
+        """ToDo ファイルが無くても例外にならない（TODO-129）。"""
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        for week in month_cal.weeks:
+            for day in week:
+                assert day.has_todo is False
