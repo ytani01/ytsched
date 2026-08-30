@@ -9,6 +9,7 @@ import html
 import io
 import json
 import re
+from pathlib import Path
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -384,6 +385,18 @@ class TestMainHandler(WebTestBase):
         assert "フィルタの正規表現" not in body
         assert "検索の正規表現" not in body
 
+    def test_search_str_in_data_attribute_is_escaped(self):
+        """検索語の引用符で data 属性を壊さない（TODO-108）。"""
+        search_str = 'foo"bar'
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str=search_str
+        )
+
+        m = re.search(r'data-search-str0="([^"]*)"', body)
+        assert m is not None
+        assert html.unescape(m.group(1)) == search_str
+
     def test_invalid_filter_str_is_saved(self):
         """不正な ``filter_str`` も、今までどおり保存される。"""
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="[")
@@ -575,18 +588,14 @@ class TestWeekBar(WebTestBase):
 class TestDateColumn(WebTestBase):
     """日付の欄を押したときの動き（TODO-055）"""
 
-    def date_col_onmousedown(self, body, date):
-        """その日の日付の欄の ``onmousedown`` を返す。
-
-        属性値は autoescape で ``&#x27;`` になっているので戻してから
-        返す。
-        """
+    def date_col_action(self, body, date):
+        """その日の日付の欄の data 属性を返す。"""
         m = re.search(
-            r'my-date-col[^>]*?onmousedown="([^"]*)"',
+            r'my-date-col[^>]*?data-action="([^"]*)"[^>]*?data-date="([^"]*)"',
             body[body.index(date_id(date)) :],
         )
         assert m is not None
-        return html.unescape(m.group(1))
+        return m.groups()
 
     def test_date_col_opens_edit(self):
         """通常モードでは、その日の新規追加の画面へ移る。
@@ -596,12 +605,10 @@ class TestDateColumn(WebTestBase):
         """
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
-        onmousedown = self.date_col_onmousedown(body, DATE1)
+        action, date = self.date_col_action(body, DATE1)
 
-        assert "doGet(" in onmousedown
-        assert URL_PREFIX + "/edit/" in onmousedown
-        assert "'date': '2021-03-01'" in onmousedown
-        assert "'sde_id': ''" in onmousedown
+        assert action == "date-edit"
+        assert date == DATE1_STR
 
     def test_date_col_in_search_mode(self):
         """検索モードでは今までどおり、その週へ移って検索を解除する。"""
@@ -611,11 +618,10 @@ class TestDateColumn(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, search_str="病院"
         )
 
-        onmousedown = self.date_col_onmousedown(body, DATE1)
+        action, date = self.date_col_action(body, DATE1)
 
-        assert "doPost(" in onmousedown
-        assert "edit/" not in onmousedown
-        assert "'search_str': ''" in onmousedown
+        assert action == "date-post"
+        assert date == DATE1_STR
 
 
 class TestMonthMiniCal(WebTestBase):
@@ -654,13 +660,10 @@ class TestMonthMiniCal(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
         panel = week_panel(body)
 
-        assert (
-            f"onmousedown=\"window.ytsched.scrollToDate('{URL_PREFIX}/', "
-            "'2021-03-15');\"" in panel
-        )
+        assert 'data-action="scroll-date" data-date="2021-03-15"' in panel
 
     def test_out_of_month_day_is_not_clickable(self):
-        """前後の月の埋めセルは ``onmousedown`` を持たない。
+        """前後の月の埋めセルは操作用の data 属性を持たない。
 
         2021-04-30 は金曜なので、4 月分の最後の週は 5 月 1 日・2 日
         まで伸びる。その 5 月 1 日の埋めセルを見る。
@@ -942,8 +945,7 @@ class TestInvalidArgs(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
         assert (
-            "window.ytsched.auto_turn_msec = "
-            f"{MainHandler.DEF_AUTO_TURN_MSEC};" in body
+            f'data-auto-turn-msec="{MainHandler.DEF_AUTO_TURN_MSEC}"' in body
         )
 
     def test_auto_turn_msec_from_conf(self):
@@ -952,7 +954,7 @@ class TestInvalidArgs(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
-        assert "window.ytsched.auto_turn_msec = 500;" in body
+        assert 'data-auto-turn-msec="500"' in body
 
     def test_broken_auto_turn_msec_falls_back_to_the_default(self):
         """数字にならない値も、範囲の外も既定値へ落とす。"""
@@ -962,8 +964,8 @@ class TestInvalidArgs(WebTestBase):
             body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
             assert (
-                "window.ytsched.auto_turn_msec = "
-                f"{MainHandler.DEF_AUTO_TURN_MSEC};" in body
+                f'data-auto-turn-msec="{MainHandler.DEF_AUTO_TURN_MSEC}"'
+                in body
             ), value
 
     def test_auto_turn_msec_is_not_overwritten(self):
@@ -2141,3 +2143,12 @@ class TestRedirect(WebTestBase):
 
         assert res.code == 302
         assert "search_str" not in res.headers["Location"]
+
+
+def test_templates_have_no_inline_event_handlers():
+    """テンプレートに inline event handler を残さない（TODO-108）。"""
+    templates = Path(__file__).parents[1] / "src/ytsched/webroot/templates"
+    pattern = re.compile(r"\son[a-z]+\s*=", re.IGNORECASE)
+
+    for template in templates.glob("*.html"):
+        assert pattern.search(template.read_text(encoding="utf-8")) is None

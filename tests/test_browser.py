@@ -187,6 +187,21 @@ def test_home_button_moves_the_view(page, server):
     assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
 
 
+def test_date_column_and_edit_menu_are_delegated(page, server):
+    """日付欄と編集画面の戻る操作がイベント委譲で動く（TODO-108）。"""
+    monday = _monday_of(datetime.date.today())
+    date = monday.strftime("%Y-%m-%d")
+    _open(page, server, date)
+
+    page.locator(f"#date-{date} .my-date-col").click()
+    page.wait_for_selector("#input_form", state="visible")
+    assert page.locator("#date").input_value() == date
+
+    page.locator('[data-action="back"]').click()
+    page.wait_for_selector("#main", state="visible")
+    assert _date_in_url(page) == date
+
+
 def test_forward_button_moves_a_week(page, server):
     """週送り（次）が、次の週の月曜まで進む（TODO-063）。
 

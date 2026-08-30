@@ -9,8 +9,9 @@
 //   window.ytsched.ytState -- spinner / gauge / nav / week / swipe / main-page / edit-page の
 //     ほぼ全ファイルが読み書きする
 // 外から使うもの: なし (このファイルは一番先に読み込まれる)
-window.ytsched ??= {};
-window.ytsched.ytState = {
+const ytsched = (window.ytsched ??= {});
+ytsched.url_prefix = document.documentElement.dataset.urlPrefix;
+ytsched.ytState = {
   elLoadingSpinner: null,
   elMain: null,
   elGaugeR0: null,

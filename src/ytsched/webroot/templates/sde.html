@@ -83,12 +83,9 @@
     <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
          ここからは送らない (TODO-034) -->
     <div class="col-11 p-0 my-btn {{ class_canceled_items }}"
-      onmousedown="window.ytsched.doGet('{{ url }}',
-                {
-                date:'{{ sched_date }}',
-                sde_id: '{{ sde.sde_id }}',
-                todo_flag: {{ str(sde.is_todo()).lower() }},
-                });">
+      data-action="edit-sde" data-date="{{ sched_date }}"
+      data-sde-id="{{ sde.sde_id }}"
+      data-todo-flag="{{ str(sde.is_todo()).lower() }}">
       {% if sde.is_todo() %}
       {% if sde.date != sched_date %}
       {% set sde_date = str(sde.date).replace('-', '/') %}

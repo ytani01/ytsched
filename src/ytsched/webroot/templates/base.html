@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html>
+<html data-url-prefix="{{ url_prefix }}">
   <head lang="jp">
     <!-- content の値は折り返さない（改行を挟むと、読めない
          ブラウザがあったときに viewport の指定が丸ごと効かなくなる） -->
@@ -23,10 +23,6 @@
 
     <link rel="stylesheet" href="{{ static_url('css/my.css') }}">
 
-    <script>
-     window.ytsched = {};
-     window.ytsched.url_prefix = '{{url_prefix}}';
-    </script>
     <script type="text/javascript"
             src="{{ static_url('js/state.js') }}"></script>
     <script type="text/javascript"

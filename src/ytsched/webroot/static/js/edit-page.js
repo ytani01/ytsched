@@ -17,87 +17,137 @@
 //   loadingSpinner() (spinner.js) -- submitCmd・onloadEdit
 
 (() => {
-const ytsched = window.ytsched;
-const wdayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const ytsched = window.ytsched;
+  const wdayList = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const mkInput = (cmd) => {
-  const input = document.createElement("input");
-  input.setAttribute("type", "hidden");
-  input.setAttribute("name", "cmd");
-  input.setAttribute("value", cmd);
-  return input;
-};
+  const mkInput = (cmd) => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "hidden");
+    input.setAttribute("name", "cmd");
+    input.setAttribute("value", cmd);
+    return input;
+  };
 
-let busyFlag = false;
+  let busyFlag = false;
 
-window.ytsched.submitCmd = (cmd) => {
-  if (busyFlag) {
-    return;
-  }
-  busyFlag = true;
-  console.log(`cmd=${cmd}`);
-  const form = document.forms["input_form"];
-  form.appendChild(mkInput(cmd));
-  ytsched.loadingSpinner(true);
-  form.submit();
-};
+  window.ytsched.submitCmd = (cmd) => {
+    if (busyFlag) {
+      return;
+    }
+    busyFlag = true;
+    console.log(`cmd=${cmd}`);
+    const form = document.forms["input_form"];
+    form.appendChild(mkInput(cmd));
+    ytsched.loadingSpinner(true);
+    form.submit();
+  };
 
-window.ytsched.update_wday = (el_date) => {
-  if (el_date === undefined) {
-    el_date = document.getElementById("date");
-  }
-  const d1 = new Date(el_date.value);
+  window.ytsched.update_wday = (el_date) => {
+    if (el_date === undefined) {
+      el_date = document.getElementById("date");
+    }
+    const d1 = new Date(el_date.value);
 
-  const el_wday = document.getElementById("wday");
-  el_wday.innerHTML = wdayList[d1.getDay()];
-};
+    const el_wday = document.getElementById("wday");
+    el_wday.innerHTML = wdayList[d1.getDay()];
+  };
 
-window.ytsched.setElDate = (date_value, el_date) => {
-  let d1 = new Date(); // today
-  if (date_value) {
-    d1 = new Date(date_value);
-  }
-  if (el_date === undefined) {
-    el_date = document.getElementById("date");
-  }
-  el_date.value = d1.toISOString().replace(/T.*$/, "");
+  window.ytsched.setElDate = (date_value, el_date) => {
+    let d1 = new Date(); // today
+    if (date_value) {
+      d1 = new Date(date_value);
+    }
+    if (el_date === undefined) {
+      el_date = document.getElementById("date");
+    }
+    el_date.value = d1.toISOString().replace(/T.*$/, "");
 
-  ytsched.update_wday(el_date);
-};
+    ytsched.update_wday(el_date);
+  };
 
-window.ytsched.changeElDate = (d, el_date) => {
-  if (el_date === undefined) {
-    el_date = document.getElementById("date");
-  }
-  let d1 = new Date(el_date.value);
-  d1.setDate(d1.getDate() + d);
+  window.ytsched.changeElDate = (d, el_date) => {
+    if (el_date === undefined) {
+      el_date = document.getElementById("date");
+    }
+    let d1 = new Date(el_date.value);
+    d1.setDate(d1.getDate() + d);
 
-  ytsched.setElDate(d1, el_date);
-};
+    ytsched.setElDate(d1, el_date);
+  };
 
-const changeDetailHeight = () => {
-  const el_detail = document.getElementById("detail");
-  const detail_y = el_detail.parentElement.offsetTop;
+  const changeDetailHeight = () => {
+    const el_detail = document.getElementById("detail");
+    const detail_y = el_detail.parentElement.offsetTop;
 
-  const el_id = document.getElementById("div_id");
-  const id_h = el_id.offsetHeight;
+    const el_id = document.getElementById("div_id");
+    const id_h = el_id.offsetHeight;
 
-  const win_h = document.documentElement.clientHeight;
-  let detail_h = win_h - detail_y - id_h - 7 - 150;
-  if (detail_h < 100) {
-    detail_h = 100;
-  }
+    const win_h = document.documentElement.clientHeight;
+    let detail_h = win_h - detail_y - id_h - 7 - 150;
+    if (detail_h < 100) {
+      detail_h = 100;
+    }
 
-  el_detail.style.height = `${detail_h}px`;
-};
+    el_detail.style.height = `${detail_h}px`;
+  };
 
-const onloadEdit = () => {
-  ytsched.ytState.elLoadingSpinner = document.getElementById("loadingSpinner");
-  ytsched.loadingSpinner(false);
-};
+  const actionElement = (event) => {
+    if (!event.target || !event.target.closest) {
+      return null;
+    }
+    return event.target.closest("[data-action]");
+  };
 
-window.addEventListener("load", function () {
-  changeDetailHeight();
-});
-window.addEventListener("load", onloadEdit);
+  const actionMouseDownHdr = (event) => {
+    const el = actionElement(event);
+    if (!el) {
+      return;
+    }
+    switch (el.dataset.action) {
+      case "back":
+        ytsched.doGet(ytsched.url_prefix, { date: el.dataset.date });
+        break;
+      case "submit-cmd":
+        ytsched.submitCmd(el.dataset.cmd);
+        break;
+      case "date-change":
+        ytsched.changeElDate(Number(el.dataset.days));
+        break;
+      case "date-today":
+        ytsched.setElDate();
+        break;
+    }
+  };
+
+  const actionChangeHdr = (event) => {
+    const el = actionElement(event);
+    if (!el) {
+      return;
+    }
+    if (el.dataset.action === "update-wday") {
+      ytsched.update_wday(el);
+    } else if (el.dataset.action === "submit-cmd") {
+      ytsched.submitCmd(el.dataset.cmd);
+    }
+  };
+
+  const onloadEdit = () => {
+    ytsched.ytState.elLoadingSpinner =
+      document.getElementById("loadingSpinner");
+    ytsched.loadingSpinner(false);
+    document
+      .getElementById("edit_main")
+      .addEventListener("mousedown", actionMouseDownHdr);
+    document
+      .getElementById("edit_main")
+      .addEventListener("change", actionChangeHdr);
+    document
+      .getElementById("menu")
+      .addEventListener("mousedown", actionMouseDownHdr);
+  };
+
+  window.addEventListener("load", function () {
+    changeDetailHeight();
+  });
+  window.addEventListener("load", onloadEdit);
 })();
