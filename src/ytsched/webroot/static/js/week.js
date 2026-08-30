@@ -10,17 +10,20 @@
 //   layoutWeeks()      -- main-page.js (onloadHdr)
 //   setActiveWeek()    -- nav.js (popstateHdr / scrollToDate)
 //   slideWeekWrap()    -- swipe.js (cancelSwipeDrag)
-//   moveToMonday()     -- swipe.js (swipeFinish)・keyboard.js (keyHdr)・
-//                         main-page.js (startAutoPageTurn / pageTurnPointerUpHdr)
+//   moveToMonday()     -- moveActiveDate (このファイル)・
+//                         main-page.js (startAutoPageTurn)
+//   moveActiveDate()   -- swipe.js (swipeFinish)・keyboard.js (keyHdr)・
+//                         main-page.js (pageTurnPointerUpHdr)
 //   weekPanelOf() / cancelActiveSlide / SWIPE_SLIDE_MSEC はこのファイル内だけで使う
 // 外から使うもの:
 //   ytState (state.js)          -- elWeekWrap・activeWeekOffset・activeMonday
 //   mondayOf() (gauge.js)       -- weekOffsetOfDate
 //   dispGauge() (gauge.js)      -- setActiveWeek
 //   getLocaltimeDateString() / getLocaltimeString() / shiftDays() (nav.js)
-//     -- weekOffsetOfDate・moveToMonday
+//     -- weekOffsetOfDate・moveToMonday・moveActiveDate
 //   pushDateInUrl() / scrollToId() (nav.js) -- setActiveWeek
-//   doGet() (nav.js)            -- moveToMonday
+//   doGet() (nav.js)            -- moveToMonday・moveActiveDate
+//   window.ytsched.search_date_to (main.html の <script>) -- moveActiveDate
 
 // 滑らせるアニメーションの長さ (msec)。CSS の
 // ``.my-week-wrap-sliding`` の transition と合わせる (TODO-057)
@@ -285,5 +288,31 @@
       }
       ytsched.doGet(path, { date: d1_str, sde_align: "top" });
     });
+  };
+
+  /**
+   * 週を送るか、検索の基準日を動かすかを決める (TODO-117)。
+   *
+   * ``ytsched.search_date_to`` (main.html の ``data-search-date-to``、
+   * 検索モードのときだけ付く) があれば、月曜へ丸めずに検索の基準日
+   * (``date_to``) を ±7 日するだけ (TODO-116)。``moveToMonday()`` を
+   * 通らないので、週枠を滑らせるアニメーションも出ない。
+   * それ以外は今までどおり ``moveToMonday()`` を呼ぶ。
+   *
+   * フッターの ＜ ＞・キーの ← →・左右のスワイプ・ドラッグの、
+   * どの経路もここを通る。
+   *
+   * @param {number} direction
+   * @param {String} path
+   */
+  window.ytsched.moveActiveDate = (direction, path) => {
+    if (ytsched.search_date_to) {
+      let d1 = new Date(ytsched.search_date_to);
+      d1 = ytsched.shiftDays(d1, direction * 7);
+      const d1_str = ytsched.getLocaltimeDateString(d1);
+      ytsched.doGet(path, { date: d1_str, sde_align: "top" });
+      return;
+    }
+    ytsched.moveToMonday(direction, path);
   };
 })();

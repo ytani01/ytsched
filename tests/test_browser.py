@@ -635,6 +635,185 @@ def test_double_tap_in_search_mode_does_not_start_auto_page_turn(
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
+def test_keyboard_arrow_right_moves_search_date_by_a_week(
+    page, server, tmp_path
+):
+    """検索モードでは → キーも、検索の基準日を 1 週間進める（TODO-117）。
+
+    ``keyHdr()`` (keyboard.js) は ``moveToMonday()`` の代わりに
+    ``moveActiveDate()`` (week.js) を呼ぶようになった。月曜へ丸めずに
+    ±7 日するだけになったかを見る。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    page.keyboard.press("ArrowRight")
+
+    expected = today + datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
+def test_keyboard_arrow_left_moves_search_date_by_a_week(
+    page, server, tmp_path
+):
+    """検索モードでは ← キーも、検索の基準日を 1 週間戻す（TODO-117）。"""
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    page.keyboard.press("ArrowLeft")
+
+    expected = today - datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
+@pytest.fixture
+def page_touch(server):
+    """タッチのシミュレート用に ``has_touch`` を有効にしたタブ（TODO-117）。
+
+    ``page`` フィクスチャのコンテキストは ``has_touch`` を付けていない。
+    スワイプの検証には合成した ``TouchEvent`` を投げるので、
+    ``TouchEvent``/``Touch`` コンストラクタが使えるコンテキストを別に作る。
+    """
+    if not Path(CHROMIUM).exists():
+        pytest.skip(f"chromium が無い: {CHROMIUM}")
+
+    with playwright_api.sync_playwright() as pw:
+        browser = pw.chromium.launch(executable_path=CHROMIUM)
+        context = browser.new_context(viewport=VIEWPORT, has_touch=True)
+        pg = context.new_page()
+        try:
+            yield pg
+        finally:
+            context.close()
+            browser.close()
+
+
+def _touch_swipe(page, x0, y0, x1, y1):
+    """``(x0, y0)`` から ``(x1, y1)`` への 1 本指スワイプを合成する。
+
+    ``touchStartHdr``/``touchMoveHdr``/``touchEndHdr`` (swipe.js) は
+    ``isTrusted`` を見ないので、JS 側で組み立てた ``TouchEvent`` でも拾う。
+    """
+    page.evaluate(
+        """([x0, y0, x1, y1]) => {
+          const el = document.elementFromPoint(x0, y0);
+          const mk = (x, y) => new Touch({
+            identifier: 1, target: el, clientX: x, clientY: y,
+            pageX: x, pageY: y,
+          });
+          const fire = (type, touches, changed) => {
+            el.dispatchEvent(new TouchEvent(type, {
+              touches, targetTouches: touches, changedTouches: changed,
+              bubbles: true, cancelable: true,
+            }));
+          };
+          const t0 = mk(x0, y0);
+          fire("touchstart", [t0], [t0]);
+          const t1 = mk(x1, y1);
+          fire("touchmove", [t1], [t1]);
+          fire("touchend", [], [t1]);
+        }""",
+        [x0, y0, x1, y1],
+    )
+
+
+def test_swipe_moves_search_date_by_a_week(page_touch, server, tmp_path):
+    """検索モードでの左スワイプは、検索の基準日を 1 週間進める（TODO-117）。
+
+    ``swipeFinish()`` (swipe.js) は ``moveToMonday()`` の代わりに
+    ``moveActiveDate()`` (week.js) を呼ぶようになった。検索モードでは
+    週パネルが 1 枚しか無く ``hasAdjacentWeek()`` が常に false になるので、
+    指に追従させる表示は起きない。それでも ``touchend`` で基準日が
+    ±7 日動くことを見る（表示については実装の報告を参照）。
+    """
+    today = datetime.date.today()
+    _open_search(page_touch, server, tmp_path, today)
+
+    _touch_swipe(page_touch, 380, 400, 50, 400)  # 左へ払う (次へ)
+
+    expected = today + datetime.timedelta(days=7)
+    page_touch.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
+def test_swipe_back_moves_search_date_by_a_week(page_touch, server, tmp_path):
+    """検索モードでの右スワイプは、検索の基準日を 1 週間戻す（TODO-117）。"""
+    today = datetime.date.today()
+    _open_search(page_touch, server, tmp_path, today)
+
+    _touch_swipe(page_touch, 50, 400, 380, 400)  # 右へ払う (前へ)
+
+    expected = today - datetime.timedelta(days=7)
+    page_touch.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
+def test_mouse_drag_moves_search_date_by_a_week(page, server, tmp_path):
+    """検索モードでは PC のマウスの左右ドラッグも、検索の基準日を
+    1 週間動かす（TODO-117）。
+
+    検索モードでは週パネルが 1 枚しか無く ``hasAdjacentWeek()`` が常に
+    false になるので、``swipeDragTo()`` がそこだけ見送って
+    ``swipeDragging`` を立てるようにした。追従表示 (``translateX``) は
+    出ないが、離したときに ``swipeFinish()`` (``moveActiveDate()``) へ
+    届いて基準日が動くことを見る。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    x0, y0 = 380, 400
+    x1 = x0 - 250  # 左へ払う (次へ)。SWIPE_MIN_X・win_w/3 を超える距離
+    page.mouse.move(x0, y0)
+    page.mouse.down()
+    page.mouse.move(x1, y0, steps=5)
+    page.mouse.up()
+
+    expected = today + datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
+def test_mouse_drag_within_move_threshold_still_works_as_a_click(
+    page, server, tmp_path
+):
+    """検索モードでも、ドラッグと見なす距離に届かなければクリック扱いの
+    まま（TODO-117）。
+
+    ``swipeDragging`` を検索モードで立てるようにしたことで、検索結果の
+    予定 (``[data-action="edit-sde"]``、``mouseDownHdr`` が押さえておいて
+    ``mouseUpHdr`` がクリックとして呼び戻す経路) が押せなくならないかを見る。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    entry = page.locator('[data-action="edit-sde"]').first
+    box = entry.bounding_box()
+    assert box is not None
+    x = box["x"] + box["width"] / 2
+    y = box["y"] + box["height"] / 2
+
+    # 予定の上で、しきい値未満だけ動かして離す (クリックと同じ扱いになる
+    # べき動き)
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + 10, y, steps=2)
+    page.mouse.up()
+
+    page.wait_for_url(lambda url: "/edit/" in url, timeout=10000)
+
+
 def _center_x(page, selector):
     """要素の左右の中心（px）。"""
     box = page.locator(selector).bounding_box()

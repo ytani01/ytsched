@@ -24,7 +24,7 @@
 //   getLocaltimeDateString() (nav.js)         -- homeButtonHdr
 //   mondayOf() (gauge.js)                     -- homeButtonHdr
 //   popstateHdr() (nav.js)                    -- popstate に登録
-//   layoutWeeks() / moveToMonday() (week.js)
+//   layoutWeeks() / moveToMonday() / moveActiveDate() (week.js)
 //   dispGauge() / dispGaugeMarks() (gauge.js) -- onloadHdr
 //   keyHdr() (keyboard.js)                    -- keydown に登録
 //   swipe.js の touch* / mouse* の 7 ハンドラ -- 各イベントに登録
@@ -357,21 +357,14 @@
     }
 
     const direction = Number(el.dataset.pageTurn);
+    ytsched.moveActiveDate(direction, ytsched.url_prefix);
 
-    // 検索モードでは、月曜へ丸めずに検索の基準日 (date_to) を ±7 日
-    // するだけ (TODO-116)。moveToMonday() を通らないので、週枠を
-    // 滑らせるアニメーションも出ない。ページごと読み直すので、
+    // 検索モードでは、moveActiveDate() がページごと読み直すので、
     // ダブルタップもシングルタップと同じ扱いにする (自動ページ送りの
-    // ためのタップ間隔の記録もしない)
+    // ためのタップ間隔の記録もしない) (TODO-116, TODO-117)
     if (ytsched.search_date_to) {
-      let d1 = new Date(ytsched.search_date_to);
-      d1 = ytsched.shiftDays(d1, direction * 7);
-      const d1_str = ytsched.getLocaltimeDateString(d1);
-      ytsched.doGet(ytsched.url_prefix, { date: d1_str, sde_align: "top" });
       return;
     }
-
-    ytsched.moveToMonday(direction, ytsched.url_prefix);
 
     const now = Date.now();
     if (

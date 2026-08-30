@@ -18,8 +18,10 @@
 //   window.ytsched.ytState (state.js) -- elWeekWrap
 //   slideWeekWrap() (week.js)  -- cancelSwipeDrag
 //   hasAdjacentWeek() (week.js) -- swipeDragTo
-//   moveToMonday() (week.js)   -- swipeFinish
-//   window.ytsched.url_prefix (base.html の <script>) -- swipeFinish が moveToMonday へ渡す
+//   moveActiveDate() (week.js) -- swipeFinish
+//   window.ytsched.search_date_to (main.html の <script>) -- swipeDragTo
+//     (検索モードでは追従表示をしないまま swipeDragging を立てる、TODO-117)
+//   window.ytsched.url_prefix (base.html の <script>) -- swipeFinish が moveActiveDate へ渡す
 
 (() => {
   const ytsched = window.ytsched;
@@ -87,6 +89,14 @@
    * 横の動きと判定するまでは何もしない (縦スクロールを邪魔しないため)。
    * 判定したあとは ``ytState.elWeekWrap`` に ``translateX()`` を掛ける。
    *
+   * **検索モードでは追従させない (TODO-117)。** 週パネルが 1 枚しか無く
+   * ``hasAdjacentWeek()`` が常に false になるので、そこだけ見送って
+   * ``swipeDragging`` を立てる。追従表示 (``translateX`` / クラス付与) は
+   * しないが、``swipeDragging`` が立つことで ``mouseUpHdr()`` が
+   * クリックではなくドラッグと見なし、離したときに ``swipeFinish()`` へ
+   * 届くようになる (タッチは ``touchend`` が ``swipeDragging`` を見ずに
+   * 常に ``swipeFinish()`` を呼ぶので、この分岐が無くても届いていた)。
+   *
    * **追従しているかどうかを返す。** タッチではこれが true のときだけ
    * ``preventDefault()`` して縦スクロールを止める。
    *
@@ -102,16 +112,16 @@
       ) {
         return false;
       }
-      if (!ytsched.hasAdjacentWeek()) {
+      if (!ytsched.search_date_to && !ytsched.hasAdjacentWeek()) {
         return false;
       }
       swipeDragging = true;
-      if (ytsched.ytState.elWeekWrap) {
+      if (!ytsched.search_date_to && ytsched.ytState.elWeekWrap) {
         ytsched.ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
       }
     }
 
-    if (ytsched.ytState.elWeekWrap) {
+    if (!ytsched.search_date_to && ytsched.ytState.elWeekWrap) {
       ytsched.ytState.elWeekWrap.style.transform = `translateX(${dx}px)`;
     }
     return true;
@@ -150,7 +160,7 @@
 
     console.log(`swipeFinish:dx=${dx}, dy=${dy}, velocity=${velocity}`);
     swipeDragging = false;
-    ytsched.moveToMonday(dx < 0 ? 1 : -1, ytsched.url_prefix);
+    ytsched.moveActiveDate(dx < 0 ? 1 : -1, ytsched.url_prefix);
     return true;
   };
 

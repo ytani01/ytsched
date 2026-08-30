@@ -11,7 +11,7 @@
 //                               日付計算から
 //   calcDays()               -- gauge.js (setGaugePosition)
 //   doGet()    -- main.html・sde.html・edit.html の onmousedown / onchange、
-//                week.js (moveToMonday)・main-page.js から
+//                week.js (moveToMonday / moveActiveDate)・main-page.js から
 //   doPost()   -- main.html の onmousedown、main-page.js から
 //   doSubmit() / doGetDate() -- main.html の onmousedown / onchange
 //   scrollToId()    -- week.js (setActiveWeek)

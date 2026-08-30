@@ -9,10 +9,10 @@
 //   followKeyboard() は visualViewport / window のリスナーとしてこのファイルで
 //     登録し、isTyping() は keyHdr() だけで使う
 // 外から使うもの:
-//   moveToMonday() (week.js)          -- keyHdr (← →)
+//   moveActiveDate() (week.js)        -- keyHdr (← →)
 //   getLocaltimeDateString() (nav.js) -- keyHdr (Home)
 //   scrollToDate() (nav.js)           -- keyHdr (Home)
-//   window.ytsched.url_prefix (base.html の <script>) -- keyHdr が moveToMonday / scrollToDate へ渡す
+//   window.ytsched.url_prefix (base.html の <script>) -- keyHdr が moveActiveDate / scrollToDate へ渡す
 // keyHdr 内の today_str はこの関数のローカル変数で、main.html の today_str とは別物
 
 /**
@@ -98,12 +98,12 @@
     switch (event.key) {
       case "ArrowLeft":
         event.preventDefault();
-        ytsched.moveToMonday(-1, ytsched.url_prefix);
+        ytsched.moveActiveDate(-1, ytsched.url_prefix);
         break;
 
       case "ArrowRight":
         event.preventDefault();
-        ytsched.moveToMonday(1, ytsched.url_prefix);
+        ytsched.moveActiveDate(1, ytsched.url_prefix);
         break;
 
       case "Home": {
