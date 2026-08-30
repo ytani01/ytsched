@@ -2,7 +2,8 @@
 
 開発環境の用意、開発ツールの使い方、テストとログの決まりをまとめる。
 利用者向けの説明は [../README.md](../README.md) と
-[User.md](User.md)、ソースコードの構成は
+[User.md](User.md)、導入と運用は [Install.md](Install.md)、
+ソースコードの構成は
 [../src/README.md](../src/README.md)、テストの構成は
 [../tests/README.md](../tests/README.md)、データ形式は
 [data-format.md](data-format.md) を見ること。
@@ -23,6 +24,22 @@
 | [ESLint](https://eslint.org/) | JavaScript の lint |
 | [Prettier](https://prettier.io/) | JavaScript の整形 |
 | [Node.js](https://nodejs.org/) | ESLint・Prettier の実行環境。`mise.toml` の `[tools]` で固定 |
+
+## 外部のライブラリ
+
+**画面側では使っていない。** 外部の CDN も読まないので、ネットワークが
+届かない環境でも表示は崩れない。
+
+CSS は `src/ytsched/webroot/static/css/my.css` 1 つだけ。土台の指定
+（`body` のフォント・文字色・行の高さ、`box-sizing` など）は Bootstrap
+5.3.8（MIT License）から写したもので、ライセンス文書は
+[licenses/bootstrap-LICENSE](licenses/bootstrap-LICENSE) に置いてある。
+
+アイコンは自作の線画で、`src/ytsched/webroot/static/icons/icons.svg` に
+`<symbol>` としてまとめ、画面からは `<use>` で参照している。元は 1 つの
+SVG（`src/ytsched/webroot/static/icons/icon.svg`）で、ImageMagick が
+入っていれば `tools/make-icons.sh` で PNG と ICO を作り直せる。
+ホーム画面に追加したときのアイコンはこれを使う。
 
 ## 開発環境の用意
 
