@@ -47,9 +47,12 @@
 |------|------|------|
 | 見込み | Opus 5 / effort high | main のみ |
 
-- [ ] `.claude/agents/implementer.md` の `effort` を `high` から `medium` にする
+- [x] `.claude/agents/implementer.md` の `effort` を `high` から `medium` にする
 - [ ] 次に implementer を立てる 1〜2 項目で、品質が落ちていないかを見る
 - [ ] 落ちていたら `high` に戻し、その判断をこのファイルに残す
+
+`effort` は 2026-08-30 に `medium` へ変えた。残りは次に implementer を
+立てる項目での観察なので、**この項目はそれが済むまで残す**。
 
 サブエージェントのモデルを下げてトークン消費を減らせないか、という相談から。
 implementer と runner を Haiku にする案が出たが、runner は既に

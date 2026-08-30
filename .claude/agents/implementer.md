@@ -3,7 +3,7 @@ name: implementer
 description: ytsched のコードを実装する。変更・新規作成・リファクタリング。main（管理者）から名指しで依頼されたときだけ使う。自動では起動しない。
 tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch
 model: sonnet
-effort: high
+effort: medium
 color: blue
 ---
 
