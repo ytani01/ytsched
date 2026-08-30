@@ -211,6 +211,15 @@
     // 目盛りの位置は日付によらないので、ここで一度だけ描く (TODO-078)
     ytsched.dispGaugeMarks();
 
+    // 検索画面での自動送りは、1 回ごとにページを読み直す。その前の画面が
+    // 残した方向があれば、ここから続きを始める (TODO-123)。
+    if (ytsched.search_date_to) {
+      const direction = getSearchAutoTurnDirection();
+      if (direction !== null) {
+        startAutoPageTurn(direction);
+      }
+    }
+
     if (body_h < win_h) {
       console.log(`body_h=${body_h} < win_h=${win_h}`);
       // ゲージの都合で画面が出ないのはおかしいので、dispGauge() より
@@ -265,36 +274,90 @@
   // 自動ページ送りの setInterval の id (走っていなければ null)
   let autoTurnTimerId = null;
 
+  // 検索画面での移動によるページ離脱かどうか。離脱では sessionStorage の
+  // 状態を消さず、読み直した先へ引き継ぐ (TODO-123)。
+  let pageIsUnloading = false;
+
+  // 検索画面は 1 回送るごとにページを読み直す。その前後でダブルタップと
+  // 自動送りの状態を引き継ぐための sessionStorage のキー (TODO-123)。
+  const SEARCH_AUTO_TURN_DIRECTION_KEY = "ytsched_search_auto_turn_direction";
+  const SEARCH_PAGE_TURN_TAP_KEY = "ytsched_search_page_turn_tap";
+
   // ダブルタップと見なす間隔 (msec)。homeButtonHdr() のダブルクリック判定
   // (350) と揃える
   const PAGE_TURN_DOUBLE_TAP_MSEC = 350;
+
+  // 検索画面では 1 回目のタップでページを読み直すため、次の画面で
+  // 2 回目を受け取るまでには通常のダブルタップ判定より時間がかかる。
+  const SEARCH_PAGE_TURN_DOUBLE_TAP_MSEC = 1000;
 
   // ボタンの上から始めた横の払いを、週送りとして拾わないための、
   // 動いたと見なす最小の距離 (px)
   const PAGE_TURN_MOVE_PX = 30;
 
+  /**
+   * 検索画面の自動送りの方向を読む。sessionStorage が使えないときは
+   * 自動送りを引き継がないだけにする。
+   *
+   * @return {number | null}
+   */
+  const getSearchAutoTurnDirection = () => {
+    try {
+      const direction = Number(
+        sessionStorage.getItem(SEARCH_AUTO_TURN_DIRECTION_KEY),
+      );
+      return direction === -1 || direction === 1 ? direction : null;
+    } catch (e) {
+      console.log(`getSearchAutoTurnDirection: ${e}`);
+      return null;
+    }
+  };
+
+  /** @param {number} direction */
+  const setSearchAutoTurnDirection = (direction) => {
+    try {
+      sessionStorage.setItem(SEARCH_AUTO_TURN_DIRECTION_KEY, String(direction));
+    } catch (e) {
+      console.log(`setSearchAutoTurnDirection: ${e}`);
+    }
+  };
+
+  /** 検索画面の自動送りとダブルタップの記録を消す。 */
+  const clearSearchPageTurnState = () => {
+    try {
+      sessionStorage.removeItem(SEARCH_AUTO_TURN_DIRECTION_KEY);
+      sessionStorage.removeItem(SEARCH_PAGE_TURN_TAP_KEY);
+    } catch (e) {
+      console.log(`clearSearchPageTurnState: ${e}`);
+    }
+  };
+
   /** 走っていれば自動ページ送りを止める。走っていなければ何もしない。 */
   const stopAutoPageTurn = () => {
-    if (autoTurnTimerId === null) {
-      return;
+    if (autoTurnTimerId !== null) {
+      clearInterval(autoTurnTimerId);
+      autoTurnTimerId = null;
     }
-    clearInterval(autoTurnTimerId);
-    autoTurnTimerId = null;
+    clearSearchPageTurnState();
   };
 
   /**
    * 自動ページ送りを始める。
    *
-   * ``auto_turn_msec`` ごとに ``moveToMonday()`` を呼ぶだけ。読み込んだ
-   * 範囲の外へ出ると ``moveToMonday()`` が ``doGet()`` してページごと
-   * 読み直すので、そこで自動的に止まる (window ごと作り直されるため)。
+   * ``auto_turn_msec`` ごとに日付を動かす。検索画面では、ページを
+   * 読み直したあとも続けられるよう方向を sessionStorage に残す。
    *
    * @param {number} direction
    */
   const startAutoPageTurn = (direction) => {
-    stopAutoPageTurn();
+    if (autoTurnTimerId !== null) {
+      clearInterval(autoTurnTimerId);
+    }
+    if (ytsched.search_date_to) {
+      setSearchAutoTurnDirection(direction);
+    }
     autoTurnTimerId = setInterval(() => {
-      ytsched.moveToMonday(direction, ytsched.url_prefix);
+      ytsched.moveActiveDate(direction, ytsched.url_prefix);
     }, ytsched.auto_turn_msec);
   };
 
@@ -357,14 +420,39 @@
     }
 
     const direction = Number(el.dataset.pageTurn);
-    ytsched.moveActiveDate(direction, ytsched.url_prefix);
 
-    // 検索モードでは、moveActiveDate() がページごと読み直すので、
-    // ダブルタップもシングルタップと同じ扱いにする (自動ページ送りの
-    // ためのタップ間隔の記録もしない) (TODO-116, TODO-117)
+    // 検索モードではページを読み直すので、ダブルタップの時刻も
+    // sessionStorage へ残す。2 回目はページを動かす前に自動送りを始め、
+    // 読み直した先で続ける (TODO-123)。
     if (ytsched.search_date_to) {
+      const now = Date.now();
+      let lastTap = null;
+      try {
+        lastTap = JSON.parse(sessionStorage.getItem(SEARCH_PAGE_TURN_TAP_KEY));
+      } catch (e) {
+        console.log(`getSearchPageTurnTap: ${e}`);
+      }
+      if (
+        lastTap &&
+        lastTap.direction === direction &&
+        now - lastTap.time < SEARCH_PAGE_TURN_DOUBLE_TAP_MSEC
+      ) {
+        startAutoPageTurn(direction);
+      } else {
+        try {
+          sessionStorage.setItem(
+            SEARCH_PAGE_TURN_TAP_KEY,
+            JSON.stringify({ direction: direction, time: now }),
+          );
+        } catch (e) {
+          console.log(`setSearchPageTurnTap: ${e}`);
+        }
+      }
+      ytsched.moveActiveDate(direction, ytsched.url_prefix);
       return;
     }
+
+    ytsched.moveActiveDate(direction, ytsched.url_prefix);
 
     const now = Date.now();
     if (
@@ -423,8 +511,15 @@
   // 隠れた
   window.addEventListener("keydown", stopAutoPageTurn);
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
+    if (document.hidden && !pageIsUnloading) {
       stopAutoPageTurn();
+    }
+  });
+  window.addEventListener("beforeunload", () => {
+    pageIsUnloading = true;
+    if (autoTurnTimerId !== null) {
+      clearInterval(autoTurnTimerId);
+      autoTurnTimerId = null;
     }
   });
 })();

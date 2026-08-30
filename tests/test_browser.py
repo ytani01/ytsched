@@ -671,42 +671,135 @@ def test_footer_back_button_moves_search_date_by_a_week(
     )
 
 
-def test_double_tap_in_search_mode_does_not_start_auto_page_turn(
+def test_double_tap_forward_starts_auto_page_turn_in_search_mode(
     page, server, tmp_path
 ):
-    """検索モードのダブルタップは、シングルタップと同じ扱い（TODO-116）。
-
-    検索モードではタップのたびにページごと読み直すので、2 回タップす
-    ると（1 回目の読み直しのあとに 2 回目が乗る形で）1 週間ぶんの
-    移動が 2 回起きる。一覧画面のように、そこから自動送りが始まって
-    ``AutoTurnMsec`` ごとに際限なく進み続けることが無いのを見る。
-    """
+    """検索画面の ＞ のダブルタップで、再読み込み後も自動で進む（TODO-123）。"""
     today = datetime.date.today()
-    _write_sched(tmp_path, today, "けんさくよう")
-    write_conf(tmp_path / "data", {"SearchN": "1", "AutoTurnMsec": "300"})
-
-    _open(page, server, today.strftime("%Y-%m-%d"))
-    page.locator("#search_str").fill("けんさくよう")
-    page.evaluate("document.forms['form_search'].submit()")
-    page.wait_for_load_state("load")
-    page.wait_for_selector("#main", state="visible")
+    _open_search(page, server, tmp_path, today)
+    write_conf(
+        tmp_path / "data",
+        {"SearchStr": "けんさくよう", "SearchN": "1", "AutoTurnMsec": "300"},
+    )
 
     forward = page.locator("#forward_button")
     _tap(page, forward)
-    _tap(page, forward)  # 350msec 以内の 2 回目（一覧画面ならダブルタップ）
-
-    # 検索モードでは 1 回ごとにページを読み直すので、2 回タップした
-    # ぶんだけ (1 週間 x 2) 進む
-    expected = today + datetime.timedelta(days=7 * 2)
+    first = today + datetime.timedelta(days=7)
     page.wait_for_url(
-        lambda url: f"date={expected.strftime('%Y-%m-%d')}" in url,
+        lambda url: f"date={first.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+    _tap(page, forward)
+
+    expected = today + datetime.timedelta(days=7 * 5)
+    page.wait_for_function(
+        "(date) => new URL(location.href).searchParams.get('date') >= date",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+
+
+def test_double_tap_back_starts_auto_page_turn_in_search_mode(
+    page, server, tmp_path
+):
+    """検索画面の ＜ のダブルタップで、再読み込み後も自動で戻る（TODO-123）。"""
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+    write_conf(
+        tmp_path / "data",
+        {"SearchStr": "けんさくよう", "SearchN": "1", "AutoTurnMsec": "300"},
+    )
+
+    back = page.locator("#back_button")
+    _tap(page, back)
+    first = today - datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={first.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+    _tap(page, back)
+
+    expected = today - datetime.timedelta(days=7 * 5)
+    page.wait_for_function(
+        "(date) => new URL(location.href).searchParams.get('date') <= date",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+
+
+def test_tap_again_stops_auto_page_turn_in_search_mode(
+    page, server, tmp_path
+):
+    """検索画面で自動送り中に同じボタンを押すと止まる（TODO-123）。"""
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+    write_conf(
+        tmp_path / "data",
+        {"SearchStr": "けんさくよう", "SearchN": "1", "AutoTurnMsec": "300"},
+    )
+
+    forward = page.locator("#forward_button")
+    _tap(page, forward)
+    first = today + datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={first.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+    _tap(page, forward)
+    expected = today + datetime.timedelta(days=7 * 3)
+    page.wait_for_function(
+        "(date) => new URL(location.href).searchParams.get('date') >= date",
+        arg=expected.strftime("%Y-%m-%d"),
         timeout=10000,
     )
     page.wait_for_selector("#main", state="visible")
 
-    # 自動送りが始まっていれば、待つだけでさらに先へ進む
-    page.wait_for_timeout(1500)
-    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+    _tap(page, forward)
+    page.wait_for_timeout(400)
+    stopped_at = _date_in_url(page)
+    page.wait_for_timeout(1200)
+    assert _date_in_url(page) == stopped_at
+
+
+def test_tap_outside_stops_auto_page_turn_without_week_slide_in_search_mode(
+    page, server, tmp_path
+):
+    """検索画面の自動送りは週枠を滑らせず、別の場所で止まる（TODO-123）。"""
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+    write_conf(
+        tmp_path / "data",
+        {"SearchStr": "けんさくよう", "SearchN": "1", "AutoTurnMsec": "300"},
+    )
+
+    forward = page.locator("#forward_button")
+    _tap(page, forward)
+    first = today + datetime.timedelta(days=7)
+    page.wait_for_url(
+        lambda url: f"date={first.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+    _tap(page, forward)
+    expected = today + datetime.timedelta(days=7 * 3)
+    page.wait_for_function(
+        "(date) => new URL(location.href).searchParams.get('date') >= date",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+
+    assert not page.locator("#week_wrap").evaluate(
+        "(el) => el.classList.contains('my-week-wrap-sliding')"
+    )
+    _tap(page, page.locator("#search_str"))
+    page.wait_for_timeout(400)
+    stopped_at = _date_in_url(page)
+    page.wait_for_timeout(1200)
+    assert _date_in_url(page) == stopped_at
 
 
 def test_keyboard_arrow_right_moves_search_date_by_a_week(
