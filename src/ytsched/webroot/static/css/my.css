@@ -856,6 +856,37 @@ textarea {
     padding-bottom: 45px;
 }
 
+/* ゴミ箱 */
+.my-trash-main {
+    padding-top: 55px;
+}
+
+.my-trash-group {
+    margin: 0.5rem 0;
+}
+
+.my-trash-entry {
+    background-color: #FFF;
+    border-radius: 8px;
+    margin: 0.25rem 0;
+    padding: 0.3rem 0.5rem;
+}
+
+.my-trash-detail {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    font-size: x-small;
+    white-space: pre-wrap;
+}
+
+.my-trash-restore {
+    background: none;
+    border: 0;
+    padding: 0;
+}
+
 .my-edit-body {
     background-color: #EEE;
 }

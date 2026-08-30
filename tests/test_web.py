@@ -1848,6 +1848,76 @@ class TestEditHandler(WebTestBase):
         for path in [URL_PREFIX + "/edit", URL_PREFIX + "/edit/"]:
             assert self.fetch(path).code == 200
 
+
+class TestTrashHandler(WebTestBase):
+    """ゴミ箱の表示と復活（TODO-086）。"""
+
+    def write_trash(self):
+        entries = [
+            {
+                "trashed_at": "2026-08-30T14:23:05",
+                **json.loads(DATALINE1),
+            },
+            {
+                "trashed_at": "2026-08-29T09:10:00",
+                **json.loads(DATALINE1),
+                "title": "古い内容",
+            },
+        ]
+        (self.datadir / "trash.jsonl").write_text(
+            "".join(
+                json.dumps(entry, ensure_ascii=False) + "\n"
+                for entry in entries
+            ),
+            encoding="utf-8",
+        )
+
+    def test_get_groups_same_id_and_shows_timestamp(self):
+        self.write_trash()
+
+        body = self.get_body(URL_PREFIX + "/trash", sde_id="id-1")
+
+        assert "同じ予定の内容が 2 件" in body
+        assert "2026-08-30 14:23:05 に削除" in body
+        assert "2026-08-29 09:10:00 に削除" in body
+        assert 'name="trashed_at" value="2026-08-30T14:23:05"' in body
+
+    def test_restore_adds_new_entry_and_keeps_trash(self):
+        self.write_trash()
+        self.write_data(DATE1, [DATALINE2])
+        before = (self.datadir / "trash.jsonl").read_text(encoding="utf-8")
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                {
+                    "cmd": "restore",
+                    "sde_id": "id-1",
+                    "trashed_at": "2026-08-29T09:10:00",
+                }
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+        assert res.code == 302
+        assert res.headers["Location"] == f"{URL_PREFIX}/?date={DATE1_STR}"
+        data = [
+            json.loads(line)
+            for line in self.data_path(DATE1)
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        restored = next(
+            entry for entry in data if entry["title"] == "(復活)古い内容"
+        )
+        assert restored["sde_id"] != "id-1"
+        assert any(entry["sde_id"] == "id-2" for entry in data)
+        assert (self.datadir / "trash.jsonl").read_text(
+            encoding="utf-8"
+        ) == before
+
     def test_get_existing(self):
         self.write_data(DATE1, [DATALINE1])
 

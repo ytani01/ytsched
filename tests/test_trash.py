@@ -74,6 +74,18 @@ def test_add_creates_parent_dir(tmp_path):
     assert (topdir / "trash.jsonl").is_file()
 
 
+def test_add_records_microseconds_to_distinguish_same_id(tmp_path):
+    trash = TrashFile(tmp_path)
+    sde = mk_sde()
+
+    trash.add(sde)
+    trash.add(sde)
+
+    entries = read_lines(tmp_path / "trash.jsonl")
+    assert all("." in entry["trashed_at"] for entry in entries)
+    assert entries[0]["trashed_at"] != entries[1]["trashed_at"]
+
+
 def test_expands_topdir(tmp_path, monkeypatch):
     """``~`` 付きの ``topdir`` でも展開してから使う。"""
     monkeypatch.setenv("HOME", str(tmp_path))
@@ -81,6 +93,51 @@ def test_expands_topdir(tmp_path, monkeypatch):
     trash = TrashFile("~/data")
 
     assert trash.pathname == tmp_path / "data" / "trash.jsonl"
+
+
+def test_entries_filters_sorts_and_limits(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id="a").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T12:00:00",
+                        **mk_sde(sde_id="b").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T11:00:00",
+                        **mk_sde(sde_id="a").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    trash = TrashFile(tmp_path)
+
+    assert [entry.trashed_at for entry in trash.entries()] == [
+        "2026-08-30T12:00:00",
+        "2026-08-30T11:00:00",
+        "2026-08-30T10:00:00",
+    ]
+    assert [entry.trashed_at for entry in trash.entries("a", 1)] == [
+        "2026-08-30T11:00:00"
+    ]
+    assert trash.get("a", "2026-08-30T10:00:00") is not None
 
 
 #

@@ -385,14 +385,23 @@
     </div><!-- row -->
     <div class="row m-1 my-row-middle">
 
+      <div class="col-3 p-0 text-center">
+        <a class="my-btn" href="{{ url_prefix }}trash">
+          <svg class="my-icon my-icon-xl align-middle">
+            <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
+          </svg>
+          ゴミ箱
+        </a>
+      </div><!-- col -->
+
       <!-- date -->
-      <div class="col-5 p-0 text-center">
+      <div class="col-4 p-0 text-center">
         <input id="footer_date" name="date" type="date" value="{{ date }}"
           data-action="date-get" />
       </div><!-- col -->
       
       <!-- ToDo days -->
-      <div class="col-3 p-0 text-center">
+      <div class="col-2 p-0 text-center">
         <form id="todo_days_form" name="todo_days_form"
           action="{{ url_prefix }}" method="POST">
           <svg class="my-icon my-icon-xl align-middle">
@@ -416,7 +425,7 @@
       </div><!-- col -->
 
       <!-- filter -->
-      <div class="col-4 p-0 text-center my-fs-medium">
+      <div class="col-3 p-0 text-center my-fs-medium">
         <form id="form_filter" name="form_filter"
           action="{{ url_prefix }}" method="POST">
           <svg class="my-icon my-icon-xl my-btn align-middle"

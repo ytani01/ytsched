@@ -143,6 +143,11 @@
     <path d="M3.5 12h9.5a7 7 0 0 1 7 7v1.5"/>
   </symbol>
 
+  <!-- 左回りの矢印: ゴミ箱から復活 (trash.html / edit.html) -->
+  <symbol id="rotate-left" viewBox="0 0 24 24">
+    <path d="M7 8.5V4.5L3.5 8 7 11.5V8.5h5a6.5 6.5 0 1 1-6.2 8.5"/>
+  </symbol>
+
   <!-- 三角に感嘆符: 読み込みに失敗した (main.html) -->
   <symbol id="warning" viewBox="0 0 24 24">
     <path d="M12 3.6 22 20.6H2Z"/>

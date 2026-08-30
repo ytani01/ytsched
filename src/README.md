@@ -22,7 +22,8 @@ src/ytsched/
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
   migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行と、設定ファイルの JSON 化（`ytsched migrate`）
-  trash.py         # TrashFile（削除・編集で消える予定を trash.jsonl へ追記するだけの仕組み）
+  trash.py         # TrashFile（trash.jsonl への追記とゴミ箱画面用の読み出し）
+  trash_handler.py # TrashHandler（ゴミ箱の表示と復活）
   mylog.py         # loguru ラッパ
   click_utils.py   # click の共通オプション（`-h` / `-d` / `-V` `-v`）をまとめたデコレータ
   __main__.py      # click による CLI（`ytsched` コマンド）

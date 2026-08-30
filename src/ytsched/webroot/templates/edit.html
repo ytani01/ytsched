@@ -52,6 +52,11 @@
       </div>
 
       {% if not new_flag %}
+      <a class="my-btn" href="{{ url_prefix }}trash?sde_id={{ sde.sde_id }}" aria-label="元に戻す">
+        <svg class="my-icon my-icon-2x">
+          <use href="{{ static_url('icons/icons.svg') }}#rotate-left"></use>
+        </svg>
+      </a>
       <div class="my-btn" data-action="submit-cmd" data-cmd="add">
         <svg class="my-icon my-icon-2x">
           <use href="{{ static_url('icons/icons.svg') }}#clone"></use>

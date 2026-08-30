@@ -48,6 +48,7 @@ class HandlerBase(tornado.web.RequestHandler):
 
     HTML_MAIN = "main.html"
     HTML_EDIT = "edit.html"
+    HTML_TRASH = "trash.html"
 
     def __init__(self, app, req, **kwargs):
         """Constructor

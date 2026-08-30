@@ -22,6 +22,7 @@ from .edit_handler import EditHandler
 from .handler import AppInfo
 from .main_handler import MainHandler
 from .mylog import getLogger
+from .trash_handler import TrashHandler
 from .ytsched import SchedData
 
 
@@ -88,7 +89,7 @@ class WebServer:
             datadir=str(self._datadir),
         )
 
-        # 5 つの ``URLSpec`` すべてで同じ dict を使い回す (TODO-090)
+        # URLSpec すべてで同じ dict を使い回す (TODO-090)
         handler_kwargs = {
             "sd": self._sd,
             "app_info": self._app_info,
@@ -102,6 +103,8 @@ class WebServer:
                 (rf"{self._url_prefix}/", MainHandler, handler_kwargs),
                 (rf"{self._url_prefix}/edit", EditHandler, handler_kwargs),
                 (rf"{self._url_prefix}/edit/", EditHandler, handler_kwargs),
+                (rf"{self._url_prefix}/trash", TrashHandler, handler_kwargs),
+                (rf"{self._url_prefix}/trash/", TrashHandler, handler_kwargs),
             ],
             static_path=self._webroot / "static",
             static_url_prefix=self._url_prefix + "/static/",

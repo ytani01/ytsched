@@ -21,6 +21,7 @@ from ytsched.conf import ConfFile
 from ytsched.edit_handler import EditHandler
 from ytsched.handler import AppInfo
 from ytsched.main_handler import MainHandler
+from ytsched.trash_handler import TrashHandler
 from ytsched.webapp import WebServer
 from ytsched.ytsched import SchedData
 
@@ -69,6 +70,8 @@ def make_app(datadir):
             (rf"{URL_PREFIX}/", MainHandler, handler_kwargs),
             (rf"{URL_PREFIX}/edit", EditHandler, handler_kwargs),
             (rf"{URL_PREFIX}/edit/", EditHandler, handler_kwargs),
+            (rf"{URL_PREFIX}/trash", TrashHandler, handler_kwargs),
+            (rf"{URL_PREFIX}/trash/", TrashHandler, handler_kwargs),
         ],
         static_path=Path(webroot) / "static",
         static_url_prefix=URL_PREFIX + "/static/",
