@@ -327,6 +327,11 @@ textarea {
     background-color: #48C;
 }
 
+/* ``a`` の既定の青を打ち消し、バー内の操作アイコンを文字と揃える。 */
+.my-bar a.my-btn {
+    color: white;
+}
+
 .my-bar-content {
     position: fixed;
     bottom: -60px;

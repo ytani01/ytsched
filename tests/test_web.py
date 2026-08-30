@@ -1927,6 +1927,7 @@ class TestTrashHandler(WebTestBase):
 
         assert "定例ミーティング" in body
         assert "会議室" in body
+        assert "trash?sde_id=" not in body
 
     def test_get_unknown_sde_id(self):
         """存在しない ``sde_id`` は 404 (TODO-016)。"""
