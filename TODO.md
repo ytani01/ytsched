@@ -1,11 +1,40 @@
 # TODO
 
-**残っている項目は無い。**
+**残っている項目: TODO-132。**
 これまでに 132 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-132` から**。
+**番号は `TODO-133` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
+
+---
+
+## TODO-132. ミニカレンダーの ToDo の枠を太くし、重要な ToDo を赤にする
+
+- [ ] `.my-mini-cal-sq` を `box-sizing: border-box` にし、外寸 6px の
+      まま `border` を 2px にする
+- [ ] `SchedLoad` に ToDo 側の重要判定を足す
+      （`MonthCalDay.has_todo_important`）
+- [ ] `main.html` で `has_todo_important` のとき四角の枠色を `#E33` に
+      する
+- [ ] `tests/test_main_handler.py` に重要な ToDo の判定のテストを足す
+
+TODO-131 で ToDo の四角を枠のみにしたが、枠が細くて見えにくい。また
+重要（タイトルが `!` 始まり）の赤は予定のドット（`has_important`）に
+しか無く、ToDo には効いていない（`load_month_cal()` は ToDo を除いた
+`sde_list` だけを見ている）。
+
+四角の外寸は 6px のままにして、ドットと大きさを揃える。重要な ToDo は
+枠だけを赤にし、TODO-131 で決めた「ToDo は枠のみ」を保つ。取り消し済み
+（`(欠)` 始まり）を重要としないのは `is_important()` の判定に任せる。
+日付ファイルに混ざった ToDo 型の行も、四角と同じく重要判定に含める。
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier |
+
+CSS・Python・テンプレート・テストの 4 ファイルにまたがるので
+implementer を分け、確認は別に verifier を立てる。
 
 ---
 
