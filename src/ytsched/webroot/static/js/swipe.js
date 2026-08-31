@@ -4,7 +4,7 @@
 
 // スワイプとマウス (TODO-083)
 
-// swipeStart / swipeDragging / lastTouchMsec / mouseDownEl は、
+// swipeStart / swipeDragging / swipeMiniCal / lastTouchMsec / mouseDownEl は、
 // swipe.js だけで閉じる状態 (TODO-083)
 //
 // 外へ出すもの:
@@ -19,9 +19,12 @@
 //   slideWeekWrap() (week.js)  -- cancelSwipeDrag
 //   hasAdjacentWeek() (week.js) -- swipeDragTo
 //   moveActiveDate() (week.js) -- swipeFinish
+//   moveActiveMonth() (week.js) -- swipeFinish (始点がミニカレンダーの
+//     上だったとき、TODO-136)
 //   window.ytsched.search_date_to (main.html の <script>) -- swipeDragTo
 //     (検索モードでは追従表示をしないまま swipeDragging を立てる、TODO-117)
-//   window.ytsched.url_prefix (base.html の <script>) -- swipeFinish が moveActiveDate へ渡す
+//   window.ytsched.url_prefix (base.html の <script>) -- swipeFinish が
+//     moveActiveDate / moveActiveMonth へ渡す
 
 (() => {
   const ytsched = window.ytsched;
@@ -38,6 +41,10 @@
 
   // 横の動きと判定して、隣の週を指・マウスに追従させているか (TODO-057)
   let swipeDragging = false;
+
+  // 始点がミニカレンダー (``.my-mini-cal``) の上だったか (TODO-136)。
+  // そうなら、離したときに週ではなく月を送る
+  let swipeMiniCal = false;
 
   // 横に動いたと見なす最小の距離 (px)
   const SWIPE_MIN_X = 50;
@@ -97,6 +104,11 @@
    * 届くようになる (タッチは ``touchend`` が ``swipeDragging`` を見ずに
    * 常に ``swipeFinish()`` を呼ぶので、この分岐が無くても届いていた)。
    *
+   * **ミニカレンダーの上で始まったときも追従させない (TODO-136)。**
+   * 週ではなく月を送るので、週パネルを ``translateX`` で追従させる
+   * 意味が無い。検索モードと同じ理由で ``hasAdjacentWeek()`` も見ない
+   * (読み込み範囲の端からでも、月へは送れるようにする)。
+   *
    * **追従しているかどうかを返す。** タッチではこれが true のときだけ
    * ``preventDefault()`` して縦スクロールを止める。
    *
@@ -112,29 +124,42 @@
       ) {
         return false;
       }
-      if (!ytsched.search_date_to && !ytsched.hasAdjacentWeek()) {
+      if (
+        !ytsched.search_date_to &&
+        !swipeMiniCal &&
+        !ytsched.hasAdjacentWeek()
+      ) {
         return false;
       }
       swipeDragging = true;
-      if (!ytsched.search_date_to && ytsched.ytState.elWeekWrap) {
+      if (
+        !ytsched.search_date_to &&
+        !swipeMiniCal &&
+        ytsched.ytState.elWeekWrap
+      ) {
         ytsched.ytState.elWeekWrap.classList.add("my-week-wrap-dragging");
       }
     }
 
-    if (!ytsched.search_date_to && ytsched.ytState.elWeekWrap) {
+    if (
+      !ytsched.search_date_to &&
+      !swipeMiniCal &&
+      ytsched.ytState.elWeekWrap
+    ) {
       ytsched.ytState.elWeekWrap.style.transform = `translateX(${dx}px)`;
     }
     return true;
   };
 
   /**
-   * 離したときに、週を送るかどうかを決める (TODO-057)。
+   * 離したときに、週 (または月・ミニカレンダーの上なら TODO-136) を
+   * 送るかどうかを決める (TODO-057)。
    *
    * **縦の動きが優勢なら送らない。** 1 週間分が画面に収まらない週では
    * 上下にスクロールするので、その動きを週送りと取り違えないようにする。
    *
    * **画面幅の 1/3 以上動いたか、速く払ったとき**に送る。それ以外は
-   * 追従していた分を 0 へ戻す。左へ払ったら次の週、右へ払ったら前の週。
+   * 追従していた分を 0 へ戻す。左へ払ったら次へ、右へ払ったら前へ。
    *
    * @param {number} dx
    * @param {number} dy
@@ -160,7 +185,11 @@
 
     console.log(`swipeFinish:dx=${dx}, dy=${dy}, velocity=${velocity}`);
     swipeDragging = false;
-    ytsched.moveActiveDate(dx < 0 ? 1 : -1, ytsched.url_prefix);
+    if (swipeMiniCal) {
+      ytsched.moveActiveMonth(dx < 0 ? 1 : -1, ytsched.url_prefix);
+    } else {
+      ytsched.moveActiveDate(dx < 0 ? 1 : -1, ytsched.url_prefix);
+    }
     return true;
   };
 
@@ -205,6 +234,7 @@
       return;
     }
 
+    swipeMiniCal = !!(el && el.closest && el.closest(".my-mini-cal"));
     swipeStart = { x: touch.clientX, y: touch.clientY, t: Date.now() };
   };
 
@@ -330,6 +360,7 @@
     event.preventDefault(); // ドラッグ中に文字が選択されないように
 
     mouseDownEl = el.closest("[data-action]");
+    swipeMiniCal = !!el.closest(".my-mini-cal");
     swipeStart = { x: event.clientX, y: event.clientY, t: Date.now() };
   };
 

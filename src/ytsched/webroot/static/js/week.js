@@ -14,15 +14,19 @@
 //                         main-page.js (startAutoPageTurn)
 //   moveActiveDate()   -- swipe.js (swipeFinish)・keyboard.js (keyHdr)・
 //                         main-page.js (pageTurnPointerUpHdr)
-//   weekPanelOf() / cancelActiveSlide / SWIPE_SLIDE_MSEC はこのファイル内だけで使う
+//   moveActiveMonth()  -- swipe.js (swipeFinish、ミニカレンダーの上での
+//                         スワイプ・ドラッグ、TODO-136)
+//   weekPanelOf() / cancelActiveSlide / SWIPE_SLIDE_MSEC / mondayDaysInMonth()
+//     はこのファイル内だけで使う
 // 外から使うもの:
 //   ytState (state.js)          -- elWeekWrap・activeWeekOffset・activeMonday
 //   mondayOf() (gauge.js)       -- weekOffsetOfDate
 //   dispGauge() (gauge.js)      -- setActiveWeek
 //   getLocaltimeDateString() / getLocaltimeString() / shiftDays() (nav.js)
-//     -- weekOffsetOfDate・moveToMonday・moveActiveDate
+//     -- weekOffsetOfDate・moveToMonday・moveActiveDate・moveActiveMonth
 //   pushDateInUrl() / scrollToId() (nav.js) -- setActiveWeek
 //   doGet() (nav.js)            -- moveToMonday・moveActiveDate
+//   scrollToDate() (nav.js)     -- moveActiveMonth (TODO-136)
 //   window.ytsched.search_date_to (main.html の <script>) -- moveActiveDate
 
 // 滑らせるアニメーションの長さ (msec)。CSS の
@@ -311,5 +315,70 @@
       return;
     }
     ytsched.moveToMonday(direction, path);
+  };
+
+  /**
+   * ``year``/``month`` (``month`` は Date と同じ 0 始まり) の月に
+   * 収まる月曜の、日 (1-31) を古い順に返す (TODO-136)。
+   *
+   * @param {number} year
+   * @param {number} month
+   * @return {number[]}
+   */
+  const mondayDaysInMonth = (year, month) => {
+    const days = [];
+    const d = new Date(year, month, 1);
+    while (d.getMonth() === month) {
+      if (d.getDay() === 1) {
+        days.push(d.getDate());
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return days;
+  };
+
+  /**
+   * ミニカレンダーの領域での左右のスワイプ・ドラッグで、1 ヶ月単位に
+   * 移動する (TODO-136)。
+   *
+   * **月の中で「何番目の月曜か」を保ったまま、月だけ進める/戻す。**
+   * ``activeMonday`` を月単位でずらしてから週の月曜へ丸める案
+   * (``Date.setMonth()`` → 週の月曜へ丸める) も考えたが、丸めが
+   * 月の境界を越えて元の月 (時には 2 か月前) へ戻ってしまう日付が
+   * 少なくなかった (reviewer の指摘、2021〜2030 年の月初の月曜だけでも
+   * 前進 42 件・後退 71 件で発生)。
+   *
+   * 代わりに、``activeMonday`` がその月の何番目の月曜か
+   * (``mondayDaysInMonth()`` の何番目か) を求め、ずらした先の月でも
+   * 同じ番目の月曜へ移る。ずらした先の月の月曜の数がそれより少なければ
+   * (4 週の月から 5 週の月へ動いたときなど)、その月の最後の月曜に
+   * 留める。この方法なら、結果の月が必ずずらした先の月そのものになる
+   * (2021〜2030 年の全ての月曜で確認済み)。
+   *
+   * ミニカレンダーのセルをタップしたときと同じ ``scrollToDate()`` に
+   * 乗せるので、読み込み範囲にあればそのまま移り、無ければ読み直す。
+   *
+   * 検索モードではミニカレンダーを出さない (TODO-104) ので、
+   * ``moveActiveDate()`` と違って検索の基準日を動かす分岐は無い。
+   *
+   * @param {number} direction
+   * @param {String} path
+   */
+  window.ytsched.moveActiveMonth = (direction, path) => {
+    const cur = new Date(ytsched.ytState.activeMonday);
+    const year = cur.getFullYear();
+    const month = cur.getMonth();
+    const curDays = mondayDaysInMonth(year, month);
+    const idx = curDays.indexOf(cur.getDate());
+
+    const total = year * 12 + month + direction;
+    const targetYear = Math.floor(total / 12);
+    const targetMonth = ((total % 12) + 12) % 12;
+    const targetDays = mondayDaysInMonth(targetYear, targetMonth);
+    const targetDay = targetDays[Math.min(idx, targetDays.length - 1)];
+
+    const target = new Date(targetYear, targetMonth, targetDay);
+    const target_str = ytsched.getLocaltimeDateString(target);
+    ytsched.scrollToDate(path, target_str, "top");
   };
 })();
