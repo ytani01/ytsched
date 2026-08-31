@@ -1062,8 +1062,8 @@ textarea {
 }
 
 .my-mini-cal-dot {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background-color: #28F;
 }
@@ -1073,7 +1073,7 @@ textarea {
 }
 
 .my-mini-cal-sq {
-    width: 5px;
-    height: 5px;
-    background-color: #28F;
+    width: 6px;
+    height: 6px;
+    border: 1px solid #28F;
 }
