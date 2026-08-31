@@ -126,6 +126,7 @@ class MonthCalDay:
     has_important: bool
     is_holiday: bool
     has_todo: bool
+    has_todo_important: bool
 
 
 @dataclasses.dataclass
@@ -176,10 +177,12 @@ class SchedLoader:
         #: 同じ月が複数の週パネルで要るので、1 リクエスト内で使い回す
         #: (``SchedLoader`` はリクエストごとに作られる。TODO-103)
         self._month_cal_cache: dict[tuple[int, int], MonthCal] = {}
-        #: ToDo の締切日の集合 (``load_month_cal()`` が使う。フィルタ・
-        #: 検索・``todo_days`` は反映しない。1 リクエスト内で 1 回だけ
-        #: 集める (TODO-129)。
+        #: ToDo の締切日の集合と、そのうち重要な ToDo の締切日の集合
+        #: (``load_month_cal()`` が使う。フィルタ・検索・``todo_days``
+        #: は反映しない。1 リクエスト内で 1 回だけ集める
+        #: (TODO-129・TODO-132)。
         self._todo_dates: set[datetime.date] | None = None
+        self._todo_important_dates: set[datetime.date] | None = None
 
     def load_todo(
         self,
@@ -282,10 +285,40 @@ class SchedLoader:
 
         """
         if self._todo_dates is None:
-            self._todo_dates = {
-                sde.date for sde in self._sd.get_sdf(None).sde
-            }
+            self._build_todo_dates()
+        assert self._todo_dates is not None
         return self._todo_dates
+
+    def _get_todo_important_dates(self) -> set[datetime.date]:
+        """重要な ToDo の締切日の集合を作る (初回だけ。TODO-132)。
+
+        ``load_month_cal()`` がミニカレンダーの四角の枠色に使う。
+        ``_get_todo_dates()`` と同じく ``ToDo.jsonl`` (``get_sdf(None)``)
+        だけを見る (フィルタ・検索・``todo_days`` は反映しない)。
+
+        Returns
+        -------
+        set[datetime.date]
+
+        """
+        if self._todo_important_dates is None:
+            self._build_todo_dates()
+        assert self._todo_important_dates is not None
+        return self._todo_important_dates
+
+    def _build_todo_dates(self) -> None:
+        """``_todo_dates``/``_todo_important_dates`` を 1 回で組み立てる。
+
+        ``ToDo.jsonl`` を 1 回走査するだけで両方を作る (TODO-132)。
+        """
+        todo_dates: set[datetime.date] = set()
+        todo_important_dates: set[datetime.date] = set()
+        for sde in self._sd.get_sdf(None).sde:
+            todo_dates.add(sde.date)
+            if sde.is_important():
+                todo_important_dates.add(sde.date)
+        self._todo_dates = todo_dates
+        self._todo_important_dates = todo_important_dates
 
     def load_month_cal(self, year: int, month: int) -> MonthCal:
         """月間ミニカレンダー 1 か月分を組み立てる (TODO-103・TODO-129)。
@@ -293,8 +326,9 @@ class SchedLoader:
         予定の有無・重要・祝日は ``SchedData.get_sdf(date).sde`` で
         中身を読んで判定する。``SchedData`` のキャッシュに載るので
         2 回目以降は速いが、初回はファイルを開くぶん重くなる。ToDo の
-        締切は ``_get_todo_dates()`` の集合を引くだけ。フィルタ・検索は
-        反映しない。
+        締切と、そのうち重要なものは ``_get_todo_dates()`` /
+        ``_get_todo_important_dates()`` の集合を引くだけ (TODO-132)。
+        フィルタ・検索は反映しない。
 
         1 リクエスト内で同じ月が複数の週パネルから要求されるので、
         ``self._month_cal_cache`` に積んで使い回す。
@@ -316,6 +350,7 @@ class SchedLoader:
             return cached
 
         todo_dates = self._get_todo_dates()
+        todo_important_dates = self._get_todo_important_dates()
 
         first_day = datetime.date(year, month, 1)
         days_in_month = calendar.monthrange(year, month)[1]
@@ -331,12 +366,17 @@ class SchedLoader:
             for _ in range(7):
                 day_sde = self._sd.get_sdf(date1).sde
                 sde_list = [sde for sde in day_sde if not sde.is_todo()]
+                todo_sde_list = [sde for sde in day_sde if sde.is_todo()]
                 # 日付ファイル側に ToDo 型の行が混ざっていても印が
                 # 消えないよう、四角のほうで拾う (TODO-129 の reviewer
                 # の指摘)。正常な操作では ``SchedUpdater`` が ToDo を
                 # ``ToDo.jsonl`` へ書くので混ざらないが、``migrate``
-                # したデータや手で直したファイルでは起こりうる
+                # したデータや手で直したファイルでは起こりうる。重要
+                # (赤枠) も同じ経路で拾う (TODO-132)
                 has_todo = date1 in todo_dates or len(day_sde) > len(sde_list)
+                has_todo_important = date1 in todo_important_dates or any(
+                    sde.is_important() for sde in todo_sde_list
+                )
                 week.append(
                     MonthCalDay(
                         date=date1,
@@ -349,6 +389,7 @@ class SchedLoader:
                         ),
                         is_holiday=any(sde.is_holiday() for sde in sde_list),
                         has_todo=has_todo,
+                        has_todo_important=has_todo_important,
                     )
                 )
                 date1 += datetime.timedelta(1)

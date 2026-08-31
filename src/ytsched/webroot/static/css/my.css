@@ -1075,5 +1075,9 @@ textarea {
 .my-mini-cal-sq {
     width: 6px;
     height: 6px;
-    border: 1px solid #28F;
+    border: 2px solid #28F;
+}
+
+.my-mini-cal-sq-important {
+    border-color: #E33;
 }

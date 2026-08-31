@@ -282,7 +282,7 @@
               <div class="my-mini-cal-dot{% if d.has_important %} my-mini-cal-dot-important{% end %}"></div>
               {% end %}
               {% if d.has_todo %}
-              <div class="my-mini-cal-sq"></div>
+              <div class="my-mini-cal-sq{% if d.has_todo_important %} my-mini-cal-sq-important{% end %}"></div>
               {% end %}
             </div><!-- my-mini-cal-marks -->
             {% end %}
