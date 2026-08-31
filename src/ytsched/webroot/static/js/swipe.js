@@ -40,7 +40,7 @@
   let swipeDragging = false;
 
   // 横に動いたと見なす最小の距離 (px)
-  const SWIPE_MIN_X = 60;
+  const SWIPE_MIN_X = 50;
 
   // 横の動きが縦の何倍あれば横スワイプと見なすか
   const SWIPE_X_PER_Y = 1.5;
