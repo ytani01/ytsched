@@ -1,11 +1,47 @@
 # TODO
 
-**残っている項目は無い。**
+**残っている項目: TODO-136。**
 これまでに 136 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-136` から**。
+**番号は `TODO-137` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
+
+---
+
+## TODO-136. ミニカレンダーの領域での左右スワイプ・ドラッグを月単位の移動にする
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | main + reviewer + verifier |
+
+- [ ] ミニカレンダーの領域（`.my-mini-cal` の表の上）で左右にスワイプ・
+      ドラッグしたら、1 ヶ月単位で移動する
+- [ ] 移動先の曜日は月曜にする
+
+（背景）
+
+- 週送りのスワイプ・ドラッグは `swipe.js`（始点・追従・しきい値判定）と
+  `week.js`（`moveActiveDate()` → `moveToMonday()`）が担っている。
+  `touchStartHdr`/`mouseDownHdr` で、始点がミニカレンダーの表
+  （`.my-mini-cal`）の上かどうかを覚えておき、そうであれば週送りの
+  追従アニメーション（`translateX`）はせず、離したとき（しきい値を
+  超えたとき）に `week.js` へ新しく足す `moveActiveMonth()` を呼ぶ
+- 「移動先の曜日は月曜にする」は、月をずらした先の日付をそのまま
+  使うのではなく、その週の月曜へ丸めることで満たす（月によって日数が
+  違うので、1 ヶ月ずらしただけでは月曜にならないため）。丸めには
+  既存の `mondayOf()`（gauge.js）を使う
+- 移動そのものは、月間ミニカレンダーのセルをタップしたときと同じ
+  `scrollToDate()` に乗せる（読み込み範囲にあればそのまま移り、
+  無ければ読み直す、という既存の分岐をそのまま使う）
+- 既存の `test_swipe_moves_search_date_by_a_week` などに倣い、
+  ブラウザテストを足す
+- 週送りと同じ共有コード（`swipeDragTo`/`swipeFinish`）に分岐を増やす
+  変更なので、実装とは別に reviewer でコードを見てもらう
+
+対象は `src/ytsched/webroot/static/js/swipe.js` と
+`src/ytsched/webroot/static/js/week.js`、`tests/test_browser.py`
+の見込み。
 
 ---
 
