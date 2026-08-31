@@ -1044,31 +1044,51 @@ textarea {
     background-color: #FFCCCC;
 }
 
+/* 「今日」は、週の枠より太くして優先して目立たせ、角丸にする
+   (TODO-135)。``border`` は ``border-collapse: collapse`` の表では
+   角丸が効かない実装がある (Chromium で確認) ので、``box-shadow``
+   （内側にセルの形なりに描く）で描く */
 .my-mini-cal-day-today {
-    border: 2px solid #28F;
+    box-shadow: inset 0 0 0 3px #28F;
+    border-radius: 4px;
 }
 
-/* 表示中の週を示す枠 (TODO-134)。行の外周をまとめて囲む */
+/* 表示中の週を示す枠 (TODO-134)。行の外周をまとめて囲む。
+   これも角丸にするため、上と同じ理由で ``box-shadow`` で
+   上辺・下辺・両端の縦辺を描く (TODO-135)。角丸は、行の両端の
+   セルにだけ外側の角を丸める */
+.my-mini-cal-week-cur > .my-mini-cal-day {
+    box-shadow:
+        inset 0 2px 0 0 #888,
+        inset 0 -2px 0 0 #888;
+}
+
 .my-mini-cal-week-cur > .my-mini-cal-day:first-child {
-    border-left: 2px solid #888;
+    box-shadow:
+        inset 0 2px 0 0 #888,
+        inset 0 -2px 0 0 #888,
+        inset 2px 0 0 0 #888;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
 }
 
 .my-mini-cal-week-cur > .my-mini-cal-day:last-child {
-    border-right: 2px solid #888;
+    box-shadow:
+        inset 0 2px 0 0 #888,
+        inset 0 -2px 0 0 #888,
+        inset -2px 0 0 0 #888;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
 }
 
-.my-mini-cal-week-cur > .my-mini-cal-day {
-    border-top: 2px solid #888;
-    border-bottom: 2px solid #888;
-}
-
-/* 今日のセルは、週の枠より今日の枠 (青) を優先する。月曜・日曜の列は
-   左右にも週の枠が付く (上の :first-child / :last-child) ので、
+/* 今日のセルは、週の枠より今日の枠 (青・太め) を優先する。月曜・日曜の
+   列は左右にも週の枠が付く (上の :first-child / :last-child) ので、
    詳細度を揃えて後勝ちにする */
 .my-mini-cal-week-cur > .my-mini-cal-day-today,
 .my-mini-cal-week-cur > .my-mini-cal-day-today:first-child,
 .my-mini-cal-week-cur > .my-mini-cal-day-today:last-child {
-    border: 2px solid #28F;
+    box-shadow: inset 0 0 0 3px #28F;
+    border-radius: 4px;
 }
 
 .my-mini-cal-daynum {
