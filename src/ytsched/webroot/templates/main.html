@@ -252,19 +252,18 @@
           {% end %}
         </tr>
         {% for mc_week in mc.weeks %}
-        <tr>
+        {% set tr_class = 'my-mini-cal-week' %}
+        {% if w.monday <= mc_week[0].date <= w.monday + datetime.timedelta(6) %}
+        {% set tr_class = tr_class + ' my-mini-cal-week-cur' %}
+        {% end %}
+        <tr class="{{ tr_class }}">
           {% for d in mc_week %}
-          {% set td_class = 'my-mini-cal-day' %}
+          {% set td_class = 'my-mini-cal-day my-btn' %}
           {% if not d.in_month %}
           {% set td_class = td_class + ' my-mini-cal-day-out' %}
-          {% else %}
-          {% set td_class = td_class + ' my-btn' %}
           {% end %}
           {% if d.date == today %}
           {% set td_class = td_class + ' my-mini-cal-day-today' %}
-          {% end %}
-          {% if w.monday <= d.date <= w.monday + datetime.timedelta(6) %}
-          {% set td_class = td_class + ' my-mini-cal-day-cur-week' %}
           {% end %}
           {% if d.in_month %}
           {% if d.is_holiday or d.date.weekday() == 6 %}
@@ -274,18 +273,16 @@
           {% end %}
           {% end %}
           <td class="{{ td_class }}"
-            {% if d.in_month %}data-action="scroll-date" data-date="{{ d.date }}"{% end %}>
+            data-action="scroll-date" data-date="{{ d.date }}">
             <div class="my-mini-cal-daynum">{{ d.date.day }}</div>
-            {% if d.has_sched or d.has_todo %}
             <div class="my-mini-cal-marks">
               {% if d.has_sched %}
               <div class="my-mini-cal-dot{% if d.has_important %} my-mini-cal-dot-important{% end %}"></div>
               {% end %}
               {% if d.has_todo %}
-              <div class="my-mini-cal-sq"></div>
+              <div class="my-mini-cal-sq{% if d.has_todo_important %} my-mini-cal-sq-important{% end %}"></div>
               {% end %}
             </div><!-- my-mini-cal-marks -->
-            {% end %}
           </td>
           {% end %}<!-- for d -->
         </tr>

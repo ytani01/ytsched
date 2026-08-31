@@ -1183,6 +1183,58 @@ class TestMonthCal(WebTestBase):
         assert by_date_todo[target] is True
         assert by_date_sched[target] is False
 
+    def test_todo_deadline_sets_has_todo_important(self):
+        """タイトルが「!」始まりの ToDo の締切日は ``has_todo_important``
+        が真、ふつうの ToDo の締切日は偽（TODO-132）。
+        """
+        important_day = datetime.date(2021, 3, 15)
+        plain_day = datetime.date(2021, 3, 16)
+        todo_path = self.datadir / "ToDo.jsonl"
+        todo_path.write_text(
+            mk_dataline(
+                date=important_day.isoformat(), type="□ToDo", title="!報告書"
+            )
+            + "\n"
+            + mk_dataline(
+                date=plain_day.isoformat(), type="□ToDo", title="連絡"
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.has_todo_important
+            for week in month_cal.weeks
+            for d in week
+        }
+        assert by_date[important_day] is True
+        assert by_date[plain_day] is False
+
+    def test_canceled_important_todo_is_not_important(self):
+        """取り消し済み（「(欠)」始まり）の重要な ToDo は
+        ``has_todo_important`` が偽（TODO-132）。
+        """
+        target = datetime.date(2021, 3, 15)
+        todo_path = self.datadir / "ToDo.jsonl"
+        todo_path.write_text(
+            mk_dataline(
+                date=target.isoformat(), type="□ToDo", title="(欠)!報告書"
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.has_todo_important
+            for week in month_cal.weeks
+            for d in week
+        }
+        assert by_date[target] is False
+
     def test_todo_in_day_file_is_shown_as_todo(self):
         """日付ファイルに ToDo 型の行が混ざっていても印が消えない
         （TODO-129）。
@@ -1210,6 +1262,30 @@ class TestMonthCal(WebTestBase):
             for d in week
         }
         assert by_date[target] == (False, True)
+
+    def test_todo_in_day_file_important_is_shown_as_important(self):
+        """日付ファイルに混ざった重要な ToDo 型の行（「!」始まり）は、
+        ``ToDo.jsonl`` を経由しなくても ``has_todo_important`` が真になる
+        （TODO-132）。
+        """
+        target = datetime.date(2021, 3, 15)
+        self.write_data(
+            target,
+            [
+                mk_dataline(
+                    date=target.isoformat(), type="□ToDo", title="!報告書"
+                )
+            ],
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: d.has_todo_important
+            for week in month_cal.weeks
+            for d in week
+        }
+        assert by_date[target] is True
 
     def test_no_todo_file_does_not_raise(self):
         """ToDo ファイルが無くても例外にならない（TODO-129）。"""

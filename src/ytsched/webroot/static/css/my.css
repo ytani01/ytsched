@@ -968,7 +968,7 @@ textarea {
     display: flex;
     justify-content: center;
     align-items: flex-start; /* 上端揃え */
-    gap: 10px;
+    gap: 6px;
     margin-top: 8px;
     position: relative;
     /* スイッチは position: absolute で高さに数えられないので、
@@ -995,12 +995,18 @@ textarea {
 
 .my-mini-cal {
     border-collapse: collapse;
-    font-size: x-small;
+    font-size: small;
+    /* 日セルを固定幅にすると 2 ヶ月ぶんが端末の幅からはみ出すので、
+       使える幅を 2 つの表で分け合う (TODO-133)。広い画面で間延び
+       しないよう上限を付ける。 */
+    flex: 1 1 0;
+    max-width: 200px;
+    table-layout: fixed;
 }
 
 .my-mini-cal-caption {
     caption-side: top;
-    font-size: small;
+    font-size: medium;
     font-weight: bold;
 }
 
@@ -1011,29 +1017,22 @@ textarea {
 }
 
 .my-mini-cal-day {
-    width: 24px;
-    height: 24px;
+    height: 30px;
     text-align: center;
     vertical-align: middle;
     border: 1px solid #DDD;
 }
 
 .my-mini-cal-day-out {
-    color: #CCC;
+    /* タップに反応することが分かる程度に、無地よりは濃くする
+       (TODO-134) */
+    color: #999;
 }
 
-/* 背景色は 祝日・日曜 ＞ 土曜 ＞ 表示中の週 ＞ それ以外 の優先度。
-   同じ詳細度なので、下に書いたものほど勝つ (TODO-129)。まず「それ
-   以外」を全体の既定にし、優先度の低いものから順に上書きしていく。
-   前後の月の埋めセル (``.my-mini-cal-day-out``) は曜日の色を付けない
-   (テンプレート側で in_month のときしかクラスを足さない) ので、ここは
-   薄いグレーのままになる。 */
+/* 背景色は 祝日・日曜 ＞ 土曜 ＞ それ以外(白) の優先度。同じ詳細度
+   なので、下に書いたものほど勝つ。表示中の週は、背景色ではなく
+   ``.my-mini-cal-week-cur`` (tr) の枠で示す (TODO-134)。 */
 .my-mini-cal-day {
-    background-color: #F0F0F0;
-}
-
-/* ↑ より後に置くこと (同じ詳細度なので、後のほうが勝つ) */
-.my-mini-cal-day-cur-week {
     background-color: #FFF;
 }
 
@@ -1045,12 +1044,55 @@ textarea {
     background-color: #FFCCCC;
 }
 
+/* 「今日」は、週の枠より太くして優先して目立たせ、角丸にする
+   (TODO-135)。``border`` は ``border-collapse: collapse`` の表では
+   角丸が効かない実装がある (Chromium で確認) ので、``box-shadow``
+   （内側にセルの形なりに描く）で描く */
 .my-mini-cal-day-today {
-    border: 2px solid #28F;
+    box-shadow: inset 0 0 0 3px #28F;
+    border-radius: 4px;
+}
+
+/* 表示中の週を示す枠 (TODO-134)。行の外周をまとめて囲む。
+   これも角丸にするため、上と同じ理由で ``box-shadow`` で
+   上辺・下辺・両端の縦辺を描く (TODO-135)。角丸は、行の両端の
+   セルにだけ外側の角を丸める */
+.my-mini-cal-week-cur > .my-mini-cal-day {
+    box-shadow:
+        inset 0 2px 0 0 #888,
+        inset 0 -2px 0 0 #888;
+}
+
+.my-mini-cal-week-cur > .my-mini-cal-day:first-child {
+    box-shadow:
+        inset 0 2px 0 0 #888,
+        inset 0 -2px 0 0 #888,
+        inset 2px 0 0 0 #888;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.my-mini-cal-week-cur > .my-mini-cal-day:last-child {
+    box-shadow:
+        inset 0 2px 0 0 #888,
+        inset 0 -2px 0 0 #888,
+        inset -2px 0 0 0 #888;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+/* 今日のセルは、週の枠より今日の枠 (青・太め) を優先する。月曜・日曜の
+   列は左右にも週の枠が付く (上の :first-child / :last-child) ので、
+   詳細度を揃えて後勝ちにする */
+.my-mini-cal-week-cur > .my-mini-cal-day-today,
+.my-mini-cal-week-cur > .my-mini-cal-day-today:first-child,
+.my-mini-cal-week-cur > .my-mini-cal-day-today:last-child {
+    box-shadow: inset 0 0 0 3px #28F;
+    border-radius: 4px;
 }
 
 .my-mini-cal-daynum {
-    line-height: 14px;
+    line-height: 16px;
 }
 
 .my-mini-cal-marks {
@@ -1059,11 +1101,14 @@ textarea {
     align-items: center;
     gap: 1px;
     margin-top: 1px;
+    /* 印の有無によらず領域を確保し、数字の縦位置を揃える (TODO-134)。
+       ドット・四角は 8px 角 */
+    min-height: 8px;
 }
 
 .my-mini-cal-dot {
-    width: 4px;
-    height: 4px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background-color: #28F;
 }
@@ -1073,7 +1118,11 @@ textarea {
 }
 
 .my-mini-cal-sq {
-    width: 4px;
-    height: 4px;
-    background-color: #28F;
+    width: 8px;
+    height: 8px;
+    border: 2px solid #28F;
+}
+
+.my-mini-cal-sq-important {
+    border-color: #E33;
 }

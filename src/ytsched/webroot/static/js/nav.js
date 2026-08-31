@@ -16,7 +16,8 @@
 //   doSubmit() / doGetDate() -- main.html の onmousedown / onchange
 //   scrollToId()    -- week.js (setActiveWeek)
 //   scrollToDate()  -- gauge.js (gaugeBarClickHdr)・keyboard.js (keyHdr)・
-//                      main-page.js (homeButtonHdr / onloadHdr)
+//                      main-page.js (homeButtonHdr / onloadHdr)・
+//                      week.js (moveActiveMonth、TODO-136)
 //   pushDateInUrl() -- week.js (setActiveWeek)
 //   popstateHdr()   -- main-page.js が window の popstate に登録する
 //   mkUrl() / replaceDateInUrl() はこのファイル内だけで使う

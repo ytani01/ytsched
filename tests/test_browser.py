@@ -981,6 +981,146 @@ def test_mouse_drag_within_move_threshold_still_works_as_a_click(
     page.wait_for_url(lambda url: "/edit/" in url, timeout=10000)
 
 
+def _expected_month(monday, direction):
+    """``monday`` の月から ``direction`` ヶ月進める/戻すと、表示は
+    何年何月になるはずか。
+
+    ``moveActiveMonth()`` (week.js) の内部の丸め方（月の中で何番目の
+    月曜かを保つ）を Python 側で再現するのではなく、要件そのもの
+    （「1 ヶ月単位で移動する」＝表示の年月がちょうど ``direction`` ヶ月
+    分だけ動く）だけを計算する。実装の計算をそのまま Python で
+    なぞると、実装に同じ不具合があってもテストが検出できない
+    （TODO-136、reviewer の指摘）。
+    """
+    month_index = monday.month - 1 + direction
+    year = monday.year + month_index // 12
+    month = month_index % 12 + 1
+    return year, month
+
+
+def _mini_cal_box(page):
+    """いま表示中の週のミニカレンダー（1 つめの表）の位置。
+
+    ミニカレンダーは週ごとに 2 つ（表示中の月・翌月）出るので、
+    表示中の週の panel (``.my-week-cur``) の中で探す。読み込んだ範囲の
+    すべての週にも同じクラスの表があるので、スコープを絞らないと
+    隠れている週の表を拾ってしまう。
+    """
+    box = page.locator(".my-week-cur .my-mini-cal").first.bounding_box()
+    assert box is not None
+    return box
+
+
+def _assert_moved_to_month(page, from_date, expected_year, expected_month):
+    """URL の ``date`` が、``from_date`` から動いて、指定した年月の
+    月曜になっていることを見る（TODO-136）。
+
+    月をまたいでいれば必ず ``date`` が変わるはずなので、``from_date``
+    のままではなくなるのをまず待ってから、年月・曜日を確かめる。
+    """
+    from_str = from_date.strftime("%Y-%m-%d")
+    page.wait_for_url(
+        lambda url: "date=" in url and f"date={from_str}" not in url,
+        timeout=10000,
+    )
+    date_str = _date_in_url(page)
+    assert date_str is not None
+    moved = datetime.date.fromisoformat(date_str)
+    assert (moved.year, moved.month) == (expected_year, expected_month)
+    assert moved.weekday() == 0  # 月曜 (Python は月曜が 0)
+
+
+def test_touch_swipe_in_mini_cal_moves_by_a_month(page_touch, server):
+    """ミニカレンダーの領域での左スワイプは、1 ヶ月進める（TODO-136）。
+
+    移動先の年月がちょうど 1 ヶ月進み、曜日が月曜になっていることを見る
+    （移動先の日そのものは、月の中の週の位置に応じて実装が決める）。
+    """
+    monday = datetime.date(2026, 3, 2)
+    _open(page_touch, server, monday.strftime("%Y-%m-%d"))
+
+    box = _mini_cal_box(page_touch)
+    x0 = box["x"] + box["width"] / 2
+    y0 = box["y"] + box["height"] / 2
+
+    _touch_swipe(page_touch, x0, y0, x0 - 250, y0)  # 左へ払う (次へ)
+
+    _assert_moved_to_month(page_touch, monday, *_expected_month(monday, 1))
+
+
+def test_touch_swipe_in_mini_cal_back_moves_by_a_month(page_touch, server):
+    """ミニカレンダーの領域での右スワイプは、1 ヶ月戻す（TODO-136）。"""
+    monday = datetime.date(2026, 3, 2)
+    _open(page_touch, server, monday.strftime("%Y-%m-%d"))
+
+    box = _mini_cal_box(page_touch)
+    x0 = box["x"] + box["width"] / 2
+    y0 = box["y"] + box["height"] / 2
+
+    _touch_swipe(page_touch, x0, y0, x0 + 250, y0)  # 右へ払う (前へ)
+
+    _assert_moved_to_month(page_touch, monday, *_expected_month(monday, -1))
+
+
+def test_mouse_drag_in_mini_cal_moves_by_a_month(page, server):
+    """PC のマウスでミニカレンダーの領域を左右にドラッグしても、
+    月単位で動く（TODO-136）。
+
+    週送りと違い、追従表示（``translateX``）は出ない
+    （``moveActiveMonth()`` は ``scrollToDate()`` に乗せるだけで、
+    週パネルを滑らせる対象ではないため）。ここでは離したあとの移動先
+    だけを見る。
+    """
+    monday = datetime.date(2026, 3, 2)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    box = _mini_cal_box(page)
+    x0 = box["x"] + box["width"] / 2
+    y0 = box["y"] + box["height"] / 2
+    x1 = x0 - 250  # 左へ払う (次へ)。SWIPE_MIN_X・win_w/3 を超える距離
+
+    page.mouse.move(x0, y0)
+    page.mouse.down()
+    page.mouse.move(x1, y0, steps=5)
+    page.mouse.up()
+
+    _assert_moved_to_month(page, monday, *_expected_month(monday, 1))
+
+
+def test_mouse_drag_in_mini_cal_within_threshold_still_taps_the_day(
+    page, server
+):
+    """ミニカレンダーの領域でも、ドラッグと見なす距離に届かなければ
+    セルのタップ（``scroll-date``）として扱われる（TODO-136）。
+
+    ``mouseDownHdr`` が押さえておいて ``mouseUpHdr`` がクリックとして
+    呼び戻す経路（``[data-action="scroll-date"]``）が、ミニカレンダーの
+    上でも今までどおり働くことを見る。月へは移らず、押したセルの日付
+    （``monday`` の 1 週間後）へ移ることを確かめる。
+    """
+    monday = datetime.date(2026, 3, 2)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    target_date = monday + datetime.timedelta(days=7)
+    cell = page.locator(
+        f'.my-week-cur .my-mini-cal td[data-date="{target_date}"]'
+    )
+    box = cell.bounding_box()
+    assert box is not None
+    x = box["x"] + box["width"] / 2
+    y = box["y"] + box["height"] / 2
+
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + 10, y, steps=2)  # しきい値未満だけ動かす
+    page.mouse.up()
+
+    page.wait_for_url(
+        lambda url: f"date={target_date.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+
+
 def _center_x(page, selector):
     """要素の左右の中心（px）。"""
     box = page.locator(selector).bounding_box()
