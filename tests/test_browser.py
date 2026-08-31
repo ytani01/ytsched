@@ -1148,6 +1148,41 @@ def test_month_view_round_trip(page, server):
     assert "view=month" not in page.url
 
 
+def test_touch_swipe_in_mini_cal_from_non_monday_moves_by_a_month(
+    page_touch, server
+):
+    """``activeMonday`` が月曜以外の状態でも、ミニカレンダーのスワイプで
+    月を移せる（TODO-138）。
+
+    ミニカレンダーのセル（``scroll-date``）をクリックすると
+    ``scrollToDate()`` が ``activeMonday`` にそのままクリックした日付を
+    入れる。月曜以外の日をクリックしたあと、``moveActiveMonth()`` が
+    それを月曜へ丸めずに計算すると例外で落ち、スワイプが効かなく
+    なっていた。
+    """
+    monday = datetime.date(2026, 3, 2)
+    _open(page_touch, server, monday.strftime("%Y-%m-%d"))
+
+    non_monday = monday + datetime.timedelta(days=3)  # 木曜
+    non_monday_cell = page_touch.locator(
+        f'.my-week-cur .my-mini-cal td[data-date="{non_monday}"]'
+    )
+    non_monday_cell.click()
+    page_touch.wait_for_url(
+        lambda url: f"date={non_monday}" in url, timeout=10000
+    )
+
+    box = _mini_cal_box(page_touch)
+    x0 = box["x"] + box["width"] / 2
+    y0 = box["y"] + box["height"] / 2
+
+    _touch_swipe(page_touch, x0, y0, x0 - 250, y0)  # 左へ払う (次へ)
+
+    _assert_moved_to_month(
+        page_touch, non_monday, *_expected_month(monday, 1)
+    )
+
+
 def _center_x(page, selector):
     """要素の左右の中心（px）。"""
     box = page.locator(selector).bounding_box()

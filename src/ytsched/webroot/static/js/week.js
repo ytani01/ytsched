@@ -383,10 +383,17 @@
    */
   window.ytsched.moveActiveMonth = (direction, path) => {
     const cur = new Date(ytsched.ytState.activeMonday);
-    const year = cur.getFullYear();
-    const month = cur.getMonth();
+    let wday = cur.getDay(); // 0:Sun, 1:Mon, ..
+    if (wday == 0) {
+      wday = 7; // Sun: 0 --> 7
+    }
+    // ``activeMonday`` が月曜とは限らない (TODO-138)。その週の月曜へ
+    // 丸めてから月内の何番目かを求める (moveToMonday() と同じ考え方)
+    const monday = ytsched.shiftDays(cur, 1 - wday);
+    const year = monday.getFullYear();
+    const month = monday.getMonth();
     const curDays = mondayDaysInMonth(year, month);
-    const idx = curDays.indexOf(cur.getDate());
+    const idx = curDays.indexOf(monday.getDate());
 
     const total = year * 12 + month + direction;
     const targetYear = Math.floor(total / 12);
