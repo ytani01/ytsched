@@ -1,35 +1,11 @@
 # TODO
 
-**残っている項目: TODO-133。**
-これまでに 133 件を決着させた。
+**残っている項目は無い。**
+これまでに 134 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-134` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
-
----
-
-## TODO-133. ミニカレンダーを全体的に大きくする
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort medium | main のみ実装 + verifier |
-
-- [ ] 表の幅を可変にして、フォント・日セル・印をまとめて大きくする
-
-日セルは 24px 固定で、2 ヶ月ぶんの合計が約 348px。`container` の左右
-パディングを引くと、360px 幅の端末ではすでに余裕が無く、px を増やすと
-はみ出す。そこで `table-layout: fixed` と `flex: 1 1 0` にして、2 つの
-表が使える幅いっぱいに広がるようにしたうえで、高さ・フォント・印を
-大きくする。
-
-- `.my-mini-cal-row`: `gap` 10px → 6px
-- `.my-mini-cal`: `flex: 1 1 0` / `table-layout: fixed` / `font-size`
-  x-small → small（広い画面で間延びしないよう幅の上限も付ける）
-- `.my-mini-cal-caption`: small → medium
-- `.my-mini-cal-day`: `width` の指定をやめ、`height` 24px → 30px
-- `.my-mini-cal-daynum`: `line-height` 14px → 16px
-- `.my-mini-cal-dot` / `.my-mini-cal-sq`: 6px → 8px
 
 ---
 
@@ -38,6 +14,7 @@
  1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-133.** ミニカレンダーを全体的に大きくする](archives/todo/TODO-133.%20ミニカレンダーを全体的に大きくする.md)
 - [**TODO-132.** ミニカレンダーの ToDo の枠を太くし、重要な ToDo を赤にする](archives/todo/TODO-132.%20ミニカレンダーの%20ToDo%20の枠を太くし、重要な%20ToDo%20を赤にする.md)
 - [**TODO-131.** ミニカレンダーの印を 6px にし、ToDo を枠のみにする](archives/todo/TODO-131.%20ミニカレンダーの印を%206px%20にし、ToDo%20を枠のみにする.md)
 - [**TODO-130.** ミニカレンダーのドットと四角を 1px 大きくする](archives/todo/TODO-130.%20ミニカレンダーのドットと四角を%201px%20大きくする.md)

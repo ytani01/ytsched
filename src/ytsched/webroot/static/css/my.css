@@ -968,7 +968,7 @@ textarea {
     display: flex;
     justify-content: center;
     align-items: flex-start; /* 上端揃え */
-    gap: 10px;
+    gap: 6px;
     margin-top: 8px;
     position: relative;
     /* スイッチは position: absolute で高さに数えられないので、
@@ -995,12 +995,18 @@ textarea {
 
 .my-mini-cal {
     border-collapse: collapse;
-    font-size: x-small;
+    font-size: small;
+    /* 日セルを固定幅にすると 2 ヶ月ぶんが端末の幅からはみ出すので、
+       使える幅を 2 つの表で分け合う (TODO-133)。広い画面で間延び
+       しないよう上限を付ける。 */
+    flex: 1 1 0;
+    max-width: 200px;
+    table-layout: fixed;
 }
 
 .my-mini-cal-caption {
     caption-side: top;
-    font-size: small;
+    font-size: medium;
     font-weight: bold;
 }
 
@@ -1011,8 +1017,7 @@ textarea {
 }
 
 .my-mini-cal-day {
-    width: 24px;
-    height: 24px;
+    height: 30px;
     text-align: center;
     vertical-align: middle;
     border: 1px solid #DDD;
@@ -1050,7 +1055,7 @@ textarea {
 }
 
 .my-mini-cal-daynum {
-    line-height: 14px;
+    line-height: 16px;
 }
 
 .my-mini-cal-marks {
@@ -1062,8 +1067,8 @@ textarea {
 }
 
 .my-mini-cal-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background-color: #28F;
 }
@@ -1073,8 +1078,8 @@ textarea {
 }
 
 .my-mini-cal-sq {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border: 2px solid #28F;
 }
 
