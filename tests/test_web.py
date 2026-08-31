@@ -635,7 +635,9 @@ class TestMonthMiniCal(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
         panel = week_panel(body)
 
-        captions = re.findall(r'my-mini-cal-caption">\s*([^<]+?)\s*<', panel)
+        captions = re.findall(
+            r"my-mini-cal-caption[^>]*>\s*([^<]+?)\s*<", panel
+        )
         assert captions == ["2021/03", "2021/04"]
 
     def test_day_with_sched_has_dot(self):
@@ -736,6 +738,65 @@ class TestMonthCalSwitch(WebTestBase):
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, month_cal="0")
 
         assert read_conf(self.datadir)["MonthCal"] == "0"
+
+
+def cur_month_panel(body):
+    """月間表示の、いま見ているブロックの ``.my-month-panel`` だけを
+    取り出す（``my-week-cur`` が付くのはこのブロックだけ。TODO-137）。
+    """
+    match = re.search(
+        r'<div class="my-week-panel my-month-panel my-week-cur".*?'
+        r"<!-- my-week-panel my-month-panel -->",
+        body,
+        re.DOTALL,
+    )
+    assert match is not None
+    return match.group(0)
+
+
+class TestMonthView(WebTestBase):
+    """月間表示モード（``view=month``。TODO-137）"""
+
+    def test_view_month_shows_three_blocks(self):
+        """3 ブロック（前後を先読み）並ぶ。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, view="month")
+
+        assert body.count('data-block="') == 3
+        assert 'data-view="month"' in body
+
+    def test_view_month_shows_six_months_in_the_current_block(self):
+        """いま見ているブロックに 6 ヶ月ぶんのミニカレンダーが出る。
+
+        ``DATE1`` (2021-03-01) は 1〜6月 のブロックなので、
+        2021/01〜2021/06 の 6 つ。
+        """
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, view="month")
+        panel = cur_month_panel(body)
+
+        assert panel.count("my-mini-cal-caption") == 6
+        for month in range(1, 7):
+            assert f"2021/{month:02d}" in panel
+
+    def test_search_mode_overrides_view_month(self):
+        """検索中（``search_str`` が入っているとき）は ``view=month``
+        でも週間表示になる。
+        """
+        body = self.get_body(
+            URL_PREFIX + "/",
+            date=DATE1_STR,
+            view="month",
+            search_str="定例",
+        )
+
+        assert "my-month-panel" not in body
+        assert 'data-view="week"' in body
+
+    def test_invalid_view_falls_back_to_week(self):
+        """``view`` に不正な値を渡しても週間表示になる。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, view="bogus")
+
+        assert "my-month-panel" not in body
+        assert 'data-view="week"' in body
 
 
 class TestManifestAndIcons(WebTestBase):

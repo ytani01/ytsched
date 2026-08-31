@@ -28,9 +28,10 @@ src/ytsched/
   click_utils.py   # click の共通オプション（`-h` / `-d` / `-V` `-v`）をまとめたデコレータ
   __main__.py      # click による CLI（`ytsched` コマンド）
   webroot/
-    templates/      # tornado のテンプレート（base/main/edit/sde.html）
+    templates/      # tornado のテンプレート
+                    # （base/main/month/mini_cal/edit/sde.html。TODO-137）
     static/         # CSS・アイコン・manifest.json・favicon
-      js/           # ブラウザ側のスクリプト 9 本（後述）
+      js/           # ブラウザ側のスクリプト 10 本（後述）
 ```
 
 CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形式からの
@@ -223,7 +224,21 @@ classDiagram
   **URL に持たせるのは日付だけ**（`?date=2026-08-24`）。検索語・
   絞り込み・ToDo の日数・目標件数は `conf.json` に保存する。
   それらを送るときは、ブックマークや履歴に残らないよう `POST` を通す
-  （`nav.js` の `doPost()`。表示を変えるだけの移動は `doGet()`）
+  （`nav.js` の `doPost()`。表示を変えるだけの移動は `doGet()`）。
+  **月間表示かどうかも `view` クエリ（`week`/`month`）で持ち、
+  `conf.json` には保存しない**（TODO-137）。`DisplayArgs.month_mode`
+  （`view == "month" and not search_mode`。検索モードが優先）を
+  `MainViewBuilder.build()` が見て分岐し、月間表示では
+  `load_todo()`/`load_week()` を呼ばずに `SchedLoader.load_month_cal()`
+  だけで `MonthBlock`（`sched_load.py`。前後を先読みして 3 ブロック
+  ＝ 18 ヶ月ぶん）を組み立てる。テンプレートは `main.html` が
+  `view` で分岐し、週間表示は `main.html` の中にそのまま、月間表示は
+  `month.html` に置く。
+  どちらもミニカレンダー 1 か月分の描画を `mini_cal.html`
+  （`{% include %}` の前に `mc`/`cur_monday`/`mini_cal_action`/
+  `mini_cal_caption_action` を `{% set %}` する約束）に切り出して
+  共有する。ブラウザ側は `month.js`（`week.js` の並べ直し・横滑りの
+  仕組みをそのまま使い回す）が担う
 - **`SchedUpdater`**（`sched_update.py`）が `cmd` の実行そのものを担う
   （TODO-087）。**tornado を知らない**ので、ハンドラを組み立てずに
   呼べる。フォームの値は `MainBinder` が取り出して `SchedUpdateForm`
@@ -305,9 +320,9 @@ sequenceDiagram
 
 ## ブラウザ側のスクリプト
 
-`static/js/` に 9 本ある（TODO-083・TODO-089）。ES モジュールではなく素の
-`<script>` のまま、公開する関数・状態・テンプレートから渡す値を
-`window.ytsched` の下に置く。テンプレートのインラインイベントと
+`static/js/` に 10 本ある（TODO-083・TODO-089・TODO-137）。ES モジュール
+ではなく素の `<script>` のまま、公開する関数・状態・テンプレートから
+渡す値を `window.ytsched` の下に置く。テンプレートのインラインイベントと
 `tests/test_browser.py` の `page.evaluate()` も、この名前空間経由で呼ぶ。
 
 | ファイル | 中身 |
@@ -317,15 +332,21 @@ sequenceDiagram
 | `gauge.js` | ヘッダの横ゲージ（目盛り・針・タップ） |
 | `nav.js` | URL の組み立て、`doGet()` / `doPost()`、スクロール |
 | `week.js` | 週の差し替えとアニメーション（`moveToMonday()`） |
+| `month.js` | 月間表示のブロックの差し替え（`moveActiveBlock()`。TODO-137） |
 | `keyboard.js` | ソフトキーボードへの追従と、キー操作 |
 | `swipe.js` | 左右のスワイプとマウスのドラッグ |
 | `main-page.js` | 一覧画面（`main.html`）だけで使う初期化とハンドラ |
 | `edit-page.js` | 編集画面（`edit.html`）だけで使う初期化とハンドラ |
 
-`base.html` が `main-page.js` と `edit-page.js` 以外の 7 本を読む。
+`base.html` が `main-page.js` と `edit-page.js` 以外の 8 本を読む。
 `main-page.js` は `main.html` が、`edit-page.js` は `edit.html` が
 それぞれ自分で読む（`base.html` に入れると、もう一方の画面でも
-`onloadHdr()` / `onloadEdit()` が走ってしまう）。
+`onloadHdr()` / `onloadEdit()` が走ってしまう）。**月間表示かどうか
+（`window.ytsched.view_month`）は `main-page.js` の `onloadHdr()` が
+`#main` の `data-view` から入れ、`week.js`・`nav.js`・`swipe.js` の
+5 か所（`moveActiveDate()`・`weekOffsetOfDate()`・`scrollToDate()`・
+`popstateHdr()`・`swipeMiniCal` を立てるところ 2 か所）がそれを見て
+月間表示のときの動きに分ける（TODO-137）。**
 
 **ファイルをまたぐ状態は `window.ytsched.ytState` にまとめてある**
 （`elLoadingSpinner` / `elMain` / `elGaugeR0` / `elWeekWrap` /

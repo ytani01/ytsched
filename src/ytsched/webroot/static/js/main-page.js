@@ -8,6 +8,8 @@
 // 外へ出すもの:
 //   homeButtonHdr() -- main.html の #home_button の onMouseDown
 //   changeSearchN() -- main.html の #search_n_in の onchange (検索モード)
+//   window.ytsched.view_month -- onloadHdr() が #main の data-view から
+//     入れる。week.js・nav.js・swipe.js が読む (TODO-137)
 //   onloadHdr()・keyHdr (keyboard.js)・popstateHdr (nav.js)・swipe.js の各
 //     ハンドラを、このファイル末尾で window のイベントに登録する。
 //     ページ送り関連 (startAutoPageTurn / stopAutoPageTurn /
@@ -117,6 +119,22 @@
       case "scroll-date":
         ytsched.scrollToDate(ytsched.url_prefix, el.dataset.date);
         break;
+      case "week-date":
+        // 月間表示の日付セル。その日を含む週の週間表示へ (TODO-137)。
+        // ``view`` は付けない (週間表示で開く)
+        ytsched.doGet(ytsched.url_prefix, {
+          date: el.dataset.date,
+          sde_align: "top",
+        });
+        break;
+      case "month-view":
+        // 週間表示のミニカレンダーの "YYYY/MM"。その月を含む 6 ヶ月
+        // ブロックの月間表示へ (TODO-137)
+        ytsched.doGet(ytsched.url_prefix, {
+          date: el.dataset.date,
+          view: "month",
+        });
+        break;
       case "edit-sde":
         ytsched.doGet(`${ytsched.url_prefix}edit/`, {
           date: el.dataset.date,
@@ -170,6 +188,9 @@
     // フッターの ＜ ＞ が、月曜へ丸めずにこれを ±7 日する (TODO-116)
     ytsched.search_date_to = ytsched.ytState.elMain.dataset.searchDateTo;
     ytsched.today_str = ytsched.ytState.elMain.dataset.today;
+    // 月間表示かどうか (TODO-137)。week.js・nav.js・swipe.js の各分岐が
+    // これを見て、週送りを 6 ヶ月単位に切り替える
+    ytsched.view_month = ytsched.ytState.elMain.dataset.view === "month";
     ytsched.auto_turn_msec = Number(
       ytsched.ytState.elMain.dataset.autoTurnMsec,
     );

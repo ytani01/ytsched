@@ -45,6 +45,7 @@ class DisplayArgs:
     conf: ConfArgs
     date: datetime.date
     sde_align: str
+    view: str
     filter_re: re.Pattern[str] | None
     filter_neg: bool
     filter_error: bool
@@ -56,6 +57,15 @@ class DisplayArgs:
     @property
     def search_mode(self) -> bool:
         return self.search_re is not None
+
+    @property
+    def month_mode(self) -> bool:
+        """月間表示かどうか（TODO-137）。
+
+        検索モードが優先。検索結果は月の区切りに合わず、月間表示は
+        ミニカレンダーそのものが目的なので、検索中は週間表示のまま。
+        """
+        return self.view == "month" and not self.search_mode
 
 
 class MainBinder:
@@ -144,6 +154,7 @@ class MainBinder:
             conf=conf,
             date=self.get_date(None),
             sde_align=self.get_sde_align(),
+            view=self.get_view(),
             filter_re=filter_re,
             filter_neg=filter_neg,
             filter_error=filter_error,
@@ -211,6 +222,16 @@ class MainBinder:
 
     def get_sde_align(self) -> str:
         return self._argument("sde_align") or "top"
+
+    def get_view(self) -> str:
+        """``view`` クエリを読む（TODO-137）。
+
+        ``conf.json`` には保存しない。``"month"`` 以外はすべて
+        ``"week"`` として扱い、不正な値でもエラーにしない。
+        """
+        if self._argument("view") == "month":
+            return "month"
+        return "week"
 
     def _argument(self, name: str, default: str | None = None) -> str | None:
         return self._source.get_argument(name, default)

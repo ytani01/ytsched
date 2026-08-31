@@ -26,6 +26,10 @@
 //   loadingSpinner() (spinner.js) -- doSubmit・doGet・doPost
 //   weekOffsetOfDate() (week.js)  -- popstateHdr・scrollToDate
 //   setActiveWeek() (week.js)     -- popstateHdr・scrollToDate
+//   window.ytsched.view_month (main-page.js の onloadHdr()) -- popstateHdr・
+//     scrollToDate (TODO-137)
+//   setActiveBlockOfDate() (month.js) -- popstateHdr・scrollToDate
+//     (月間表示、TODO-137)
 // week.js は base.html でこのあとに読み込まれるが、呼ぶのは実行時なので前方参照でよい
 
 /**
@@ -256,6 +260,15 @@
       return;
     }
 
+    // 月間表示では、その日を含むブロックへ移るだけ。移れなければ
+    // 読み直す (TODO-137)
+    if (ytsched.view_month) {
+      if (!ytsched.setActiveBlockOfDate(date, false)) {
+        location.reload();
+      }
+      return;
+    }
+
     const offset = ytsched.weekOffsetOfDate(date);
     if (offset !== null && offset !== ytsched.ytState.activeWeekOffset) {
       ytsched.setActiveWeek(offset, false);
@@ -361,6 +374,18 @@
     push_flag = true,
   ) => {
     console.log(`scrollToDate:date=${date}, sde_align=${sde_align}`);
+
+    // 月間表示では、その日を含むブロックへ移るだけ。ホームボタン・
+    // キーの Home・読み込み直後の位置合わせが、どれもここを通る
+    // (TODO-137)
+    if (ytsched.view_month) {
+      if (ytsched.setActiveBlockOfDate(date, push_flag)) {
+        ytsched.ytState.elMain.style.visibility = "visible";
+        return true;
+      }
+      ytsched.doGet(path, { date: date, view: "month" });
+      return false;
+    }
 
     // 表示していない週の日付なら、まず週を移す (TODO-069)。
     // ``date-YYYY-mm-dd`` は前後数ヶ月ぶんの週すべてにあるので、

@@ -47,7 +47,13 @@ from test_web import (
 from ytsched import handler_util
 from ytsched.main_binder import MainBinder
 from ytsched.main_handler import MainHandler
-from ytsched.sched_load import SchedLoadCond, SchedLoader, SchedSearchCond
+from ytsched.main_view import MainViewBuilder
+from ytsched.sched_load import (
+    MonthBlock,
+    SchedLoadCond,
+    SchedLoader,
+    SchedSearchCond,
+)
 from ytsched.sched_update import SchedUpdater
 from ytsched.ytsched import SchedData
 
@@ -1294,3 +1300,64 @@ class TestMonthCal(WebTestBase):
         for week in month_cal.weeks:
             for day in week:
                 assert day.has_todo is False
+
+
+class TestMonthBlocks(WebTestBase):
+    """``MainViewBuilder._mk_month_blocks()`` の単体テスト（TODO-137）。"""
+
+    def month_blocks(self, date_str):
+        handler = make_handler(
+            self._app,
+            MainHandler,
+            uri=URL_PREFIX
+            + "/?"
+            + urlencode({"date": date_str, "view": "month"}),
+        )
+        binder = MainBinder(cast(Any, handler))
+        builder = MainViewBuilder(SchedLoader(handler._sd))
+        values = builder.build(binder.get_display_args())
+        return cast(list[MonthBlock], values["month_blocks"])
+
+    def test_block_starts_at_january_or_july(self):
+        """ブロックの先頭月は 1 月か 7 月（境界の日付を含む）。
+
+        1〜6月 → 1 月、7〜12月 → 7 月。
+        """
+        for date_str, expected_start_month in (
+            ("2021-06-30", 1),
+            ("2021-07-01", 7),
+            ("2021-12-31", 7),
+            ("2022-01-01", 1),
+        ):
+            blocks = self.month_blocks(date_str)
+            cur = next(b for b in blocks if b.offset == 0)
+            assert cur.start_month == expected_start_month, date_str
+
+    def test_three_blocks_of_six_months(self):
+        """前後を含めて 3 ブロック並び、それぞれ 6 ヶ月ぶん。"""
+        blocks = self.month_blocks("2021-03-15")
+
+        assert sorted(b.offset for b in blocks) == [-1, 0, 1]
+        for b in blocks:
+            assert len(b.month_cals) == 6
+
+    def test_base_date_of_offset_0_is_the_given_date(self):
+        """``offset`` 0 の ``base_date`` は ``date`` そのもの、
+        ±1 は先頭月の 1 日。
+        """
+        blocks = self.month_blocks("2021-03-15")
+        by_offset = {b.offset: b for b in blocks}
+
+        assert by_offset[0].base_date == datetime.date(2021, 3, 15)
+        assert by_offset[-1].base_date == datetime.date(2020, 7, 1)
+        assert by_offset[1].base_date == datetime.date(2021, 7, 1)
+
+    def test_crosses_year_boundary(self):
+        """年をまたぐ（2021-07 ブロックの次が 2022-01）。"""
+        blocks = self.month_blocks("2021-07-15")
+        by_offset = {b.offset: b for b in blocks}
+
+        assert by_offset[0].year == 2021
+        assert by_offset[0].start_month == 7
+        assert by_offset[1].year == 2022
+        assert by_offset[1].start_month == 1

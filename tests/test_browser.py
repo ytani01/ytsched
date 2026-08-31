@@ -1121,6 +1121,33 @@ def test_mouse_drag_in_mini_cal_within_threshold_still_taps_the_day(
     )
 
 
+def test_month_view_round_trip(page, server):
+    """週間表示のミニカレンダーの ``YYYY/MM`` を押すと月間表示になり、
+    日付を押すとその日を含む週の週間表示に戻る（TODO-137）。
+    """
+    monday = datetime.date(2026, 3, 2)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    caption = page.locator(".my-week-cur .my-mini-cal-caption").first
+    caption.click()
+
+    page.wait_for_url(lambda url: "view=month" in url, timeout=10000)
+    page.wait_for_selector("#main", state="visible")
+    page.wait_for_selector(".my-week-cur.my-month-panel", state="visible")
+
+    target_date = monday + datetime.timedelta(days=10)
+    cell = page.locator(
+        f'.my-week-cur .my-mini-cal td[data-date="{target_date}"]'
+    )
+    cell.click()
+
+    page.wait_for_selector(
+        f"#date-{target_date}", state="visible", timeout=10000
+    )
+    assert _date_in_url(page) == target_date.strftime("%Y-%m-%d")
+    assert "view=month" not in page.url
+
+
 def _center_x(page, selector):
     """要素の左右の中心（px）。"""
     box = page.locator(selector).bounding_box()

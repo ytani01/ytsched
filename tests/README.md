@@ -19,11 +19,18 @@
   テスト（TODO-081）。ハンドラを組み立てずに、関数を直接呼んで確かめる
 - `test_main_handler.py` — `MainHandler` の個々のメソッドと、そこから
   出した `SchedLoader`（`sched_load.py`）・`SchedUpdater`
-  （`sched_update.py`）のテスト（TODO-087・TODO-088）
+  （`sched_update.py`）のテスト（TODO-087・TODO-088）。月間表示の
+  `MonthBlock`（`MainViewBuilder._mk_month_blocks()`。先頭月が 1 月/7 月に
+  なること・前後を含めて 3 ブロック並ぶこと・`base_date` の決め方・
+  年をまたぐこと）もここで見る（TODO-137）
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /
   `EditHandler` へ実際にリクエストを送るテスト。`conf.json` の
   `AutoTurnMsec`（既定値・範囲の外・数字でない値が既定値へ落ちること・
-  `conf.json` が書き換わらないこと）もここで見る（TODO-084）
+  `conf.json` が書き換わらないこと）もここで見る（TODO-084）。
+  月間表示（`view=month`）が 3 ブロックぶんの `my-month-panel` と
+  期待する 6 ヶ月ぶんの caption を出すこと・検索中は `view=month` でも
+  週間表示になること・`view` に不正な値を渡しても週間表示になることも
+  ここで見る（TODO-137）
 - `test_webapp.py` — `WebServer` の組み立てそのもののテスト
 - `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
   移行のテスト
@@ -37,7 +44,9 @@
   週送りが**ページを読み直さずに済んでいるか**もここで見る（TODO-069）。
   フッターの ◀▶ については、ダブルタップで自動ページ送りが始まること・
   次のタップで止まること・ボタンの上からの横払いでは週が動かないこと
-  の 3 本を足した（TODO-084）
+  の 3 本を足した（TODO-084）。週間表示のミニカレンダーの `YYYY/MM` を
+  押すと月間表示になり、日付を押すとその日を含む週の週間表示に戻ることも
+  見る（TODO-137）
 - `make_test_data.py` — 移行元（旧形式）の合成テストデータを
   `tests/data/old_format/` に生成するスクリプト。個人の予定そのものは
   リポジトリに入れられないため、構造だけを写して中身を架空にした

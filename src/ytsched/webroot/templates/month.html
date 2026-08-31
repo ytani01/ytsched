@@ -1,0 +1,40 @@
+{# -*- engine: tornado -*- #}
+{# main.html から {% include %} される (TODO-137)。名前空間を共有するので
+   main.html 側の変数がそのまま見える:
+     month_blocks -- MonthBlock 3 個 (offset -1/0/1。前後を先読み)
+     date          -- 週間表示から渡ってきた基準日
+     today         -- datetime.date.today() (mini_cal.html が使う)
+
+   .my-week-viewport / #week_wrap / .my-week-panel は週間表示
+   (main.html) と同じクラス・id を使い回す。パネルの並べ直しと横滑り
+   (layoutWeeks() / slideWeekWrap() / setActiveWeek()、week.js) を、
+   週も月も同じ仕組みでそのまま使うため。 #}
+<div class="my-week-viewport">
+<div id="week_wrap" class="my-week-wrap" data-monday="{{ date }}">
+{# 表示中の週の月曜。ミニカレンダーの「表示中の週の枠」に使う
+   (mini_cal.html の cur_monday) #}
+{% set cur_monday = date - datetime.timedelta(date.weekday()) %}
+{% for b in month_blocks %}
+<div class="my-week-panel my-month-panel{% if b.offset == 0 %} my-week-cur{% end %}"
+  data-offset="{{ b.offset }}"
+  data-monday="{{ b.base_date }}"
+  data-block="{{ '%d-%02d' % (b.year, b.start_month) }}"
+  style="left: {{ b.offset * 100 }}%">
+  {% set end_month = b.start_month + 5 %}
+  <div class="my-month-title">
+    {{ '%d/%02d' % (b.year, b.start_month) }} 〜 {{ '%d/%02d' % (b.year, end_month) }}
+  </div>
+  <div class="my-month-grid">
+    {% for mc in b.month_cals %}
+    {# 月間表示では、日付セルを押すとその日を含む週の週間表示へ戻る
+       (mini_cal_action = 'week-date')。caption は押せない
+       (mini_cal_caption_action を空にする) #}
+    {% set mini_cal_action = 'week-date' %}
+    {% set mini_cal_caption_action = '' %}
+    {% include mini_cal.html %}
+    {% end %}<!-- for mc -->
+  </div><!-- my-month-grid -->
+</div><!-- my-week-panel my-month-panel -->
+{% end %}<!-- for b -->
+</div><!-- week_wrap -->
+</div><!-- my-week-viewport -->

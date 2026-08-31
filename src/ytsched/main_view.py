@@ -8,6 +8,7 @@ from typing import ClassVar
 
 from .main_binder import DisplayArgs, MainBinder
 from .sched_load import (
+    MonthBlock,
     MonthCal,
     SchedLoadCond,
     SchedLoader,
@@ -20,11 +21,50 @@ class MainViewBuilder:
     """``main.html`` へ渡す値を、データ読み込みを含めて組み立てる。"""
 
     DAYS_PER_MONTH: ClassVar[int] = 30
+    #: 1 ブロックに収める月数（TODO-137）。ブロックの区切りは
+    #: 1〜6月・7〜12月の 2 つだけなので 6 固定
+    MONTHS_PER_BLOCK: ClassVar[int] = 6
 
     def __init__(self, loader: SchedLoader) -> None:
         self._loader = loader
 
     def build(self, args: DisplayArgs) -> dict[str, object]:
+        # テンプレートが参照する共通の値。週間・月間表示のどちらでも
+        # 同じキーで揃える（TODO-137）
+        common: dict[str, object] = {
+            "today": datetime.date.today(),
+            "date": args.date,
+            # 検索モードでは、``view=month`` が来ていても週間表示に
+            # 倒す (``month_mode``。TODO-137)。テンプレートも
+            # JavaScript (``#main`` の ``data-view``) も、この
+            # 実際に描いたモードを見る
+            "view": "month" if args.month_mode else "week",
+            "todo_days_list": MainBinder.TODO_DAYS,
+            "todo_days_value": args.conf.todo_days_value,
+            "filter_str": args.conf.filter_str,
+            "search_str": args.conf.search_str,
+            "search_mode": args.search_mode,
+            "filter_error": args.filter_error,
+            "search_error": args.search_error,
+            "search_n": args.conf.search_n,
+            "sde_align": args.sde_align,
+            "auto_turn_msec": args.auto_turn_msec,
+            "month_cal": args.conf.month_cal,
+        }
+
+        if args.month_mode:
+            # 月間表示では load_todo()/load_week() を使わない
+            # (TODO-137)。load_month_cal() は _month_cal_cache が効くので
+            # 18 ヶ月ぶんでも月ごとに 1 回で済む
+            return {
+                **common,
+                "date_from": args.date,
+                "date_to": args.date,
+                "sched": [],
+                "weeks": [],
+                "month_blocks": self._mk_month_blocks(args),
+            }
+
         todo_sde, todo_today_sde = self._loader.load_todo(
             args.filter_re,
             args.filter_neg,
@@ -51,23 +91,12 @@ class MainViewBuilder:
                 args.date, cond
             )
         return {
-            "today": datetime.date.today(),
-            "date": args.date,
+            **common,
             "date_from": date_from,
             "date_to": date_to,
             "sched": sched,
             "weeks": self._mk_weeks(args, cond, sched, date_from),
-            "todo_days_list": MainBinder.TODO_DAYS,
-            "todo_days_value": args.conf.todo_days_value,
-            "filter_str": args.conf.filter_str,
-            "search_str": args.conf.search_str,
-            "search_mode": args.search_mode,
-            "filter_error": args.filter_error,
-            "search_error": args.search_error,
-            "search_n": args.conf.search_n,
-            "sde_align": args.sde_align,
-            "auto_turn_msec": args.auto_turn_msec,
-            "month_cal": args.conf.month_cal,
+            "month_blocks": [],
         }
 
     @classmethod
@@ -108,6 +137,42 @@ class MainViewBuilder:
                 )
             )
         return weeks
+
+    def _mk_month_blocks(self, args: DisplayArgs) -> list[MonthBlock]:
+        """月間表示のブロックを 3 つ（前後を先読み。TODO-137）組み立てる。
+
+        ブロックの区切りは 1〜6月・7〜12月の 2 つだけ。年をまたいでも
+        ``block_index`` (0 始まりの通し月数を 6 で割ったもの) で
+        扱えば、月の繰り上がり・繰り下がりを個別に気にしなくてよい。
+        """
+        date = args.date
+        block_index = (
+            date.year * 12 + (date.month - 1)
+        ) // self.MONTHS_PER_BLOCK
+        blocks = []
+        for offset in (-1, 0, 1):
+            start_index = (block_index + offset) * self.MONTHS_PER_BLOCK
+            year = start_index // 12
+            start_month = start_index % 12 + 1
+            base_date = (
+                date if offset == 0 else datetime.date(year, start_month, 1)
+            )
+            month_cals = []
+            for i in range(self.MONTHS_PER_BLOCK):
+                idx = start_index + i
+                month_cals.append(
+                    self._loader.load_month_cal(idx // 12, idx % 12 + 1)
+                )
+            blocks.append(
+                MonthBlock(
+                    offset=offset,
+                    year=year,
+                    start_month=start_month,
+                    base_date=base_date,
+                    month_cals=month_cals,
+                )
+            )
+        return blocks
 
     def _mk_month_cals(self, monday: datetime.date) -> list[MonthCal]:
         year1, month1 = monday.year, monday.month

@@ -142,6 +142,23 @@ class MonthCal:
 
 
 @dataclasses.dataclass
+class MonthBlock:
+    """月間表示の 1 ブロック（6 ヶ月ぶん。TODO-137）。
+
+    区切りは 1〜6月・7〜12月の 2 つだけ。``month_cals`` は
+    ``start_month`` から 6 か月ぶん (``MainViewBuilder`` が組み立てる)。
+    ``base_date`` は月間表示のパネルが持つ基準日（``offset`` が 0 なら
+    ``args.date`` そのもの、±1 なら先頭月の 1 日。TODO-137 の設計）。
+    """
+
+    offset: int
+    year: int
+    start_month: int
+    base_date: datetime.date
+    month_cals: list[MonthCal]
+
+
+@dataclasses.dataclass
 class SchedWeek:
     """``weeks`` の 1 要素 (TODO-091)。
 

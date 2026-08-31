@@ -1126,3 +1126,28 @@ textarea {
 .my-mini-cal-sq-important {
     border-color: #E33;
 }
+
+/*
+ * 月間表示 (TODO-137)。ミニカレンダーを 6 ヶ月分、2 列 × 3 行で並べる。
+ * ``.my-week-panel`` (週間表示と共通) の中に ``.my-month-title`` と
+ * ``.my-month-grid`` を積む。
+ */
+.my-month-title {
+    text-align: center;
+    font-weight: bold;
+    margin: 8px 0 4px;
+}
+
+.my-month-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 0 6px;
+}
+
+/* ``.my-mini-cal`` は既定で ``flex: 1 1 0``
+   (``.my-mini-cal-row`` で 2 つ並べる前提)。grid の中では flex が
+   効かないので、代わりにセルいっぱいへ広げる (TODO-137)。 */
+.my-month-grid .my-mini-cal {
+    width: 100%;
+}

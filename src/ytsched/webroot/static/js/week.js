@@ -28,6 +28,9 @@
 //   doGet() (nav.js)            -- moveToMonday・moveActiveDate
 //   scrollToDate() (nav.js)     -- moveActiveMonth (TODO-136)
 //   window.ytsched.search_date_to (main.html の <script>) -- moveActiveDate
+//   window.ytsched.view_month (main-page.js の onloadHdr()) -- moveActiveDate・
+//     weekOffsetOfDate (TODO-137)
+//   moveActiveBlock() (month.js) -- moveActiveDate (月間表示、TODO-137)
 
 // 滑らせるアニメーションの長さ (msec)。CSS の
 // ``.my-week-wrap-sliding`` の transition と合わせる (TODO-057)
@@ -62,6 +65,13 @@
    * @return {number | null}
    */
   window.ytsched.weekOffsetOfDate = (date_str) => {
+    // 月間表示のパネルは data-monday に週の月曜ではなくブロックの
+    // 基準日 (base_date) を持つので、これで探すと取り違える。
+    // 月間表示のパネル探しは setActiveBlockOfDate() (month.js) に
+    // 任せる (TODO-137)
+    if (ytsched.view_month) {
+      return null;
+    }
     if (!ytsched.ytState.elWeekWrap || !date_str) {
       return null;
     }
@@ -307,6 +317,13 @@
    * @param {String} path
    */
   window.ytsched.moveActiveDate = (direction, path) => {
+    // 月間表示では 6 ヶ月単位で送る (TODO-137)。フッターの ＜ ＞・
+    // キーの ← →・スワイプ・自動ページ送りは、どれもこの関数を通るので、
+    // ここで分けるだけで全部が月単位になる
+    if (ytsched.view_month) {
+      ytsched.moveActiveBlock(direction, path);
+      return;
+    }
     if (ytsched.search_date_to) {
       let d1 = new Date(ytsched.search_date_to);
       d1 = ytsched.shiftDays(d1, direction * 7);

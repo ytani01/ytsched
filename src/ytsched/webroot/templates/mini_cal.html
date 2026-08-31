@@ -1,0 +1,67 @@
+{# -*- engine: tornado -*- #}
+{# main.html / month.html から受け取る変数 (この 5 個は宣言なしで使う。
+   {% include %} は名前空間を親と共有するので、main.html / month.html
+   側で {% set %} された変数がそのまま見える。呼び出し側は必ずこの
+   5 つを {% set %} してから include すること (TODO-137、sde.html と
+   同じ流儀)):
+     mc                     -- MonthCal 1 か月分
+     cur_monday             -- 表示中の週の月曜 (枠を出す判定に使う)
+     mini_cal_action        -- 日付セルを押したときの data-action
+                                (週間表示 'scroll-date' / 月間表示 'week-date')
+     mini_cal_caption_action -- caption を押したときの data-action
+                                (週間表示 'month-view' / 月間表示は空で押せない)
+     today                  -- datetime.date.today() (「今日」の枠に使う)
+#}
+<table class="my-mini-cal">
+  {% if mini_cal_caption_action %}
+  <caption class="my-mini-cal-caption my-btn" data-action="{{ mini_cal_caption_action }}"
+    data-date="{{ '%d-%02d-01' % (mc.year, mc.month) }}">
+    {{ '%d/%02d' % (mc.year, mc.month) }}
+  </caption>
+  {% else %}
+  <caption class="my-mini-cal-caption">
+    {{ '%d/%02d' % (mc.year, mc.month) }}
+  </caption>
+  {% end %}
+  <tr class="my-mini-cal-wdays">
+    {% for wd in ('月', '火', '水', '木', '金', '土', '日') %}
+    <th class="my-mini-cal-wday">{{ wd }}</th>
+    {% end %}
+  </tr>
+  {% for mc_week in mc.weeks %}
+  {% set tr_class = 'my-mini-cal-week' %}
+  {% if cur_monday <= mc_week[0].date <= cur_monday + datetime.timedelta(6) %}
+  {% set tr_class = tr_class + ' my-mini-cal-week-cur' %}
+  {% end %}
+  <tr class="{{ tr_class }}">
+    {% for d in mc_week %}
+    {% set td_class = 'my-mini-cal-day my-btn' %}
+    {% if not d.in_month %}
+    {% set td_class = td_class + ' my-mini-cal-day-out' %}
+    {% end %}
+    {% if d.date == today %}
+    {% set td_class = td_class + ' my-mini-cal-day-today' %}
+    {% end %}
+    {% if d.in_month %}
+    {% if d.is_holiday or d.date.weekday() == 6 %}
+    {% set td_class = td_class + ' my-mini-cal-day-holiday' %}
+    {% elif d.date.weekday() == 5 %}
+    {% set td_class = td_class + ' my-mini-cal-day-sat' %}
+    {% end %}
+    {% end %}
+    <td class="{{ td_class }}"
+      data-action="{{ mini_cal_action }}" data-date="{{ d.date }}">
+      <div class="my-mini-cal-daynum">{{ d.date.day }}</div>
+      <div class="my-mini-cal-marks">
+        {% if d.has_sched %}
+        <div class="my-mini-cal-dot{% if d.has_important %} my-mini-cal-dot-important{% end %}"></div>
+        {% end %}
+        {% if d.has_todo %}
+        <div class="my-mini-cal-sq{% if d.has_todo_important %} my-mini-cal-sq-important{% end %}"></div>
+        {% end %}
+      </div><!-- my-mini-cal-marks -->
+    </td>
+    {% end %}<!-- for d -->
+  </tr>
+  {% end %}<!-- for mc_week -->
+</table>

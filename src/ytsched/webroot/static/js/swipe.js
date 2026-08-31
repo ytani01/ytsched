@@ -25,6 +25,9 @@
 //     (検索モードでは追従表示をしないまま swipeDragging を立てる、TODO-117)
 //   window.ytsched.url_prefix (base.html の <script>) -- swipeFinish が
 //     moveActiveDate / moveActiveMonth へ渡す
+//   window.ytsched.view_month (main-page.js の onloadHdr()) --
+//     touchStartHdr・mouseDownHdr (月間表示では swipeMiniCal を立てない。
+//     TODO-137)
 
 (() => {
   const ytsched = window.ytsched;
@@ -234,7 +237,14 @@
       return;
     }
 
-    swipeMiniCal = !!(el && el.closest && el.closest(".my-mini-cal"));
+    // 月間表示では立てない (TODO-137)。画面全体がミニカレンダーなので、
+    // 立てると 1 ヶ月送り (moveActiveMonth()、TODO-136) になってしまう
+    swipeMiniCal = !!(
+      el &&
+      el.closest &&
+      el.closest(".my-mini-cal") &&
+      !ytsched.view_month
+    );
     swipeStart = { x: touch.clientX, y: touch.clientY, t: Date.now() };
   };
 
@@ -360,7 +370,8 @@
     event.preventDefault(); // ドラッグ中に文字が選択されないように
 
     mouseDownEl = el.closest("[data-action]");
-    swipeMiniCal = !!el.closest(".my-mini-cal");
+    // 月間表示では立てない (TODO-137、touchStartHdr と同じ理由)
+    swipeMiniCal = !!(el.closest(".my-mini-cal") && !ytsched.view_month);
     swipeStart = { x: event.clientX, y: event.clientY, t: Date.now() };
   };
 

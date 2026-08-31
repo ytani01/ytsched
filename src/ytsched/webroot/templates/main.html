@@ -8,6 +8,9 @@
 <main id="main" style="background-color:#FFF; visibility: hidden;"
       data-search-str0="{{ search_str }}" data-today="{{ today }}"
       data-auto-turn-msec="{{ auto_turn_msec }}"
+      {# 月間表示かどうか (TODO-137)。main-page.js の onloadHdr() が
+         ytsched.view_month へ入れる #}
+      data-view="{{ view }}"
       {# 検索モードのときだけ、検索の基準日 (date_to) を渡す
          (TODO-116)。フッターの ＜ ＞ は、検索モードではこれを
          ±7 日するだけで、週へは丸めない #}
@@ -129,6 +132,9 @@
 
     {% set year=0 %}
 
+    {% if view == 'month' %}
+    {% include month.html %}
+    {% else %}
     <!-- 隣の週のはみ出しを切るための枠 (TODO-061)。
          ここは動かないので、``week_wrap`` を横へずらしても
          画面の外に出た分だけが切られる -->
@@ -242,52 +248,13 @@
       </div><!-- my-mini-cal-sw -->
       {% if month_cal %}
       {% for mc in w.month_cals %}
-      <table class="my-mini-cal">
-        <caption class="my-mini-cal-caption">
-          {{ '%d/%02d' % (mc.year, mc.month) }}
-        </caption>
-        <tr class="my-mini-cal-wdays">
-          {% for wd in ('月', '火', '水', '木', '金', '土', '日') %}
-          <th class="my-mini-cal-wday">{{ wd }}</th>
-          {% end %}
-        </tr>
-        {% for mc_week in mc.weeks %}
-        {% set tr_class = 'my-mini-cal-week' %}
-        {% if w.monday <= mc_week[0].date <= w.monday + datetime.timedelta(6) %}
-        {% set tr_class = tr_class + ' my-mini-cal-week-cur' %}
-        {% end %}
-        <tr class="{{ tr_class }}">
-          {% for d in mc_week %}
-          {% set td_class = 'my-mini-cal-day my-btn' %}
-          {% if not d.in_month %}
-          {% set td_class = td_class + ' my-mini-cal-day-out' %}
-          {% end %}
-          {% if d.date == today %}
-          {% set td_class = td_class + ' my-mini-cal-day-today' %}
-          {% end %}
-          {% if d.in_month %}
-          {% if d.is_holiday or d.date.weekday() == 6 %}
-          {% set td_class = td_class + ' my-mini-cal-day-holiday' %}
-          {% elif d.date.weekday() == 5 %}
-          {% set td_class = td_class + ' my-mini-cal-day-sat' %}
-          {% end %}
-          {% end %}
-          <td class="{{ td_class }}"
-            data-action="scroll-date" data-date="{{ d.date }}">
-            <div class="my-mini-cal-daynum">{{ d.date.day }}</div>
-            <div class="my-mini-cal-marks">
-              {% if d.has_sched %}
-              <div class="my-mini-cal-dot{% if d.has_important %} my-mini-cal-dot-important{% end %}"></div>
-              {% end %}
-              {% if d.has_todo %}
-              <div class="my-mini-cal-sq{% if d.has_todo_important %} my-mini-cal-sq-important{% end %}"></div>
-              {% end %}
-            </div><!-- my-mini-cal-marks -->
-          </td>
-          {% end %}<!-- for d -->
-        </tr>
-        {% end %}<!-- for mc_week -->
-      </table>
+      {# mini_cal.html への受け渡し (TODO-137)。週間表示では、caption の
+         "YYYY/MM" を押すと、その月を含む 6 ヶ月ブロックの月間表示へ
+         移る (mini_cal_caption_action = 'month-view') #}
+      {% set cur_monday = w.monday %}
+      {% set mini_cal_action = 'scroll-date' %}
+      {% set mini_cal_caption_action = 'month-view' %}
+      {% include mini_cal.html %}
       {% end %}<!-- for mc -->
       {% end %}<!-- if month_cal -->
     </div><!-- my-mini-cal-row -->
@@ -297,6 +264,7 @@
     {% end %}<!-- for w -->
     </div><!-- week_wrap -->
     </div><!-- my-week-viewport -->
+    {% end %}<!-- if view == 'month' -->
 
   </div><!-- container -->
 </main>
