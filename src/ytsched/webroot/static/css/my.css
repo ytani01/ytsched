@@ -1024,21 +1024,15 @@ textarea {
 }
 
 .my-mini-cal-day-out {
-    color: #CCC;
+    /* タップに反応することが分かる程度に、無地よりは濃くする
+       (TODO-134) */
+    color: #999;
 }
 
-/* 背景色は 祝日・日曜 ＞ 土曜 ＞ 表示中の週 ＞ それ以外 の優先度。
-   同じ詳細度なので、下に書いたものほど勝つ (TODO-129)。まず「それ
-   以外」を全体の既定にし、優先度の低いものから順に上書きしていく。
-   前後の月の埋めセル (``.my-mini-cal-day-out``) は曜日の色を付けない
-   (テンプレート側で in_month のときしかクラスを足さない) ので、ここは
-   薄いグレーのままになる。 */
+/* 背景色は 祝日・日曜 ＞ 土曜 ＞ それ以外(白) の優先度。同じ詳細度
+   なので、下に書いたものほど勝つ。表示中の週は、背景色ではなく
+   ``.my-mini-cal-week-cur`` (tr) の枠で示す (TODO-134)。 */
 .my-mini-cal-day {
-    background-color: #F0F0F0;
-}
-
-/* ↑ より後に置くこと (同じ詳細度なので、後のほうが勝つ) */
-.my-mini-cal-day-cur-week {
     background-color: #FFF;
 }
 
@@ -1054,6 +1048,29 @@ textarea {
     border: 2px solid #28F;
 }
 
+/* 表示中の週を示す枠 (TODO-134)。行の外周をまとめて囲む */
+.my-mini-cal-week-cur > .my-mini-cal-day:first-child {
+    border-left: 2px solid #888;
+}
+
+.my-mini-cal-week-cur > .my-mini-cal-day:last-child {
+    border-right: 2px solid #888;
+}
+
+.my-mini-cal-week-cur > .my-mini-cal-day {
+    border-top: 2px solid #888;
+    border-bottom: 2px solid #888;
+}
+
+/* 今日のセルは、週の枠より今日の枠 (青) を優先する。月曜・日曜の列は
+   左右にも週の枠が付く (上の :first-child / :last-child) ので、
+   詳細度を揃えて後勝ちにする */
+.my-mini-cal-week-cur > .my-mini-cal-day-today,
+.my-mini-cal-week-cur > .my-mini-cal-day-today:first-child,
+.my-mini-cal-week-cur > .my-mini-cal-day-today:last-child {
+    border: 2px solid #28F;
+}
+
 .my-mini-cal-daynum {
     line-height: 16px;
 }
@@ -1064,6 +1081,9 @@ textarea {
     align-items: center;
     gap: 1px;
     margin-top: 1px;
+    /* 印の有無によらず領域を確保し、数字の縦位置を揃える (TODO-134)。
+       ドット・四角は 8px 角 */
+    min-height: 8px;
 }
 
 .my-mini-cal-dot {

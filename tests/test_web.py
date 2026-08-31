@@ -662,8 +662,9 @@ class TestMonthMiniCal(WebTestBase):
 
         assert 'data-action="scroll-date" data-date="2021-03-15"' in panel
 
-    def test_out_of_month_day_is_not_clickable(self):
-        """前後の月の埋めセルは操作用の data 属性を持たない。
+    def test_out_of_month_day_is_clickable(self):
+        """前後の月の埋めセルも ``scrollToDate()`` でその日へジャンプする
+        （TODO-134）。
 
         2021-04-30 は金曜なので、4 月分の最後の週は 5 月 1 日・2 日
         まで伸びる。その 5 月 1 日の埋めセルを見る。
@@ -673,7 +674,8 @@ class TestMonthMiniCal(WebTestBase):
 
         april = panel[panel.index("2021/04") :]
         m = re.search(
-            r'<td class="my-mini-cal-day my-mini-cal-day-out"[^>]*>'
+            r'<td class="my-mini-cal-day my-btn my-mini-cal-day-out"'
+            r'\s*data-action="scroll-date" data-date="2021-05-01">'
             r'\s*<div class="my-mini-cal-daynum">1</div>',
             april,
         )
