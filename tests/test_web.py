@@ -197,7 +197,9 @@ class TestMainHandler(WebTestBase):
     def test_trash_count_zero(self):
         """ゴミ箱が空なら「0」が出る（TODO-143）。"""
         body = self.get_body(URL_PREFIX + "/")
-        assert re.search(r'trash">.*?\(0\)', body, re.DOTALL)
+        assert re.search(
+            r'trash">.*?my-fs-medium[^>]*>\s*0\s*<', body, re.DOTALL
+        )
 
     def test_trash_count_with_entries(self):
         """ゴミ箱に件数があれば、その数が出る（TODO-143）。"""
@@ -207,7 +209,9 @@ class TestMainHandler(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/")
 
-        assert re.search(r'trash">.*?\(2\)', body, re.DOTALL)
+        assert re.search(
+            r'trash">.*?my-fs-medium[^>]*>\s*2\s*<', body, re.DOTALL
+        )
 
     def test_get_root_and_no_slash(self):
         for path in ["/", URL_PREFIX, URL_PREFIX + "/"]:

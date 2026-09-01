@@ -327,9 +327,14 @@ textarea {
     background-color: #48C;
 }
 
-/* ``a`` の既定の青を打ち消し、バー内の操作アイコンを文字と揃える。 */
+/*
+ * ``a`` の既定の青を打ち消し、バー内の操作アイコンを文字と揃える。
+ * 下線も消す。アイコンだけのボタンでは見えないが、アイコンの横に
+ * 文字を出すと下線が付いてしまうため (TODO-144)。
+ */
 .my-bar a.my-btn {
     color: white;
+    text-decoration: none;
 }
 
 .my-bar-content {
