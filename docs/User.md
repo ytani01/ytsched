@@ -212,3 +212,10 @@
 cron などで設定されていれば、毎朝その日の予定と期限の近い ToDo を
 Slack へ通知できる。予定も ToDo も無い日も必ず 1 通届く。設定は
 アプリの利用者ではなく管理者が行う。
+
+cron の設定例（毎朝 7 時、Slack への送信は
+[slack-send](https://github.com/ytani01/slack-send) に任せる）。
+
+```
+0 7 * * * $HOME/.local/bin/ytsched notify | $HOME/bin/slack-send.sh -c '#ytsched' -t 'ytsched'
+```

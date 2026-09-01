@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目: TODO-154・TODO-155。** これまでに 153 件を決着させた。
+**残っている項目: TODO-154。** これまでに 154 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-156` から**。
 
@@ -36,28 +36,12 @@ TODO-153 は 1 日 1 回まとめて出すだけで、個々の予定の「N 分
 
 ---
 
-## TODO-155. cron の設定例を User.md に書く
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort low | main のみ |
-
-- [ ] docs/User.md「12. 毎朝の通知」に cron の設定例を足す
-
-TODO-153 のアーカイブに書いた cron の例が、利用者向け文書のどこにも
-出ていない。`docs/User.md` の「12. 毎朝の通知」に、そのまま追記する。
-
-```
-0 7 * * * $HOME/.local/bin/ytsched notify | $HOME/bin/slack-send.sh -c '#ytsched' -t 'ytsched'
-```
-
----
-
 ## 完了済み
 
  1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-155.** cron の設定例を User.md に書く](archives/todo/TODO-155.%20cron%20の設定例を%20User.md%20に書く.md)
 - [**TODO-153.** 今日の予定と期限の近い ToDo を Slack へ通知する](archives/todo/TODO-153.%20今日の予定と期限の近い%20ToDo%20を%20Slack%20へ通知する.md)
 - [**TODO-152.** docs/User.md に画面図を入れる](archives/todo/TODO-152.%20User.md%20に画面図を入れる.md)
 - [**TODO-151.** README のトップ画像の右半分を最新版の画面にする](archives/todo/TODO-151.%20README%20のトップ画像の右半分を最新版の画面にする.md)
