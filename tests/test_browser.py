@@ -510,6 +510,94 @@ def _write_sched(tmp_path, date, title):
     )
 
 
+def _write_trash(tmp_path):
+    """ゴミ箱画面用の合成データを書く。"""
+    import json
+
+    entries = [
+        {
+            "trashed_at": "2026-08-30T14:23:05",
+            "sde_id": "trash-1",
+            "date": "2026-08-20",
+            "time_start": "09:00",
+            "time_end": "10:00",
+            "type": "予定",
+            "title": "削除する項目 1",
+            "place": "",
+            "detail": "",
+        },
+        {
+            "trashed_at": "2026-08-29T14:23:05",
+            "sde_id": "trash-2",
+            "date": "2026-08-21",
+            "time_start": "09:00",
+            "time_end": "10:00",
+            "type": "予定",
+            "title": "残す項目 2",
+            "place": "",
+            "detail": "",
+        },
+    ]
+    (tmp_path / "data" / "trash.jsonl").write_text(
+        "".join(
+            json.dumps(entry, ensure_ascii=False) + "\n" for entry in entries
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_trash_select_confirm_and_delete(page, server, tmp_path):
+    """確認を経て、選んだ項目だけを削除する（TODO-141）。"""
+    _write_trash(tmp_path)
+    page.goto(f"{server}trash", wait_until="load")
+
+    entries = page.locator(".my-trash-entry .my-trash-select")
+    delete_button = page.locator("#trash-delete-form button")
+    assert entries.count() == 2
+    assert delete_button.is_disabled()
+
+    entries.nth(0).check()
+    assert not delete_button.is_disabled()
+    assert page.locator("#trash-select-all").evaluate(
+        "el => el.indeterminate"
+    )
+
+    messages = []
+
+    def dismiss(dialog):
+        messages.append(dialog.message)
+        dialog.dismiss()
+
+    page.once("dialog", dismiss)
+    delete_button.click()
+    assert messages == ["選択した 1 件を完全に消します。よろしいですか?"]
+    assert entries.count() == 2
+
+    page.once("dialog", lambda dialog: dialog.accept())
+    with page.expect_navigation(wait_until="load"):
+        delete_button.click()
+    assert page.url == f"{server}trash"
+    assert page.locator(".my-trash-entry").count() == 1
+    assert page.get_by_text("残す項目 2").count() == 1
+    assert page.get_by_text("削除する項目 1").count() == 0
+
+
+def test_trash_select_all_checks_displayed_entries(page, server, tmp_path):
+    """全選択で表示中の全項目を選べる（TODO-141）。"""
+    _write_trash(tmp_path)
+    page.goto(f"{server}trash", wait_until="load")
+
+    entries = page.locator(".my-trash-entry .my-trash-select")
+    select_all = page.locator("#trash-select-all")
+    select_all.check()
+
+    assert entries.count() == 2
+    assert entries.nth(0).is_checked()
+    assert entries.nth(1).is_checked()
+    assert not select_all.evaluate("el => el.indeterminate")
+    assert not page.locator("#trash-delete-form button").is_disabled()
+
+
 def test_detail_change_submits_update_on_blur(page, server, tmp_path):
     """詳細を変えてフォーカスを外すと、更新して編集画面に戻る。"""
     date = datetime.date.today()

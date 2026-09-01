@@ -1,7 +1,9 @@
 #
 # (c) 2026 ytani01
 #
-"""ゴミ箱画面の HTTP ハンドラ（TODO-086）。"""
+"""ゴミ箱画面の HTTP ハンドラ（TODO-086・TODO-141）。"""
+
+import datetime
 
 import tornado.web
 
@@ -11,7 +13,7 @@ from .ytsched import SchedDataEnt
 
 
 class TrashHandler(HandlerBase):
-    """``trash.jsonl`` の表示、復活、削除、空にするを扱う。"""
+    """``trash.jsonl`` の表示、復活、一括削除を扱う。"""
 
     CONF_KEY_TRASH_MAX = "TrashMax"
     DEF_TRASH_MAX = 100
@@ -52,10 +54,8 @@ class TrashHandler(HandlerBase):
         cmd = self.get_argument("cmd", None)
         if cmd == "restore":
             self._restore()
-        elif cmd == "delete":
-            self._delete()
-        elif cmd == "clear":
-            self._clear()
+        elif cmd == "delete_many":
+            self._delete_many()
         else:
             raise tornado.web.HTTPError(400, "unknown command")
 
@@ -81,13 +81,28 @@ class TrashHandler(HandlerBase):
         self._sd.save()
         self.redirect(f"{self._app_info.url_prefix}?date={restored.date}")
 
-    def _delete(self) -> None:
-        sde_id = self.get_argument("sde_id")
-        trashed_at = self.get_argument("trashed_at")
-        if not self._trash().delete(sde_id, trashed_at):
-            raise tornado.web.HTTPError(404, "trash entry not found")
-        self.redirect(f"{self._app_info.url_prefix}trash")
+    def _delete_many(self) -> None:
+        sde_ids = self.get_arguments("sde_id")
+        trashed_ats = self.get_arguments("trashed_at")
+        if (
+            not sde_ids
+            or len(sde_ids) != len(trashed_ats)
+            or not all(sde_ids)
+            or not all(trashed_ats)
+        ):
+            raise tornado.web.HTTPError(400, "invalid trash entries")
+        try:
+            for trashed_at in trashed_ats:
+                if "T" not in trashed_at:
+                    raise ValueError("not an ISO 8601 timestamp")
+                datetime.datetime.fromisoformat(trashed_at)
+        except ValueError as e:
+            raise tornado.web.HTTPError(400, "invalid trashed_at") from e
 
-    def _clear(self) -> None:
-        self._trash().clear()
-        self.redirect(self._app_info.url_prefix)
+        trash = self._trash()
+        if not trash.delete_many(set(zip(sde_ids, trashed_ats, strict=True))):
+            raise tornado.web.HTTPError(404, "trash entry not found")
+        if trash.entries(max_entries=1):
+            self.redirect(f"{self._app_info.url_prefix}trash")
+        else:
+            self.redirect(self._app_info.url_prefix)

@@ -141,7 +141,7 @@ def test_entries_filters_sorts_and_limits(tmp_path):
     assert trash.get("a", "2026-08-30T10:00:00") is not None
 
 
-def test_delete_removes_one_line_keeps_others_and_broken_line(tmp_path):
+def test_delete_many_keeps_unselected_and_broken_lines(tmp_path):
     path = tmp_path / "trash.jsonl"
     path.write_text(
         "\n".join(
@@ -156,8 +156,30 @@ def test_delete_removes_one_line_keeps_others_and_broken_line(tmp_path):
                 "{ this is not valid json",
                 json.dumps(
                     {
+                        "sde_id": ["壊れた ID"],
+                        "trashed_at": "2026-08-30T10:00:00",
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "sde_id": "a",
+                        "trashed_at": "2026-08-30T10:00:00",
+                        "title": "日付が無い壊れた行",
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
                         "trashed_at": "2026-08-30T11:00:00",
                         **mk_sde(sde_id="b").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id="a").to_dict(),
                     },
                     ensure_ascii=False,
                 ),
@@ -168,13 +190,15 @@ def test_delete_removes_one_line_keeps_others_and_broken_line(tmp_path):
     )
     trash = TrashFile(tmp_path)
 
-    deleted = trash.delete("a", "2026-08-30T10:00:00")
+    deleted = trash.delete_many({("a", "2026-08-30T10:00:00")})
 
-    assert deleted is True
+    assert deleted == 2
     remaining = path.read_text(encoding="utf-8").splitlines()
-    assert len(remaining) == 2
+    assert len(remaining) == 4
     assert "not valid json" in remaining[0]
-    assert json.loads(remaining[1])["sde_id"] == "b"
+    assert json.loads(remaining[1])["sde_id"] == ["壊れた ID"]
+    assert json.loads(remaining[2])["title"] == "日付が無い壊れた行"
+    assert json.loads(remaining[3])["sde_id"] == "b"
 
 
 def test_delete_unknown_trashed_at_returns_false(tmp_path):
@@ -225,22 +249,15 @@ def test_delete_no_file_returns_false(tmp_path):
     assert trash.delete("a", "2026-08-30T10:00:00") is False
 
 
-def test_clear_empties_file(tmp_path):
+def test_delete_many_empty_or_unknown_does_not_rewrite(tmp_path):
     trash = TrashFile(tmp_path)
     trash.add(mk_sde())
-    trash.add(mk_sde())
+    path = tmp_path / "trash.jsonl"
+    before = path.read_bytes()
 
-    trash.clear()
-
-    assert (tmp_path / "trash.jsonl").read_text(encoding="utf-8") == ""
-
-
-def test_clear_no_file_does_not_raise(tmp_path):
-    trash = TrashFile(tmp_path)
-
-    trash.clear()  # 例外にならない
-
-    assert not (tmp_path / "trash.jsonl").exists()
+    assert trash.delete_many(set()) == 0
+    assert trash.delete_many({("unknown", "2026-08-30T10:00:00")}) == 0
+    assert path.read_bytes() == before
 
 
 #
