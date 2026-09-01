@@ -123,6 +123,32 @@ class TrashFile:
         entries.sort(key=lambda entry: entry.trashed_at, reverse=True)
         return entries[:max_entries]
 
+    def count(self) -> int:
+        """有効な行数を返す。``entries()`` と違い頭打ちにしない。
+
+        壊れた行は ``entries()`` と同じ考え方で飛ばす（数に入れない）。
+        ただし ``SchedDataEnt.from_dict()`` までは呼ばず、軽く済ませる。
+        """
+        if not self.pathname.exists():
+            return 0
+
+        count = 0
+        with self.pathname.open(encoding=self.ENCODING) as f:
+            for lineno, line in enumerate(f, start=1):
+                try:
+                    data = json.loads(line)
+                    trashed_at = data["trashed_at"]
+                    if not isinstance(trashed_at, str):
+                        raise TypeError("trashed_at is not a string")
+                except (json.JSONDecodeError, TypeError, KeyError) as e:
+                    self.__log.warning(
+                        f"{self.pathname}:{lineno}: {e} .. ignored"
+                    )
+                    continue
+                count += 1
+
+        return count
+
     def get(self, sde_id: str, trashed_at: str) -> TrashEntry | None:
         """``sde_id`` と ``trashed_at`` が一致する 1 行を返す。"""
         for entry in self.entries(sde_id, max_entries=2**31 - 1):

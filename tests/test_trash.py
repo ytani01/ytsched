@@ -141,6 +141,87 @@ def test_entries_filters_sorts_and_limits(tmp_path):
     assert trash.get("a", "2026-08-30T10:00:00") is not None
 
 
+def test_count_no_file_is_zero(tmp_path):
+    trash = TrashFile(tmp_path)
+
+    assert trash.count() == 0
+
+
+def test_count_counts_entries(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id="a").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T11:00:00",
+                        **mk_sde(sde_id="b").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trash = TrashFile(tmp_path)
+
+    assert trash.count() == 2
+
+
+def test_count_ignores_broken_lines(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id="a").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                "{ this is not valid json",
+                json.dumps({"sde_id": "b"}, ensure_ascii=False),
+                json.dumps(
+                    {"trashed_at": 12345, "sde_id": "c"}, ensure_ascii=False
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trash = TrashFile(tmp_path)
+
+    assert trash.count() == 1
+
+
+def test_count_exceeds_entries_max(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    lines = [
+        json.dumps(
+            {
+                "trashed_at": f"2026-08-30T10:00:{i:02d}",
+                **mk_sde(sde_id=f"id-{i}").to_dict(),
+            },
+            ensure_ascii=False,
+        )
+        for i in range(120)
+    ]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    trash = TrashFile(tmp_path)
+
+    assert len(trash.entries()) == 100
+    assert trash.count() == 120
+
+
 def test_delete_many_keeps_unselected_and_broken_lines(tmp_path):
     path = tmp_path / "trash.jsonl"
     path.write_text(

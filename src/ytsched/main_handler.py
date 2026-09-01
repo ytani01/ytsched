@@ -16,6 +16,7 @@ from .main_view import MainViewBuilder
 from .mylog import getLogger
 from .sched_load import SchedLoader
 from .sched_update import SchedUpdater
+from .trash import TrashFile
 from .ytsched import SchedData
 
 
@@ -76,6 +77,7 @@ class MainHandler(HandlerBase):
             version=self._app_info.version,
             url_prefix=self._app_info.url_prefix,
             cache_size=self._sd.get_cache_size(),
+            trash_count=TrashFile(self._app_info.datadir).count(),
             **values,
         )
 

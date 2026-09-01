@@ -22,7 +22,8 @@ from ytsched import handler_util
 from ytsched.edit_handler import EditHandler
 from ytsched.main_handler import MainHandler
 from ytsched.sched_update import SchedUpdater
-from ytsched.ytsched import SchedDataFile
+from ytsched.trash import TrashFile
+from ytsched.ytsched import SchedDataEnt, SchedDataFile
 
 DATE1 = datetime.date(2021, 3, 1)
 DATE1_STR = "2021-03-01"
@@ -192,6 +193,21 @@ class TestMainHandler(WebTestBase):
     def test_get(self):
         body = self.get_body(URL_PREFIX + "/")
         assert "Ytsched" in body
+
+    def test_trash_count_zero(self):
+        """ゴミ箱が空なら「0」が出る（TODO-143）。"""
+        body = self.get_body(URL_PREFIX + "/")
+        assert re.search(r'trash">.*?\(0\)', body, re.DOTALL)
+
+    def test_trash_count_with_entries(self):
+        """ゴミ箱に件数があれば、その数が出る（TODO-143）。"""
+        sde = SchedDataEnt.from_dict(json.loads(DATALINE1))
+        TrashFile(self.datadir).add(sde)
+        TrashFile(self.datadir).add(sde)
+
+        body = self.get_body(URL_PREFIX + "/")
+
+        assert re.search(r'trash">.*?\(2\)', body, re.DOTALL)
 
     def test_get_root_and_no_slash(self):
         for path in ["/", URL_PREFIX, URL_PREFIX + "/"]:
