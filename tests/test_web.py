@@ -2149,6 +2149,14 @@ class TestTrashHandler(WebTestBase):
         main = body[body.index("<main") : body.index("</main>")]
         assert 'data-action="edit-sde" data-date=' not in main
 
+    def test_entry_date_column_has_week_date_action(self):
+        """日付欄を押すと、その週の週間表示へ移る (TODO-149)。"""
+        self.write_trash()
+
+        body = self.get_body(URL_PREFIX + "/trash", sde_id="id-1")
+
+        assert 'data-action="week-date" data-date="2021-03-01"' in body
+
     def test_empty_trash_has_disabled_select_all_and_delete_button(self):
         body = self.get_body(URL_PREFIX + "/trash")
 

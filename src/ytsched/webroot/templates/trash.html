@@ -3,6 +3,11 @@
 {% block content %}
 <script type="text/javascript"
         src="{{ static_url('js/trash-page.js') }}"></script>
+<div id="loadingSpinner" class="my-spinner">
+  <svg class="my-icon my-icon-9x my-icon-spin">
+    <use href="{{ static_url('icons/icons.svg') }}#spinner"></use>
+  </svg>
+</div>
 <header class="my-trash-header">
   <div class="my-trash-header-row my-row-middle">
     <div class="my-trash-back-col">
@@ -57,7 +62,8 @@
     {% set sde_uniq = '-%s-%s' % (group_index, entry_index) %}
     <article class="my-trash-entry">
       <div class="{{ class_date_block }}">
-        <div class="my-date-col my-wday-{{ weekday }}">
+        <div class="my-btn my-date-col my-wday-{{ weekday }}"
+             data-action="week-date" data-date="{{ sched_date }}">
           <div class="my-date-ym {{ class_today }}">
             <span class="my-date-year">
               {{ sched_date.strftime('%Y') }}

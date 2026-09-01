@@ -601,6 +601,20 @@ def test_trash_entry_shows_date_column_like_search_result(
     assert page.url == f"{server}trash"
 
 
+def test_trash_date_column_click_moves_to_that_week(page, server, tmp_path):
+    """日付欄を押すと、その日を含む週の週間表示へ移る（TODO-149）。"""
+    _write_trash(tmp_path)
+    page.goto(f"{server}trash", wait_until="load")
+
+    with page.expect_navigation(wait_until="load"):
+        page.locator(".my-trash-entry .my-date-col").first.click()
+
+    assert page.url == f"{server}?date=2026-08-20&sde_align=top"
+    # 2026-08-20 (木) を含む週の月曜 2026-08-17 が表示される
+    assert page.locator("#date-2026-08-17").count() == 1
+    assert page.locator("#date-2026-08-20").count() == 1
+
+
 def test_trash_select_all_checks_and_unchecks_displayed_entries(
     page, server, tmp_path
 ):
