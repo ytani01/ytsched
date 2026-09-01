@@ -1,6 +1,6 @@
 # YT Scheduler
 
-![](docs/fig1.png)
+![](docs/fig1-handwritten1.png)
 
 システム手帳(1ページ一週間のタイプ)のリフィルをイメージして、
 手帳の柔軟性とスマホの使い勝手を活かし、
