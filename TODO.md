@@ -1,61 +1,10 @@
 # TODO
 
-**残っている項目: TODO-153・TODO-154。** これまでに 152 件を決着させた。
+**残っている項目: TODO-154。** これまでに 153 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-155` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
-
----
-
-## TODO-153. 今日の予定と期限の近い ToDo を Slack へ通知する
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | implementer + verifier |
-
-- [ ] `ytsched notify` サブコマンドを足す
-- [ ] テストを書く
-- [ ] `docs/User.md`・`docs/Developer.md` に書き足す
-
-毎朝、その日の予定と期限の近い ToDo を Slack へ流したい。
-
-**ytsched 側は Slack を知らない。** 通知したい内容をテキストで標準出力へ
-出すだけにして、Slack へ送るのは既にある `~/bin/slack-send.sh`
-（<https://github.com/ytani01/slack-send>）に任せる。Incoming Webhook の
-URL は `~/.webhook-url` にあり、`jq` と `curl` で送っている。この形なら
-依存ライブラリも増えず、Webhook URL の置き場も増えず、ytsched 側には
-テストしやすい処理だけが残る。
-
-繋ぐのは cron:
-
-```
-0 7 * * * $HOME/.local/bin/ytsched notify | $HOME/bin/slack-send.sh -c '#ytsched' -t 'ytsched'
-```
-
-コマンドの形:
-
-```
-ytsched notify [--datadir DIR] [--date DATE] [--no-todo]
-```
-
-出力の例:
-
-```
-2026-09-02 (水)
-  10:00-11:00 打ち合わせ
-  14:00-      買い物
-
-期限が近い ToDo
-  09-05 請求書を出す
-```
-
-- 期限の近さは、既にある `SchedDataEnt.todo_urgency()` の `over` と
-  `near`（`TODO_NEAR_DAYS` = 7 日）をそのまま使う
-- **予定も ToDo も無い日も、日付行と「予定なし」を出す。** 毎朝必ず
-  1 通届くようにして、届かないこと自体が異常だと分かるようにする
-- 動作を確かめるときは `--datadir` に一時ディレクトリを指定する
-  （`~/ytsched/data` の実データを汚さないため）
 
 ---
 
@@ -92,6 +41,7 @@ TODO-153 は 1 日 1 回まとめて出すだけで、個々の予定の「N 分
  1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-153.** 今日の予定と期限の近い ToDo を Slack へ通知する](archives/todo/TODO-153.%20今日の予定と期限の近い%20ToDo%20を%20Slack%20へ通知する.md)
 - [**TODO-152.** docs/User.md に画面図を入れる](archives/todo/TODO-152.%20User.md%20に画面図を入れる.md)
 - [**TODO-151.** README のトップ画像の右半分を最新版の画面にする](archives/todo/TODO-151.%20README%20のトップ画像の右半分を最新版の画面にする.md)
 - [**TODO-150.** ゴミ箱を表示すると、スピナーが回りっぱなしになる](archives/todo/TODO-150.%20ゴミ箱を表示すると、スピナーが回りっぱなしになる.md)

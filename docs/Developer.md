@@ -141,6 +141,30 @@ uv run ytsched holiday 2028 2029 --datadir ~/ytsched/data
 `title` も一致する予定があれば飛ばす**（`type` は見ない）。指定した年が
 CSV に無ければ、その年は「データが無い」と報告して飛ばし、他の年は続ける。
 
+その日の予定と期限の近い ToDo をテキストで出す（`ytsched notify`、
+TODO-153）:
+
+```sh
+uv run ytsched notify --datadir ~/ytsched/data
+```
+
+| オプション | 内容 |
+| --- | --- |
+| `--datadir` | データディレクトリ。既定は `~/ytsched/data` |
+| `--date` | 対象の日（`YYYY-MM-DD`）。既定は今日 |
+| `--no-todo` | 期限の近い ToDo を出さない |
+
+標準出力へテキストを出すだけで、Slack へは送らない。送るのは
+別の道具（`~/bin/slack-send.sh`）に任せ、cron から次のようにつなぐ:
+
+```sh
+0 7 * * * $HOME/.local/bin/ytsched notify | $HOME/bin/slack-send.sh -c '#ytsched' -t 'ytsched'
+```
+
+予定も期限の近い ToDo も無い日も、日付行と「予定なし」は必ず出す。
+期限の近さは `SchedDataEnt.todo_urgency()` の `over`/`near`
+（期限切れ、または 7 日以内）で判定する。
+
 ## 6. 画面を撮る
 
 見た目を変えたときは、テストだけでは確かめられない。`tools/screenshot.py`

@@ -5,6 +5,8 @@
 main for ytsched package
 """
 
+import datetime
+
 import click
 
 from . import __prog_name__, __version__
@@ -12,8 +14,9 @@ from .click_utils import click_common_opts
 from .holiday import DEF_URL, HolidayRegistrar
 from .migrate import Migrator
 from .mylog import getLogger, loggerInit
+from .notify import build_notify_text
 from .webapp import WebServer
-from .ytsched import SchedDataFile
+from .ytsched import SchedData, SchedDataFile
 
 __author__ = "ytani01"
 __date__ = "2021/01"
@@ -204,6 +207,51 @@ def webapp(ctx, port, webroot, datadir, urlprefix, size_limit, debug):
         app.main()
     finally:
         _log.info("end")
+
+
+@cli.command(
+    help="""
+その日の予定と、期限の近い ToDo をテキストで標準出力へ出す
+
+Slack へ送るのはこのコマンドの役目ではない。出したテキストを
+別の道具（``slack-send.sh`` など）へパイプすること。
+"""
+)
+@click.option(
+    "--datadir",
+    "--data",
+    "datadir",
+    type=click.Path(),
+    default=SchedDataFile.DEF_TOP_DIR,
+    help=f"data directory, default='{SchedDataFile.DEF_TOP_DIR}'",
+)
+@click.option(
+    "--date",
+    "date_str",
+    type=str,
+    default=None,
+    help="対象の日 (YYYY-MM-DD), default=今日",
+)
+@click.option(
+    "--no-todo",
+    "no_todo",
+    is_flag=True,
+    default=False,
+    help="期限の近い ToDo を出さない",
+)
+@click_common_opts(__version__)
+def notify(ctx, datadir, date_str, no_todo, debug):
+    """notify"""
+    debug = _is_debug(ctx, debug)
+    loggerInit(debug=debug)
+
+    if date_str is None:
+        date = datetime.date.today()
+    else:
+        date = datetime.date.fromisoformat(date_str)
+
+    sd = SchedData(datadir)
+    print(build_notify_text(sd, date, include_todo=not no_todo))
 
 
 if __name__ == "__main__":
