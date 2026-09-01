@@ -10,8 +10,21 @@
         <svg class="my-icon my-icon-2x"><use href="{{ static_url('icons/icons.svg') }}#reply"></use></svg>
       </a>
     </div>
-    <div class="col-8 text-center my-trash-title">ゴミ箱</div>
-    <div class="col-2 text-end my-fs-small">{{ entry_count }}件</div>
+    <div class="col-8 text-center">
+      <span class="my-trash-title">ゴミ箱</span>
+      <span class="my-fs-small">{{ entry_count }}件</span>
+    </div>
+    <div class="col-2 text-end">
+      {% if not sde_id and entry_count > 0 %}
+      <form action="{{ url_prefix }}trash" method="POST"
+            data-confirm="ゴミ箱の {{ entry_count }} 件を全て完全に消します。よろしいですか?">
+        <input type="hidden" name="cmd" value="clear">
+        <button class="my-btn my-trash-clear" type="submit" aria-label="空にする">
+          <svg class="my-icon my-icon-2x"><use href="{{ static_url('icons/icons.svg') }}#trash"></use></svg>
+        </button>
+      </form>
+      {% end %}
+    </div>
   </div>
 </header>
 <main class="container-fluid my-trash-main my-edit-body">
@@ -56,15 +69,6 @@
     </article>
     {% end %}
   </section>
-  {% end %}
-  {% if not sde_id and entry_count > 0 %}
-  <div class="text-end my-trash-clear-row">
-    <form action="{{ url_prefix }}trash" method="POST"
-          data-confirm="ゴミ箱の {{ entry_count }} 件を全て完全に消します。よろしいですか?">
-      <input type="hidden" name="cmd" value="clear">
-      <button class="my-btn my-trash-clear" type="submit">空にする</button>
-    </form>
-  </div>
   {% end %}
 </main>
 {% end %}

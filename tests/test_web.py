@@ -2011,7 +2011,7 @@ class TestEditHandler(WebTestBase):
 
 
 class TestTrashHandler(WebTestBase):
-    """ゴミ箱の表示と復活（TODO-086）。"""
+    """ゴミ箱の表示・復活・完全削除。"""
 
     def write_trash(self):
         entries = [
@@ -2042,6 +2042,29 @@ class TestTrashHandler(WebTestBase):
         assert "2026-08-30 14:23:05 に削除" in body
         assert "2026-08-29 09:10:00 に削除" in body
         assert 'name="trashed_at" value="2026-08-30T14:23:05"' in body
+        assert 'name="cmd" value="clear"' not in body
+
+    def test_empty_trash_has_no_clear_button(self):
+        body = self.get_body(URL_PREFIX + "/trash")
+
+        assert "ゴミ箱は空です" in body
+        assert "0件</span>" in body
+        assert 'name="cmd" value="clear"' not in body
+
+    def test_clear_button_is_in_header_and_count_is_beside_title(self):
+        self.write_trash()
+
+        body = self.get_body(URL_PREFIX + "/trash")
+        header = body[body.index("<header") : body.index("</header>")]
+        main = body[body.index("<main") : body.index("</main>")]
+
+        assert "ゴミ箱</span>" in header
+        assert "2件</span>" in header
+        assert 'name="cmd" value="clear"' in header
+        assert 'aria-label="空にする"' in header
+        assert "#trash" in header
+        assert 'name="cmd" value="clear"' not in main
+        assert "my-trash-clear-row" not in body
 
     def test_restore_adds_new_entry_and_keeps_trash(self):
         self.write_trash()
@@ -2122,7 +2145,7 @@ class TestTrashHandler(WebTestBase):
 
         assert res.code == 404
 
-    def test_clear_empties_trash_and_redirects_to_trash(self):
+    def test_clear_empties_trash_and_redirects_to_week(self):
         self.write_trash()
 
         res = self.fetch(
@@ -2135,7 +2158,7 @@ class TestTrashHandler(WebTestBase):
         )
 
         assert res.code == 302
-        assert res.headers["Location"] == f"{URL_PREFIX}/trash"
+        assert res.headers["Location"] == f"{URL_PREFIX}/"
         assert (self.datadir / "trash.jsonl").read_text(
             encoding="utf-8"
         ) == ""

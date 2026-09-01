@@ -896,7 +896,8 @@ textarea {
 }
 
 .my-trash-restore,
-.my-trash-delete {
+.my-trash-delete,
+.my-trash-clear {
     background: none;
     border: 0;
     font-size: 1rem;
@@ -907,17 +908,6 @@ textarea {
 .my-trash-delete,
 .my-trash-clear {
     color: #C33;
-}
-
-.my-trash-clear-row {
-    margin-top: 0.5rem;
-}
-
-.my-trash-clear {
-    background: none;
-    border: 0;
-    font-size: small;
-    padding: 0;
 }
 
 .my-edit-body {

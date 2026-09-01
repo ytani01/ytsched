@@ -90,4 +90,4 @@ class TrashHandler(HandlerBase):
 
     def _clear(self) -> None:
         self._trash().clear()
-        self.redirect(f"{self._app_info.url_prefix}trash")
+        self.redirect(self._app_info.url_prefix)
