@@ -1,10 +1,106 @@
 # TODO
 
-**残っている項目は無い。** これまでに 145 件を決着させた。
+**残っている項目: TODO-146。** これまでに 145 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-146` から**。
+**番号は `TODO-147` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
+
+---
+
+## TODO-146. CSS のクラス名を、Bootstrap 由来のものからアプリの役割の名前へ変える
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
+
+- [ ] テンプレート 7 枚の各要素を、役割ごとの 1 クラスにまとめる
+      （ユーティリティの重ね掛けをやめる）
+- [ ] `my.css` を、役割クラス中心の構成へ組み替える
+- [ ] 定義の無い `px-1` `mt-1` `text-truncate` をテンプレートから消す
+- [ ] `longtext` `longtext-sw` `longtext-sw-label` にも `my-` を付ける
+- [ ] 変更の前後で全要素の計算値を突き合わせ、見た目が変わっていないことを
+      確かめる
+- [ ] `my.css` 先頭コメントと `docs/Developer.md` の Bootstrap の記述を、
+      実態に合わせて書き直す
+
+Bootstrap そのものは TODO-047 でやめたが、クラス名は Bootstrap のものを
+そのまま使っている。JS・Python・テストは `my-*` しか触っていないので、
+対象は `my.css` とテンプレート 7 枚だけ。
+
+| 種類 | クラス | 使用箇所 |
+|------|--------|---------|
+| レイアウト | `container-fluid` `row` `col` `col-1`〜`col-12` | 61 |
+| 余白 | `p-0` `p-1` `p-2` `m-0` `m-1` | 50 |
+| 文字 | `text-center` `text-start` `text-end` `fw-bold` | 31 |
+| 縦揃え | `align-middle` `align-bottom` | 16 |
+| その他 | `border` `d-none` `fixed-top` `fixed-bottom` `alert` `alert-danger` | 11 |
+
+### 役割の名前にする
+
+`p-0`（29 か所）`text-center`（18 か所）のようなユーティリティは、
+1 クラスが 1 つの役割に対応していないので、名前を差し替えるだけでは
+「意味のある名前」にならない。**テンプレートの要素ごとに 1 クラスへ
+まとめ、その要素の役割で名前を付ける。** 既にある `my-*` の役割クラスが、
+重ね掛けされていたユーティリティを吸収する形になる。
+
+```
+main.html:29  container-fluid p-1 fixed-top my-bar        → my-week-bar
+main.html:274 container-fluid p-2 fixed-bottom my-bar
+              my-menu-bar                                 → my-menu-bar
+main.html:66  alert alert-danger p-1 m-0 text-center
+              my-fs-small                                 → my-error-box
+edit.html:28  container-fluid p-0 fixed-bottom my-bar
+              my-follow-keyboard                          → my-edit-bar
+trash.html:6  container-fluid p-2 fixed-top my-bar        → my-trash-header
+```
+
+- 接頭辞は `my-` にそろえる
+- `col-N` の幅指定は、役割クラスの中へ `grid-column: span N` として畳み込む
+- アイコンの `align-middle` / `align-bottom` は、同じ `my-icon-xl` でも
+  付く箇所と付かない箇所があり、役割クラスへ畳み込めない。こういう修飾は
+  `my-` を付けた修飾クラスとして残す。**残すものは実装時に一覧にして、
+  なぜ畳み込まなかったかを書く**
+
+### ライセンス表記は消せない
+
+**クラス名を変えても、Bootstrap の MIT 表記は外せない。**
+`my.css` が Bootstrap から写しているのはクラス名ではなく値のほうで、
+しかもその主要部分はクラスに付いていない。
+
+- 土台（reboot）の `body` `b, strong` `img, svg` `label` `select`
+  `textarea` `::-webkit-datetime-edit-*` — すべて要素セレクタなので、
+  クラス名を変えても何も変わらない
+- `--my-body-font-family` のフォント指定一式（Bootstrap 4.5 から丸ごと）
+- `alert-danger` の配色 `#58151c` `#f8d7da` `#f1aeb5`、`border` の
+  `#dee2e6`、`border-radius: .375rem`、`z-index: 1030`、ガター `1.5rem`
+
+`docs/licenses/bootstrap-LICENSE` と、`my.css` 先頭・`docs/Developer.md`
+からの参照はそのまま残す。ただし「Bootstrap から写したユーティリティの
+クラス」という書き方は実態に合わなくなるので、「写したのは reboot と
+これらの値」と書き直す。
+
+### やらないこと
+
+**写した値そのものの置き換えはしない。** 表記を外すにはそこまで要るが、
+見た目が変わる。フォント指定は、値を変えると日付ブロックが 1 個あたり
+2px 高くなり一覧が 176px 伸びることが TODO-040 で分かっている。
+
+### 検証
+
+見た目を変えない項目なので、テストでは確かめられない。TODO-047 と同じ
+方法で見る。
+
+- **画素比較は使えない。** 日付ブロックの `blink`（`.5s × 10 回`）の位相が
+  撮るたびに違い、同じコードで 2 回撮っても 14,643 画素ずれる（TODO-047）
+- playwright で全要素（`body, body *`）の `getBoundingClientRect` と
+  `padding` `margin` `border` `font` `color` `background-color`
+  `text-align` `vertical-align` `display` `z-index` `position` `overflow`
+  `white-space` `text-overflow` `text-decoration-line` `border-radius`
+  `min-width` を吐かせ、変更の前後で 1 要素ずつ比べる。対象は 5 通り
+  （一覧・一覧の詳細を開いた状態・編集画面・alert・検索）と、ゴミ箱・
+  月間表示（TODO-047 の当時は無かった）× 幅 412px・800px
+- `mise run test`（`test_browser.py` を含む）
 
 ---
 
