@@ -7,9 +7,11 @@
 (() => {
   window.addEventListener("load", () => {
     // ytsched.doGet() が loadingSpinner() を呼ぶので、他の画面と
-    // 同じく elLoadingSpinner を用意しておく (TODO-149)
+    // 同じく elLoadingSpinner を用意しておく (TODO-149)。表示時は
+    // 隠すのを忘れていて回りっぱなしになっていた (TODO-150)
     window.ytsched.ytState.elLoadingSpinner =
       document.getElementById("loadingSpinner");
+    window.ytsched.loadingSpinner(false);
 
     // 日付欄を押したら、その日を含む週の週間表示へ移る (TODO-149)。
     // 月間表示の日付セルと同じ動き。sde_align=top でその日を上端に
