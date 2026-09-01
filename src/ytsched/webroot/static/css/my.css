@@ -386,6 +386,13 @@ textarea {
     background-color: yellow;
 }
 
+/* 押せないボタン（ゴミ箱が 0 件のときなど。TODO-145） */
+.my-btn-disabled {
+    color: #999;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
 /*
  * 以下は、テンプレートの style 属性から移したもの (TODO-038)。
  * 値は移す前のまま。

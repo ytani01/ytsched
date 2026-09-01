@@ -195,11 +195,16 @@ class TestMainHandler(WebTestBase):
         assert "Ytsched" in body
 
     def test_trash_count_zero(self):
-        """ゴミ箱が空なら「0」が出る（TODO-143）。"""
+        """ゴミ箱が空なら「0」が出て、リンクが無効になる（TODO-145）。"""
         body = self.get_body(URL_PREFIX + "/")
-        assert re.search(
-            r'trash">.*?my-fs-medium[^>]*>\s*0\s*<', body, re.DOTALL
+        m = re.search(
+            r'<a class="my-btn my-btn-disabled"([^>]*)>(.*?)</a>',
+            body,
+            re.DOTALL,
         )
+        assert m
+        assert "href" not in m.group(1)
+        assert re.search(r"my-fs-medium[^>]*>\s*0\s*<", m.group(2))
 
     def test_trash_count_with_entries(self):
         """ゴミ箱に件数があれば、その数が出る（TODO-143）。"""

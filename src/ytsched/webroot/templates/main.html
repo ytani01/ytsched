@@ -365,7 +365,8 @@
     <div class="row m-1 my-row-middle">
 
       <div class="col-4 p-0 text-center">
-        <a class="my-btn" href="{{ url_prefix }}trash">
+        <a class="my-btn{% if not trash_count %} my-btn-disabled{% end %}"
+          {% if trash_count %}href="{{ url_prefix }}trash"{% end %}>
           <svg class="my-icon my-icon-xl align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
           </svg>
