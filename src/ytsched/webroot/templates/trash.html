@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script type="text/javascript"
+        src="{{ static_url('js/trash-page.js') }}"></script>
 <header class="container-fluid p-2 fixed-top my-bar">
   <div class="row my-row-middle">
     <div class="col-2">
@@ -13,6 +15,9 @@
   </div>
 </header>
 <main class="container-fluid my-trash-main my-edit-body">
+  {% if not groups %}
+  <div class="my-fs-small text-center">ゴミ箱は空です</div>
+  {% end %}
   {% for group in groups %}
   <section class="my-trash-group">
     {% if len(group) > 1 %}
@@ -23,9 +28,9 @@
     <article class="my-sde my-sde-normal border my-trash-entry">
       <div class="row m-0 p-1">
         <div class="col-3 p-0 my-fs-small">{{ sde.date.strftime('%Y/%m/%d (%a)') }}</div>
-        <div class="col-3 p-0 my-fs-small">{{ sde.get_timestr() }}</div>
-        <div class="col-5 p-0 text-truncate"><span class="my-sde-type">【{{ sde.type }}】</span> <span class="my-sde-title">{{ sde.title }}</span></div>
-        <div class="col-1 p-0 text-end">
+        <div class="col-2 p-0 my-fs-small">{{ sde.get_timestr() }}</div>
+        <div class="col-4 p-0 text-truncate"><span class="my-sde-type">【{{ sde.type }}】</span> <span class="my-sde-title">{{ sde.title }}</span></div>
+        <div class="col-3 p-0 text-end my-trash-actions">
           <form action="{{ url_prefix }}trash" method="POST">
             <input type="hidden" name="cmd" value="restore">
             <input type="hidden" name="sde_id" value="{{ sde.sde_id }}">
@@ -34,14 +39,32 @@
               <svg class="my-icon my-icon-xl"><use href="{{ static_url('icons/icons.svg') }}#rotate-left"></use></svg>
             </button>
           </form>
+          <form action="{{ url_prefix }}trash" method="POST"
+                data-confirm="この 1 件を完全に消します。よろしいですか?">
+            <input type="hidden" name="cmd" value="delete">
+            <input type="hidden" name="sde_id" value="{{ sde.sde_id }}">
+            <input type="hidden" name="trashed_at" value="{{ entry.trashed_at }}">
+            <button class="my-btn my-trash-delete" type="submit" aria-label="完全に削除">
+              <svg class="my-icon my-icon-xl"><use href="{{ static_url('icons/icons.svg') }}#trash"></use></svg>
+            </button>
+          </form>
         </div>
       </div>
       {% if sde.place %}<div class="my-sde-place text-truncate px-1">@{{ sde.place }}</div>{% end %}
       {% if sde.detail %}<div class="my-trash-detail px-1">{{ sde.detail }}</div>{% end %}
-      <div class="my-fs-x-small px-1">{{ entry.trashed_at.replace('T', ' ') }} に削除</div>
+      <div class="my-fs-x-small px-1">{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
     </article>
     {% end %}
   </section>
+  {% end %}
+  {% if not sde_id and entry_count > 0 %}
+  <div class="text-end my-trash-clear-row">
+    <form action="{{ url_prefix }}trash" method="POST"
+          data-confirm="ゴミ箱の {{ entry_count }} 件を全て完全に消します。よろしいですか?">
+      <input type="hidden" name="cmd" value="clear">
+      <button class="my-btn my-trash-clear" type="submit">空にする</button>
+    </form>
+  </div>
   {% end %}
 </main>
 {% end %}

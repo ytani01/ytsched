@@ -13,6 +13,8 @@ __date__ = "2026/08"
 import dataclasses
 import datetime
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -31,10 +33,12 @@ class TrashEntry:
 
 
 class TrashFile:
-    """削除・編集で消える予定を ``trash.jsonl`` へ追記するだけのクラス。
+    """削除・編集で消える予定を ``trash.jsonl`` へ追記するクラス。
 
-    ``SchedDataFile`` と違い、全件書き直しも ``.bak`` への退避もしない。
-    追記と、ゴミ箱画面用の読み出しを扱う。
+    追記のときは全件書き直しをしない。``delete()``/``clear()`` は
+    ゴミ箱から完全に消すための操作なので、全件を書き直す。どちらも
+    ``SchedDataFile`` と違い ``.bak`` への退避はしない（ゴミ箱の
+    ゴミ箱になって意味が無いため）。
     """
 
     __log = getLogger(__qualname__)
@@ -125,3 +129,71 @@ class TrashFile:
             if entry.trashed_at == trashed_at:
                 return entry
         return None
+
+    def delete(self, sde_id: str, trashed_at: str) -> bool:
+        """``sde_id`` と ``trashed_at`` が一致する行を取り除いて消す。
+
+        同じ ``sde_id``/``trashed_at`` の行が複数あることは無い想定だが、
+        あれば全て取り除く。壊れていて ``entries()`` が警告して飛ばす
+        行は、復旧の手がかりを残すため書き直しでも消さずそのまま残す。
+
+        見つかって消せたら ``True``、見つからなければ（ファイルが
+        無い場合を含む）``False`` を返す。
+        """
+        if not self.pathname.exists():
+            return False
+
+        with self.pathname.open(encoding=self.ENCODING) as f:
+            lines = f.readlines()
+
+        kept: list[str] = []
+        found = False
+        for line in lines:
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                kept.append(line)
+                continue
+            if (
+                isinstance(data, dict)
+                and data.get("sde_id") == sde_id
+                and data.get("trashed_at") == trashed_at
+            ):
+                found = True
+                continue
+            kept.append(line)
+
+        if not found:
+            return False
+
+        self._write_lines(kept)
+        return True
+
+    def clear(self) -> None:
+        """``trash.jsonl`` 全体を空にする。ファイルが無ければ何もしない。"""
+        if not self.pathname.exists():
+            return
+        self._write_lines([])
+
+    def _write_lines(self, lines: list[str]) -> None:
+        """``lines`` で ``trash.jsonl`` を書き直す。
+
+        同じディレクトリの一時ファイルへ書いてから ``Path.replace()`` で
+        差し替える（途中で落ちたときに全部失わないため）。
+        ``tempfile.mkstemp()`` が作る一時ファイルは既定で 0600 になるため、
+        差し替える前に元の ``trash.jsonl`` のパーミッションを引き継ぐ。
+        元のファイルが無いとき（呼び出し元は必ずファイルがある前提だが、
+        念のため）は、一時ファイルの既定のパーミッションのまま書く。
+        """
+        fd, tmp_name = tempfile.mkstemp(
+            dir=self.pathname.parent, prefix=f".{self.FILENAME}."
+        )
+        try:
+            if self.pathname.exists():
+                os.fchmod(fd, self.pathname.stat().st_mode)
+            with os.fdopen(fd, mode="w", encoding=self.ENCODING) as f:
+                f.writelines(lines)
+            Path(tmp_name).replace(self.pathname)
+        except BaseException:
+            Path(tmp_name).unlink(missing_ok=True)
+            raise

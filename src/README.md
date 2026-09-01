@@ -22,16 +22,16 @@ src/ytsched/
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
   migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行と、設定ファイルの JSON 化（`ytsched migrate`）
-  trash.py         # TrashFile（trash.jsonl への追記とゴミ箱画面用の読み出し）
-  trash_handler.py # TrashHandler（ゴミ箱の表示と復活）
+  trash.py         # TrashFile（trash.jsonl への追記・削除・全消去とゴミ箱画面用の読み出し）
+  trash_handler.py # TrashHandler（ゴミ箱の表示・復活・削除・空にする）
   mylog.py         # loguru ラッパ
   click_utils.py   # click の共通オプション（`-h` / `-d` / `-V` `-v`）をまとめたデコレータ
   __main__.py      # click による CLI（`ytsched` コマンド）
   webroot/
     templates/      # tornado のテンプレート
-                    # （base/main/month/mini_cal/edit/sde.html。TODO-137）
+                    # （base/main/month/mini_cal/edit/sde/trash.html。TODO-137）
     static/         # CSS・アイコン・manifest.json・favicon
-      js/           # ブラウザ側のスクリプト 10 本（後述）
+      js/           # ブラウザ側のスクリプト 11 本（後述）
 ```
 
 CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形式からの
@@ -44,6 +44,12 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 `ctx.obj` に入れてサブコマンドへ引き継ぎ、`__main__.py` の `_is_debug()`
 でサブコマンド自身の `--debug` とまとめている（`ytsched --debug migrate`
 でも `ytsched migrate --debug` でも DEBUG が出る）。
+
+`TrashFile`（`trash.py`）は、`trash.jsonl` への追記は全件書き直しを
+せずに済ませる一方、1 件削除する `delete()` と全部消す `clear()` は
+ファイル全体を読み直して書き直す。**どちらも `SchedDataFile` と違って
+`.bak` は作らない**（ゴミ箱から消したものの `.bak` はゴミ箱のゴミ箱に
+なって意味が無いため。TODO-139）。
 
 ## データモデル: `SchedDataEnt` / `SchedDataFile` / `SchedData`
 
@@ -320,7 +326,7 @@ sequenceDiagram
 
 ## ブラウザ側のスクリプト
 
-`static/js/` に 10 本ある（TODO-083・TODO-089・TODO-137）。ES モジュール
+`static/js/` に 11 本ある（TODO-083・TODO-089・TODO-137・TODO-139）。ES モジュール
 ではなく素の `<script>` のまま、公開する関数・状態・テンプレートから
 渡す値を `window.ytsched` の下に置く。テンプレートのインラインイベントと
 `tests/test_browser.py` の `page.evaluate()` も、この名前空間経由で呼ぶ。
@@ -337,12 +343,18 @@ sequenceDiagram
 | `swipe.js` | 左右のスワイプとマウスのドラッグ |
 | `main-page.js` | 一覧画面（`main.html`）だけで使う初期化とハンドラ |
 | `edit-page.js` | 編集画面（`edit.html`）だけで使う初期化とハンドラ |
+| `trash-page.js` | ゴミ箱画面（`trash.html`）だけで使う初期化とハンドラ（TODO-139） |
 
-`base.html` が `main-page.js` と `edit-page.js` 以外の 8 本を読む。
-`main-page.js` は `main.html` が、`edit-page.js` は `edit.html` が
-それぞれ自分で読む（`base.html` に入れると、もう一方の画面でも
-`onloadHdr()` / `onloadEdit()` が走ってしまう）。**月間表示かどうか
-（`window.ytsched.view_month`）は `main-page.js` の `onloadHdr()` が
+`base.html` が `main-page.js` / `edit-page.js` / `trash-page.js` 以外の
+8 本を読む。`main-page.js` は `main.html` が、`edit-page.js` は
+`edit.html` が、`trash-page.js` は `trash.html` が、それぞれ自分で読む
+（`base.html` に入れると、他の画面でも `onloadHdr()` / `onloadEdit()` が
+走ってしまう）。`trash-page.js` は、`data-confirm` 属性を持つ `<form>`
+の送信に `confirm()` をはさむリスナーを登録するだけ（削除・空にする
+ボタンのインラインイベントは TODO-108 で禁止しているため）。
+
+**月間表示かどうか（`window.ytsched.view_month`）は
+`main-page.js` の `onloadHdr()` が
 `#main` の `data-view` から入れ、`week.js`・`nav.js`・`swipe.js` の
 5 か所（`moveActiveDate()`・`weekOffsetOfDate()`・`scrollToDate()`・
 `popstateHdr()`・`swipeMiniCal` を立てるところ 2 か所）がそれを見て

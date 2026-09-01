@@ -888,10 +888,35 @@ textarea {
     white-space: pre-wrap;
 }
 
-.my-trash-restore {
+.my-trash-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.my-trash-restore,
+.my-trash-delete {
     background: none;
     border: 0;
     font-size: 1rem;
+    padding: 0;
+}
+
+/* 戻せない操作だと分かるよう、控えめな赤にする */
+.my-trash-delete,
+.my-trash-clear {
+    color: #C33;
+}
+
+.my-trash-clear-row {
+    margin-top: 0.5rem;
+}
+
+.my-trash-clear {
+    background: none;
+    border: 0;
+    font-size: small;
     padding: 0;
 }
 

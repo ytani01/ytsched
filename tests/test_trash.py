@@ -5,6 +5,7 @@
 
 import datetime
 import json
+import stat
 from typing import Any
 
 from ytsched.sched_update import SchedUpdater
@@ -138,6 +139,108 @@ def test_entries_filters_sorts_and_limits(tmp_path):
         "2026-08-30T11:00:00"
     ]
     assert trash.get("a", "2026-08-30T10:00:00") is not None
+
+
+def test_delete_removes_one_line_keeps_others_and_broken_line(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id="a").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                "{ this is not valid json",
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T11:00:00",
+                        **mk_sde(sde_id="b").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trash = TrashFile(tmp_path)
+
+    deleted = trash.delete("a", "2026-08-30T10:00:00")
+
+    assert deleted is True
+    remaining = path.read_text(encoding="utf-8").splitlines()
+    assert len(remaining) == 2
+    assert "not valid json" in remaining[0]
+    assert json.loads(remaining[1])["sde_id"] == "b"
+
+
+def test_delete_unknown_trashed_at_returns_false(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "trashed_at": "2026-08-30T10:00:00",
+                **mk_sde(sde_id="a").to_dict(),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trash = TrashFile(tmp_path)
+
+    assert trash.delete("a", "no-such-timestamp") is False
+    # 書き直されず内容もそのまま
+    assert path.read_text(encoding="utf-8").count("\n") == 1
+
+
+def test_delete_keeps_original_permissions(tmp_path):
+    """書き直しの前後でパーミッションが変わらない（0600 に落ちない）。"""
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "trashed_at": "2026-08-30T10:00:00",
+                **mk_sde(sde_id="a").to_dict(),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o644)
+    trash = TrashFile(tmp_path)
+
+    trash.delete("a", "2026-08-30T10:00:00")
+
+    assert stat.S_IMODE(path.stat().st_mode) == 0o644
+
+
+def test_delete_no_file_returns_false(tmp_path):
+    trash = TrashFile(tmp_path)
+
+    assert trash.delete("a", "2026-08-30T10:00:00") is False
+
+
+def test_clear_empties_file(tmp_path):
+    trash = TrashFile(tmp_path)
+    trash.add(mk_sde())
+    trash.add(mk_sde())
+
+    trash.clear()
+
+    assert (tmp_path / "trash.jsonl").read_text(encoding="utf-8") == ""
+
+
+def test_clear_no_file_does_not_raise(tmp_path):
+    trash = TrashFile(tmp_path)
+
+    trash.clear()  # 例外にならない
+
+    assert not (tmp_path / "trash.jsonl").exists()
 
 
 #

@@ -11,7 +11,7 @@ from .ytsched import SchedDataEnt
 
 
 class TrashHandler(HandlerBase):
-    """``trash.jsonl`` の表示と、選んだ 1 行の復活を扱う。"""
+    """``trash.jsonl`` の表示、復活、削除、空にするを扱う。"""
 
     CONF_KEY_TRASH_MAX = "TrashMax"
     DEF_TRASH_MAX = 100
@@ -45,11 +45,21 @@ class TrashHandler(HandlerBase):
             url_prefix=self._app_info.url_prefix,
             groups=groups,
             entry_count=len(entries),
+            sde_id=sde_id,
         )
 
     def post(self) -> None:
-        if self.get_argument("cmd", None) != "restore":
+        cmd = self.get_argument("cmd", None)
+        if cmd == "restore":
+            self._restore()
+        elif cmd == "delete":
+            self._delete()
+        elif cmd == "clear":
+            self._clear()
+        else:
             raise tornado.web.HTTPError(400, "unknown command")
+
+    def _restore(self) -> None:
         sde_id = self.get_argument("sde_id")
         trashed_at = self.get_argument("trashed_at")
         entry = self._trash().get(sde_id, trashed_at)
@@ -70,3 +80,14 @@ class TrashHandler(HandlerBase):
         self._sd.add_sde(restored.date, restored)
         self._sd.save()
         self.redirect(f"{self._app_info.url_prefix}?date={restored.date}")
+
+    def _delete(self) -> None:
+        sde_id = self.get_argument("sde_id")
+        trashed_at = self.get_argument("trashed_at")
+        if not self._trash().delete(sde_id, trashed_at):
+            raise tornado.web.HTTPError(404, "trash entry not found")
+        self.redirect(f"{self._app_info.url_prefix}trash")
+
+    def _clear(self) -> None:
+        self._trash().clear()
+        self.redirect(f"{self._app_info.url_prefix}trash")

@@ -2079,6 +2079,67 @@ class TestTrashHandler(WebTestBase):
             encoding="utf-8"
         ) == before
 
+    def test_delete_removes_entry_and_redirects_to_trash(self):
+        self.write_trash()
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                {
+                    "cmd": "delete",
+                    "sde_id": "id-1",
+                    "trashed_at": "2026-08-29T09:10:00",
+                }
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+        assert res.code == 302
+        assert res.headers["Location"] == f"{URL_PREFIX}/trash"
+        remaining = (self.datadir / "trash.jsonl").read_text(encoding="utf-8")
+        assert "古い内容" not in remaining
+        assert "2026-08-30T14:23:05" in remaining
+
+    def test_delete_unknown_trashed_at_returns_404(self):
+        self.write_trash()
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                {
+                    "cmd": "delete",
+                    "sde_id": "id-1",
+                    "trashed_at": "no-such-timestamp",
+                }
+            ),
+            raise_error=False,
+        )
+
+        assert res.code == 404
+
+    def test_clear_empties_trash_and_redirects_to_trash(self):
+        self.write_trash()
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode({"cmd": "clear"}),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+        assert res.code == 302
+        assert res.headers["Location"] == f"{URL_PREFIX}/trash"
+        assert (self.datadir / "trash.jsonl").read_text(
+            encoding="utf-8"
+        ) == ""
+
     def test_get_existing(self):
         self.write_data(DATE1, [DATALINE1])
 
