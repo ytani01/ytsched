@@ -239,8 +239,22 @@ Slack へ送るのはこのコマンドの役目ではない。出したテキ�
     default=False,
     help="期限の近い ToDo を出さない",
 )
+@click.option(
+    "--days",
+    "days",
+    type=click.IntRange(min=1),
+    default=1,
+    help="対象の日を含めて何日ぶんの予定を出すか, default=1",
+)
+@click.option(
+    "--memo",
+    "memo",
+    type=str,
+    default=None,
+    help="メッセージの先頭に出す文言",
+)
 @click_common_opts(__version__)
-def notify(ctx, datadir, date_str, no_todo, debug):
+def notify(ctx, datadir, date_str, no_todo, days, memo, debug):
     """notify"""
     debug = _is_debug(ctx, debug)
     loggerInit(debug=debug)
@@ -251,7 +265,11 @@ def notify(ctx, datadir, date_str, no_todo, debug):
         date = datetime.date.fromisoformat(date_str)
 
     sd = SchedData(datadir)
-    print(build_notify_text(sd, date, include_todo=not no_todo))
+    print(
+        build_notify_text(
+            sd, date, include_todo=not no_todo, days=days, memo=memo
+        )
+    )
 
 
 if __name__ == "__main__":

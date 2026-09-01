@@ -153,6 +153,8 @@ uv run ytsched notify --datadir ~/ytsched/data
 | `--datadir` | データディレクトリ。既定は `~/ytsched/data` |
 | `--date` | 対象の日（`YYYY-MM-DD`）。既定は今日 |
 | `--no-todo` | 期限の近い ToDo を出さない |
+| `--days` | 対象の日を含めて何日ぶんの予定を出すか。既定は 1 |
+| `--memo` | メッセージの先頭に出す文言。既定は無し |
 
 標準出力へテキストを出すだけで、Slack へは送らない。送るのは
 別の道具（`~/bin/slack-send.sh`）に任せ、cron から次のようにつなぐ:
@@ -164,6 +166,10 @@ uv run ytsched notify --datadir ~/ytsched/data
 予定も期限の近い ToDo も無い日も、日付行と「予定なし」は必ず出す。
 期限の近さは `SchedDataEnt.todo_urgency()` の `over`/`near`
 （期限切れ、または 7 日以内）で判定する。
+
+`--days` を 2 以上にすると、`--date` の日から連続した日ぶんの節を
+続けて出し、期限の近い ToDo の節は全体の最後に 1 回だけ出す
+（`--date` の日を基準に判定する）。
 
 ## 6. 画面を撮る
 

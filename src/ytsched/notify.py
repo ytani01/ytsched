@@ -100,6 +100,8 @@ def build_notify_text(
     sd: SchedData,
     date: datetime.date,
     include_todo: bool = True,
+    days: int = 1,
+    memo: str | None = None,
 ) -> str:
     """通知の本文を組み立てる。
 
@@ -107,16 +109,28 @@ def build_notify_text(
     ----------
     sd: SchedData
     date: datetime.date
-        対象の日
+        対象の日（``days`` > 1 のときは、その日から数えた最初の日）
     include_todo: bool
         ``False`` なら ToDo の節を出さない
+    days: int
+        何日ぶんの予定を出すか（``date`` を含む）
+    memo: str | None
+        指定すると、メッセージの先頭に出す
 
     Returns
     -------
     str
 
     """
-    sections = [build_schedule_section(sd, date)]
+    sections = []
+
+    if memo:
+        sections.append([memo])
+
+    for offset in range(days):
+        sections.append(
+            build_schedule_section(sd, date + datetime.timedelta(days=offset))
+        )
 
     if include_todo:
         todo_lines = build_todo_section(sd, date)

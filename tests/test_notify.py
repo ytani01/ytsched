@@ -130,3 +130,67 @@ def test_schedule_entry_without_time():
 
     sde = SchedDataEnt(title="終日の予定")
     assert format_schedule_line(sde) == "  終日の予定"
+
+
+def test_days_lists_consecutive_days(tmp_path):
+    """``days`` で指定した日数ぶん、日付見出しが連続して並ぶ。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    sd.add_sde(
+        date,
+        SchedDataEnt(date=date, title="初日の予定"),
+    )
+    sd.add_sde(
+        datetime.date(2026, 9, 3),
+        SchedDataEnt(date=datetime.date(2026, 9, 3), title="翌日の予定"),
+    )
+    sd.save()
+
+    text = build_notify_text(sd, date, days=2)
+
+    assert text == (
+        "2026-09-02 (水)\n  初日の予定\n\n2026-09-03 (木)\n  翌日の予定"
+    )
+
+
+def test_days_todo_section_once_at_end(tmp_path):
+    """``days`` > 1 でも、ToDo の節は全体の最後に 1 回だけ出す。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    sd.add_sde(
+        None,
+        SchedDataEnt(
+            date=datetime.date(2026, 9, 5),
+            sde_type="□",
+            title="請求書を出す",
+        ),
+    )
+    sd.save()
+
+    text = build_notify_text(sd, date, days=3)
+
+    assert text.count("期限が近い ToDo") == 1
+    assert text.endswith("期限が近い ToDo\n  09-05 請求書を出す")
+
+
+def test_memo_is_prepended(tmp_path):
+    """``memo`` を指定すると、メッセージの先頭に出る。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    text = build_notify_text(sd, date, memo="今週は台風に注意")
+
+    assert text == ("今週は台風に注意\n\n2026-09-02 (水)\n  予定なし")
+
+
+def test_memo_none_is_not_prepended(tmp_path):
+    """``memo`` を指定しなければ、何も足されない。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    text = build_notify_text(sd, date)
+
+    assert not text.startswith("\n")
+    assert text == "2026-09-02 (水)\n  予定なし"
