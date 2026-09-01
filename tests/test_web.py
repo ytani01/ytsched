@@ -2127,6 +2127,28 @@ class TestTrashHandler(WebTestBase):
         assert 'name="cmd" value="delete_many"' in body
         assert 'name="cmd" value="clear"' not in body
 
+    def test_entry_has_date_column_like_search_result(self):
+        """検索結果と同じ日付欄（年・月・日・曜日・今日からの差）を出す。
+
+        ``sde.html`` の描画（種別・タイトル）も使われ、編集画面への
+        リンク（``data-action="edit-sde"``）は出ない（TODO-148）。
+        """
+        self.write_trash()
+
+        body = self.get_body(URL_PREFIX + "/trash", sde_id="id-1")
+
+        assert "my-date-block" in body
+        assert "my-date-col" in body
+        assert "my-wday-0" in body  # DATE1 (2021-03-01) は月曜日
+        assert "2021" in body
+        assert "03/" in body
+        assert "(Mon)" in body
+        assert "my-sde-type" in body
+        assert "my-sde-title" in body
+        assert "定例ミーティング" in body
+        main = body[body.index("<main") : body.index("</main>")]
+        assert 'data-action="edit-sde" data-date=' not in main
+
     def test_empty_trash_has_disabled_select_all_and_delete_button(self):
         body = self.get_body(URL_PREFIX + "/trash")
 

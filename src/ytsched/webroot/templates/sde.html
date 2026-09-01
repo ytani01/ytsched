@@ -1,13 +1,16 @@
 {# -*- engine: tornado -*- #}
-{# main.html から受け取る変数 (この 5 個は宣言なしで使う):
-   {% include %} は名前空間を親と共有するので、main.html 側で
+{# main.html / trash.html から受け取る変数 (この 7 個は宣言なしで使う):
+   {% include %} は名前空間を親と共有するので、呼び出し側で
    {% set %} された変数がそのまま見える。ここで {% set %} し直さ
-   ないため、main.html 側で {% set %} の位置を動かすと黙って壊れる。
-     sde         -- 予定 1 件 (main.html の {% for sde in sched_ent.sde %})
-     sched_date  -- いま描いている日 (sched_ent.date)
-     today_flag  -- sched_date が今日かどうか (チェックボックスの id に使う)
-     today       -- datetime.date.today() (sde.todo_urgency(today) に渡す)
-     url_prefix  -- 編集画面の URL を組み立てる
+   ないため、呼び出し側で {% set %} の位置を動かすと黙って壊れる。
+     sde          -- 予定 1 件 (main.html の {% for sde in sched_ent.sde %})
+     sched_date   -- いま描いている日 (sched_ent.date)
+     today_flag   -- sched_date が今日かどうか (チェックボックスの id に使う)
+     today        -- datetime.date.today() (sde.todo_urgency(today) に渡す)
+     url_prefix   -- 編集画面の URL を組み立てる
+     sde_editable -- タップで編集画面へ行けるか (ゴミ箱の予定は False)
+     sde_uniq     -- 詳細の折りたたみに使う id を一意にする接尾辞
+                     (ゴミ箱では同じ sde_id の予定が複数並ぶため)
 #}
 <!--
      {% set url = url_prefix + 'edit/' %}
@@ -17,7 +20,7 @@
      {% set class_bg = 'my-sde-holiday' %}
      {% end %}
 
-     {% set sw_id = 'sw%s-%s' % (sde.sde_id, today_flag) %}
+     {% set sw_id = 'sw%s-%s%s' % (sde.sde_id, today_flag, sde_uniq) %}
 
      {% if sde.is_todo() %}
      {% set class_bg = 'my-sde-todo' %}
@@ -81,11 +84,16 @@
     </div>
     {% end %}<!-- if not todo -->
     <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
-         ここからは送らない (TODO-034) -->
-    <div class="my-sde-content-col my-btn {{ class_canceled_items }}"
+         ここからは送らない (TODO-034)。ゴミ箱の予定は編集できないので、
+         ``sde_editable`` が False のときは ``my-btn`` も
+         ``data-action="edit-sde"`` も付けない (TODO-148) -->
+    <div class="my-sde-content-col {{ class_canceled_items }}
+      {% if sde_editable %}my-btn{% end %}"
+      {% if sde_editable %}
       data-action="edit-sde" data-date="{{ sched_date }}"
       data-sde-id="{{ sde.sde_id }}"
-      data-todo-flag="{{ str(sde.is_todo()).lower() }}">
+      data-todo-flag="{{ str(sde.is_todo()).lower() }}"
+      {% end %}>
       {% if sde.is_todo() %}
       {% if sde.date != sched_date %}
       {% set sde_date = str(sde.date).replace('-', '/') %}

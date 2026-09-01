@@ -237,6 +237,8 @@
       <!-- スケジュール -->
       <div class="my-day-entries">
         <!-- Schedule -->
+        {% set sde_editable = True %}
+        {% set sde_uniq = '' %}
         {% for sde in sched_ent.sde %}
         {% include sde.html %}
         {% end %}

@@ -32,18 +32,54 @@
   {% if not groups %}
   <div class="my-fs-small my-trash-empty">ゴミ箱は空です</div>
   {% end %}
-  {% for group in groups %}
+  {% for group_index, group in enumerate(groups) %}
   <section class="my-trash-group">
     {% if len(group) > 1 %}
     <div class="my-fs-small">同じ予定の内容が {{ len(group) }} 件</div>
     {% end %}
-    {% for entry in group %}
+    {% for entry_index, entry in enumerate(group) %}
     {% set sde = entry.sde %}
-    <article class="my-sde my-sde-normal my-trash-entry">
-      <div class="my-trash-entry-row">
-        <div class="my-trash-date-col my-fs-small">{{ sde.date.strftime('%Y/%m/%d (%a)') }}</div>
-        <div class="my-trash-time-col my-fs-small">{{ sde.get_timestr() }}</div>
-        <div class="my-trash-entry-summary"><span class="my-sde-type">【{{ sde.type }}】</span> <span class="my-sde-title">{{ sde.title }}</span></div>
+    {# 検索結果 (main.html の search_mode) と同じ、日付欄 + sde.html の形
+       (TODO-148)。ゴミ箱の予定は編集できないので sde_editable = False。
+       同じ sde_id の予定が複数並ぶので、詳細の折りたたみの id が衝突
+       しないよう sde_uniq でエントリごとに分ける #}
+    {% set sched_date = sde.date %}
+    {% set today_flag = sched_date == today %}
+    {% set weekday = sched_date.weekday() %}
+    {% set class_today = '' %}
+    {% set class_date_block = 'my-date-block' %}
+    {% if today_flag %}
+    {% set class_today = 'my-fw-bold' %}
+    {% set class_date_block = 'my-date-block my-date-block-today' %}
+    {% end %}
+    {% set days = (sched_date - today).days %}
+    {% set sde_editable = False %}
+    {% set sde_uniq = '-%s-%s' % (group_index, entry_index) %}
+    <article class="my-trash-entry">
+      <div class="{{ class_date_block }}">
+        <div class="my-date-col my-wday-{{ weekday }}">
+          <div class="my-date-ym {{ class_today }}">
+            <span class="my-date-year">
+              {{ sched_date.strftime('%Y') }}
+            </span>
+            <br />
+            <span class="my-date-month">
+              {{ sched_date.strftime('%m/') }}
+            </span>
+          </div>
+          <div class="my-date-day {{ class_today }}">
+            {{ '%02d' % sched_date.day }}
+          </div>
+          <div class="my-date-wday {{ class_today }}">
+            ({{ sched_date.strftime('%a') }})
+          </div>
+          <div class="my-date-diff {{ class_today }}">
+            {{ '%+d' % days }}
+          </div>
+        </div>
+        <div class="my-day-entries">
+          {% include sde.html %}
+        </div>
         <div class="my-trash-actions">
           <form action="{{ url_prefix }}trash" method="POST">
             <input type="hidden" name="cmd" value="restore">
@@ -59,8 +95,6 @@
                  aria-label="{{ sde.title }}を選択">
         </div>
       </div>
-      {% if sde.place %}<div class="my-sde-place">@{{ sde.place }}</div>{% end %}
-      {% if sde.detail %}<div class="my-trash-detail">{{ sde.detail }}</div>{% end %}
       <div class="my-fs-x-small">{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
     </article>
     {% end %}

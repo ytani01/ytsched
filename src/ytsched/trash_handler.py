@@ -48,6 +48,7 @@ class TrashHandler(HandlerBase):
             groups=groups,
             entry_count=len(entries),
             sde_id=sde_id,
+            today=datetime.date.today(),
         )
 
     def post(self) -> None:

@@ -410,33 +410,6 @@ textarea {
     text-align: right;
 }
 
-/* ゴミ箱の 1 件分の行 (旧 ``row m-0 p-1``) */
-.my-trash-entry-row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    margin: 0;
-    padding: .25rem;
-}
-
-.my-trash-date-col {
-    grid-column: span 3;
-    min-width: 0;
-    padding: 0;
-}
-
-.my-trash-time-col {
-    grid-column: span 2;
-    min-width: 0;
-    padding: 0;
-}
-
-/* 種別・タイトルの列 (旧 ``col-4 p-0``) */
-.my-trash-entry-summary {
-    grid-column: span 4;
-    min-width: 0;
-    padding: 0;
-}
-
 .my-bar-content {
     position: fixed;
     bottom: -60px;
@@ -843,6 +816,13 @@ textarea {
     padding: 0;
 }
 
+/* ゴミ箱では、``.my-date-col`` の右に復活ボタン・チェックボックスの列
+   (``.my-trash-actions``。span 2) が要るので、その分だけ狭める
+   (TODO-148) */
+.my-trash-entry .my-day-entries {
+    grid-column: span 9;
+}
+
 /* 日付ブロックの中身 (年月・日・曜日・今日からの日数)。
    今日は太字にする (旧 ``fw-bold``)。年月・日・曜日・日数の 4 か所に
    条件付きで付くだけなので、それぞれの役割クラスへは畳み込めない
@@ -1103,18 +1083,12 @@ textarea {
     font-weight: bold;
 }
 
-.my-trash-detail {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
-    font-size: x-small;
-    white-space: pre-wrap;
-}
-
-/* 復活・削除ボタンの列 (旧 ``col-3 p-0 text-end``) */
+/* 復活ボタン・チェックボックスの列。``.my-date-block`` の 12 列グリッドの
+   3 つめの列で、``.my-date-col`` (span 1) と ``.my-day-entries`` の
+   ゴミ箱向けの上書き (span 9。下の ``.my-trash-entry .my-day-entries``)
+   を合わせて 12 になる (TODO-148) */
 .my-trash-actions {
-    grid-column: span 3;
+    grid-column: span 2;
     min-width: 0;
     padding: 0;
     text-align: right;

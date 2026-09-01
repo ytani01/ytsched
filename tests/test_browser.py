@@ -582,6 +582,25 @@ def test_trash_select_confirm_and_delete(page, server, tmp_path):
     assert page.get_by_text("削除する項目 1").count() == 0
 
 
+def test_trash_entry_shows_date_column_like_search_result(
+    page, server, tmp_path
+):
+    """検索結果と同じ日付欄つきで出て、編集画面へは行けない（TODO-148）。"""
+    _write_trash(tmp_path)
+    page.goto(f"{server}trash", wait_until="load")
+
+    entries = page.locator(".my-trash-entry")
+    assert entries.count() == 2
+    date_cols = page.locator(".my-trash-entry .my-date-col")
+    assert date_cols.count() == 2
+    assert date_cols.nth(0).locator(".my-date-day").inner_text() == "20"
+    assert "(Thu)" in date_cols.nth(0).locator(".my-date-wday").inner_text()
+
+    # 編集画面への遷移が起きない（クリックしても URL が変わらない）
+    page.locator(".my-trash-entry .my-sde-content-col").first.click()
+    assert page.url == f"{server}trash"
+
+
 def test_trash_select_all_checks_and_unchecks_displayed_entries(
     page, server, tmp_path
 ):
