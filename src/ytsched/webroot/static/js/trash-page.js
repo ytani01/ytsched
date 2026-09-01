@@ -33,8 +33,7 @@
       });
       button.disabled = selected.length === 0;
       all.checked = selected.length === entries.length && entries.length > 0;
-      all.indeterminate =
-        selected.length > 0 && selected.length < entries.length;
+      all.indeterminate = false;
       form.dataset.confirm = `選択した ${selected.length} 件を完全に消します。よろしいですか?`;
     };
 

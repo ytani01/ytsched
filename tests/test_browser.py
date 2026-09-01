@@ -558,9 +558,9 @@ def test_trash_select_confirm_and_delete(page, server, tmp_path):
 
     entries.nth(0).check()
     assert not delete_button.is_disabled()
-    assert page.locator("#trash-select-all").evaluate(
-        "el => el.indeterminate"
-    )
+    select_all = page.locator("#trash-select-all")
+    assert not select_all.is_checked()
+    assert not select_all.evaluate("el => el.indeterminate")
 
     messages = []
 
@@ -582,8 +582,10 @@ def test_trash_select_confirm_and_delete(page, server, tmp_path):
     assert page.get_by_text("削除する項目 1").count() == 0
 
 
-def test_trash_select_all_checks_displayed_entries(page, server, tmp_path):
-    """全選択で表示中の全項目を選べる（TODO-141）。"""
+def test_trash_select_all_checks_and_unchecks_displayed_entries(
+    page, server, tmp_path
+):
+    """全選択・全解除で表示中の全項目を切り替えられる（TODO-142）。"""
     _write_trash(tmp_path)
     page.goto(f"{server}trash", wait_until="load")
 
@@ -596,6 +598,13 @@ def test_trash_select_all_checks_displayed_entries(page, server, tmp_path):
     assert entries.nth(1).is_checked()
     assert not select_all.evaluate("el => el.indeterminate")
     assert not page.locator("#trash-delete-form button").is_disabled()
+
+    select_all.uncheck()
+    assert not entries.nth(0).is_checked()
+    assert not entries.nth(1).is_checked()
+    assert not select_all.is_checked()
+    assert not select_all.evaluate("el => el.indeterminate")
+    assert page.locator("#trash-delete-form button").is_disabled()
 
 
 def test_detail_change_submits_update_on_blur(page, server, tmp_path):
