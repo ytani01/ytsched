@@ -2011,7 +2011,7 @@ class TestEditHandler(WebTestBase):
 
 
 class TestTrashHandler(WebTestBase):
-    """ゴミ箱の表示と復活（TODO-086）。"""
+    """ゴミ箱の表示・復活・完全削除。"""
 
     def write_trash(self):
         entries = [
@@ -2041,7 +2041,34 @@ class TestTrashHandler(WebTestBase):
         assert "同じ予定の内容が 2 件" in body
         assert "2026-08-30 14:23:05 に削除" in body
         assert "2026-08-29 09:10:00 に削除" in body
-        assert 'name="trashed_at" value="2026-08-30T14:23:05"' in body
+        assert 'data-trashed-at="2026-08-30T14:23:05"' in body
+        assert 'name="cmd" value="delete_many"' in body
+        assert 'name="cmd" value="clear"' not in body
+
+    def test_empty_trash_has_disabled_select_all_and_delete_button(self):
+        body = self.get_body(URL_PREFIX + "/trash")
+
+        assert "ゴミ箱は空です" in body
+        assert "0件</span>" in body
+        assert 'name="cmd" value="clear"' not in body
+        assert 'id="trash-select-all"' in body
+        assert 'aria-label="選択した項目を完全に削除" disabled' in body
+
+    def test_select_all_and_delete_button_are_in_header(self):
+        self.write_trash()
+
+        body = self.get_body(URL_PREFIX + "/trash")
+        header = body[body.index("<header") : body.index("</header>")]
+        main = body[body.index("<main") : body.index("</main>")]
+
+        assert "ゴミ箱</span>" in header
+        assert "2件</span>" in header
+        assert 'id="trash-select-all"' in header
+        assert 'name="cmd" value="delete_many"' in header
+        assert 'aria-label="選択した項目を完全に削除" disabled' in header
+        assert "#trash" in header
+        assert 'data-sde-id="id-1"' in main
+        assert 'name="cmd" value="delete_many"' not in main
 
     def test_restore_adds_new_entry_and_keeps_trash(self):
         self.write_trash()
@@ -2079,7 +2106,7 @@ class TestTrashHandler(WebTestBase):
             encoding="utf-8"
         ) == before
 
-    def test_delete_removes_entry_and_redirects_to_trash(self):
+    def test_delete_many_removes_entry_and_redirects_to_trash(self):
         self.write_trash()
 
         res = self.fetch(
@@ -2087,11 +2114,11 @@ class TestTrashHandler(WebTestBase):
             method="POST",
             headers=FORM_HEADERS,
             body=urlencode(
-                {
-                    "cmd": "delete",
-                    "sde_id": "id-1",
-                    "trashed_at": "2026-08-29T09:10:00",
-                }
+                [
+                    ("cmd", "delete_many"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-29T09:10:00"),
+                ]
             ),
             follow_redirects=False,
             raise_error=False,
@@ -2103,7 +2130,35 @@ class TestTrashHandler(WebTestBase):
         assert "古い内容" not in remaining
         assert "2026-08-30T14:23:05" in remaining
 
-    def test_delete_unknown_trashed_at_returns_404(self):
+    def test_delete_many_invalid_or_unknown_entries_do_not_change_trash(self):
+        self.write_trash()
+        before = (self.datadir / "trash.jsonl").read_bytes()
+
+        for body in [
+            [("cmd", "delete_many")],
+            [("cmd", "delete_many"), ("sde_id", "id-1")],
+            [
+                ("cmd", "delete_many"),
+                ("sde_id", "id-1"),
+                ("trashed_at", "invalid"),
+            ],
+            [
+                ("cmd", "delete_many"),
+                ("sde_id", "unknown"),
+                ("trashed_at", "2026-08-30T14:23:05"),
+            ],
+        ]:
+            res = self.fetch(
+                URL_PREFIX + "/trash",
+                method="POST",
+                headers=FORM_HEADERS,
+                body=urlencode(body),
+                raise_error=False,
+            )
+            assert res.code in {400, 404}
+            assert (self.datadir / "trash.jsonl").read_bytes() == before
+
+    def test_delete_many_all_entries_redirects_to_week(self):
         self.write_trash()
 
         res = self.fetch(
@@ -2111,34 +2166,63 @@ class TestTrashHandler(WebTestBase):
             method="POST",
             headers=FORM_HEADERS,
             body=urlencode(
-                {
-                    "cmd": "delete",
-                    "sde_id": "id-1",
-                    "trashed_at": "no-such-timestamp",
-                }
+                [
+                    ("cmd", "delete_many"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-30T14:23:05"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-29T09:10:00"),
+                ]
             ),
+            follow_redirects=False,
             raise_error=False,
         )
 
-        assert res.code == 404
+        assert res.code == 302
+        assert res.headers["Location"] == f"{URL_PREFIX}/"
+        assert (self.datadir / "trash.jsonl").read_text(
+            encoding="utf-8"
+        ) == ""
 
-    def test_clear_empties_trash_and_redirects_to_trash(self):
+    def test_delete_many_keeps_entries_hidden_by_trash_max(self):
         self.write_trash()
+        path = self.datadir / "trash.jsonl"
+        path.write_text(
+            path.read_text(encoding="utf-8")
+            + json.dumps(
+                {
+                    "trashed_at": "2026-08-28T14:23:05",
+                    **json.loads(DATALINE1),
+                    "sde_id": "hidden-id",
+                    "title": "表示外の項目",
+                },
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        write_conf(self.datadir, {"TrashMax": "2"})
 
         res = self.fetch(
             URL_PREFIX + "/trash",
             method="POST",
             headers=FORM_HEADERS,
-            body=urlencode({"cmd": "clear"}),
+            body=urlencode(
+                [
+                    ("cmd", "delete_many"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-30T14:23:05"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-29T09:10:00"),
+                ]
+            ),
             follow_redirects=False,
             raise_error=False,
         )
 
         assert res.code == 302
         assert res.headers["Location"] == f"{URL_PREFIX}/trash"
-        assert (self.datadir / "trash.jsonl").read_text(
-            encoding="utf-8"
-        ) == ""
+        assert "表示外の項目" in path.read_text(encoding="utf-8")
 
     def test_get_existing(self):
         self.write_data(DATE1, [DATALINE1])

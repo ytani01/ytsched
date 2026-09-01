@@ -905,19 +905,16 @@ textarea {
 
 /* 戻せない操作だと分かるよう、控えめな赤にする */
 .my-trash-delete,
-.my-trash-clear {
+.my-trash-delete:disabled {
     color: #C33;
 }
 
-.my-trash-clear-row {
-    margin-top: 0.5rem;
+.my-trash-delete:disabled {
+    color: #999;
 }
 
-.my-trash-clear {
-    background: none;
-    border: 0;
-    font-size: small;
-    padding: 0;
+.my-trash-select {
+    accent-color: #C33;
 }
 
 .my-edit-body {

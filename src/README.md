@@ -46,10 +46,10 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 でも `ytsched migrate --debug` でも DEBUG が出る）。
 
 `TrashFile`（`trash.py`）は、`trash.jsonl` への追記は全件書き直しを
-せずに済ませる一方、1 件削除する `delete()` と全部消す `clear()` は
-ファイル全体を読み直して書き直す。**どちらも `SchedDataFile` と違って
-`.bak` は作らない**（ゴミ箱から消したものの `.bak` はゴミ箱のゴミ箱に
-なって意味が無いため。TODO-139）。
+せずに済ませる一方、選択した複数件を削除する `delete_many()` はファイル
+全体を 1 回だけ書き直す。**`SchedDataFile` と違って `.bak` は作らない**
+（ゴミ箱から消したものの `.bak` はゴミ箱のゴミ箱になって意味が無いため。
+TODO-141）。
 
 ## データモデル: `SchedDataEnt` / `SchedDataFile` / `SchedData`
 

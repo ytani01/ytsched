@@ -35,8 +35,8 @@ class TrashEntry:
 class TrashFile:
     """削除・編集で消える予定を ``trash.jsonl`` へ追記するクラス。
 
-    追記のときは全件書き直しをしない。``delete()``/``clear()`` は
-    ゴミ箱から完全に消すための操作なので、全件を書き直す。どちらも
+    追記のときは全件書き直しをしない。``delete_many()`` は
+    ゴミ箱から完全に消すための操作なので、全件を書き直す。これは
     ``SchedDataFile`` と違い ``.bak`` への退避はしない（ゴミ箱の
     ゴミ箱になって意味が無いため）。
     """
@@ -130,50 +130,55 @@ class TrashFile:
                 return entry
         return None
 
-    def delete(self, sde_id: str, trashed_at: str) -> bool:
-        """``sde_id`` と ``trashed_at`` が一致する行を取り除いて消す。
+    def delete_many(self, entries: set[tuple[str, str]]) -> int:
+        """指定された ``(sde_id, trashed_at)`` の行を取り除いて消す。
 
         同じ ``sde_id``/``trashed_at`` の行が複数あることは無い想定だが、
         あれば全て取り除く。壊れていて ``entries()`` が警告して飛ばす
         行は、復旧の手がかりを残すため書き直しでも消さずそのまま残す。
 
-        見つかって消せたら ``True``、見つからなければ（ファイルが
-        無い場合を含む）``False`` を返す。
+        同じ組の行が複数あればすべて取り除き、実際に消した行数を返す。
+        一致がなければ（ファイルが無い場合を含む）書き直さずに 0 を返す。
         """
-        if not self.pathname.exists():
-            return False
+        if not entries or not self.pathname.exists():
+            return 0
 
         with self.pathname.open(encoding=self.ENCODING) as f:
             lines = f.readlines()
 
         kept: list[str] = []
-        found = False
+        deleted = 0
         for line in lines:
             try:
                 data = json.loads(line)
-            except json.JSONDecodeError:
+                trashed_at = data["trashed_at"]
+                if not isinstance(trashed_at, str):
+                    raise TypeError("trashed_at is not a string")
+                from .ytsched import SchedDataEnt
+
+                sde = SchedDataEnt.from_dict(data)
+            except (
+                json.JSONDecodeError,
+                TypeError,
+                ValueError,
+                KeyError,
+            ):
                 kept.append(line)
                 continue
-            if (
-                isinstance(data, dict)
-                and data.get("sde_id") == sde_id
-                and data.get("trashed_at") == trashed_at
-            ):
-                found = True
+            if (sde.sde_id, trashed_at) in entries:
+                deleted += 1
                 continue
             kept.append(line)
 
-        if not found:
-            return False
+        if not deleted:
+            return 0
 
         self._write_lines(kept)
-        return True
+        return deleted
 
-    def clear(self) -> None:
-        """``trash.jsonl`` 全体を空にする。ファイルが無ければ何もしない。"""
-        if not self.pathname.exists():
-            return
-        self._write_lines([])
+    def delete(self, sde_id: str, trashed_at: str) -> bool:
+        """1 組を削除する ``delete_many()`` の互換用ラッパ。"""
+        return self.delete_many({(sde_id, trashed_at)}) > 0
 
     def _write_lines(self, lines: list[str]) -> None:
         """``lines`` で ``trash.jsonl`` を書き直す。

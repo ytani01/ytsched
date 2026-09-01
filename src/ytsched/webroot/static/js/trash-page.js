@@ -2,27 +2,51 @@
  *   (c) 2026 ytani01
  */
 
-// trash.html だけで使うリスナー登録 (TODO-139)。
-// ``data-confirm`` 属性を持つ <form> の送信をフックし、confirm() が
-// キャンセルされたら送信しない（inline event handler は TODO-108 で
-// 禁止しているため）。
+// trash.html だけで使う選択・確認のリスナー登録 (TODO-141)。
 
 (() => {
-  const onSubmit = (event) => {
-    const form = event.target;
-    if (!(form instanceof HTMLFormElement)) {
-      return;
-    }
-    const message = form.dataset.confirm;
-    if (message === undefined) {
-      return;
-    }
-    if (!window.confirm(message)) {
-      event.preventDefault();
-    }
-  };
-
   window.addEventListener("load", () => {
-    document.addEventListener("submit", onSubmit);
+    const form = document.querySelector("#trash-delete-form");
+    const all = document.querySelector("#trash-select-all");
+    const entries = [
+      ...document.querySelectorAll(".my-trash-entry .my-trash-select"),
+    ];
+    const button = form.querySelector("button");
+
+    const update = () => {
+      const selected = entries.filter((entry) => entry.checked);
+      form
+        .querySelectorAll(".my-trash-selected-value")
+        .forEach((entry) => entry.remove());
+      selected.forEach((entry) => {
+        for (const [name, value] of [
+          ["sde_id", entry.dataset.sdeId],
+          ["trashed_at", entry.dataset.trashedAt],
+        ]) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = name;
+          input.value = value;
+          input.className = "my-trash-selected-value";
+          form.append(input);
+        }
+      });
+      button.disabled = selected.length === 0;
+      all.checked = selected.length === entries.length && entries.length > 0;
+      all.indeterminate = false;
+      form.dataset.confirm = `選択した ${selected.length} 件を完全に消します。よろしいですか?`;
+    };
+
+    entries.forEach((entry) => entry.addEventListener("change", update));
+    all.addEventListener("change", () => {
+      entries.forEach((entry) => {
+        entry.checked = all.checked;
+      });
+      update();
+    });
+    form.addEventListener("submit", (event) => {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+    update();
   });
 })();
