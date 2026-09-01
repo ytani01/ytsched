@@ -91,6 +91,7 @@ mise run webapp -- --datadir /tmp/x --port 10099
 mise run migrate -- --dry-run
 mise run tokens -- TODO-046                # TODO 項目ごとのトークン消費量
 mise run shot -- --open                    # 画面を撮る
+mise run figs                              # 図に注釈を重ねる
 ```
 
 `upgradeproject`（`uppj`）は依存を上げ直すタスクで、`lint` などからは
@@ -182,6 +183,27 @@ mise run shot -- --open -p todo046
   $ echo $?
   1
   ```
+
+## 図に注釈を入れる
+
+`docs/User.md` に貼っている画面図は、撮ったキャプチャに `tools/annotate.py`
+で引き出し線と吹き出しを重ねたもの（TODO-152）。キャプチャを HTML に貼り、
+吹き出しを絶対位置で並べ、引き出し線を SVG で引いて、chromium で撮り直す。
+
+```sh
+mise run shot -- -w 412 --height 853 --scale 2 -p week   # 元のキャプチャ
+mise run figs                                            # 注釈を重ねる
+mise run figs -- --only user-week -o /tmp/try            # 1 枚だけ試す
+```
+
+注釈の位置は `tools/user-figs.json` に書いてある。指し示す点（`to`）と
+吹き出しの左上（`at`）は、**どちらも画像の左上を原点とした px**。画面を
+撮り直したら、同じ JSON でもう一度流せばよい。書き方は
+`tools/annotate.py` の docstring にある。
+
+`docs/User.md` の図を作り直す手順は
+[../archives/todo/TODO-152. User.md に画面図を入れる.md](../archives/todo/TODO-152.%20User.md%20に画面図を入れる.md)
+に残してある（サンプルデータ、撮る URL、それぞれの高さ）。
 
 ## テストの走らせ方
 
