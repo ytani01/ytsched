@@ -798,6 +798,18 @@ textarea {
     transition: transform 0.2s ease-out;
 }
 
+/* 月の見出し行 (TODO-147)。週の先頭と、週の途中で月が替わる日の直前に
+   出す。週間表示では日付欄から年月を落としてあるので、年月を持って
+   いるのはこの行だけ */
+.my-month-header {
+    margin: 4px 0 2px 0;
+    padding: 0px 10px;
+    background-color: #CCC;
+    border-radius: 0px 10px 10px 0px;
+    font-size: medium;
+    font-weight: 700;
+}
+
 /* 1 日ぶんの行 (旧 ``row p-0 m-0 border``) */
 .my-date-block {
     display: grid;

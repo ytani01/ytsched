@@ -651,6 +651,61 @@ class TestDateColumn(WebTestBase):
         assert date == DATE1_STR
 
 
+class TestMonthHeader(WebTestBase):
+    """週間表示の月の見出し行（TODO-147）"""
+
+    def month_headers(self, body):
+        """いま見ている週の、月の見出し行の文字列を返す。"""
+        return re.findall(r'my-month-header">([^<]*)<', week_panel(body))
+
+    def test_header_at_week_top(self):
+        """月をまたがない週でも、先頭に 1 行出る。
+
+        ``DATE1``（2021-03-01）は月曜なので、この週は 3/1〜3/7。
+        """
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert self.month_headers(body) == ["2021/03"]
+
+    def test_header_at_month_border(self):
+        """週の途中で月が替わる日の、直前にも出る。
+
+        2021-03-29 は月曜なので、この週は 3/29〜4/4。
+        """
+        body = self.get_body(URL_PREFIX + "/", date="2021-03-29")
+
+        assert self.month_headers(body) == ["2021/03", "2021/04"]
+
+        panel = week_panel(body)
+        assert panel.index('my-month-header">2021/04') < panel.index(
+            date_id(datetime.date(2021, 4, 1))
+        )
+
+    def test_no_ym_in_date_col(self):
+        """週間表示では、日付欄に年月を出さない。
+
+        年月は見出し行が持つので、日付欄は日・曜日・今日からの日数だけ。
+        """
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert "my-date-ym" not in body
+
+    def test_search_mode(self):
+        """検索モードでは見出し行を出さず、日付欄に年月を残す。
+
+        検索結果は日付が飛び飛びで「週の先頭」が無く、見出し行では
+        年月を追えないため。
+        """
+        self.write_data(DATE1, [DATALINE1, DATALINE2])
+
+        body = self.get_body(
+            URL_PREFIX + "/", date=DATE1_STR, search_str="病院"
+        )
+
+        assert "my-month-header" not in body
+        assert "my-date-ym" in body
+
+
 class TestMonthMiniCal(WebTestBase):
     """週間表示の月間ミニカレンダー（TODO-103）"""
 

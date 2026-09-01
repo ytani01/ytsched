@@ -148,6 +148,9 @@
       data-offset="{{ w.offset }}"
       {% if not search_mode %}data-monday="{{ w.monday }}"{% end %}
       style="left: {{ w.offset * 100 }}%">
+    {# 月の見出し行 (TODO-147) が直前に出した年月。週パネルごとに空へ
+       戻すので、どの週も先頭で必ず 1 回は見出し行が出る #}
+    {% set cur_ym = '' %}
     {% for sched_ent in w.sched %}
 
     {% set sched_date = sched_ent.date %}
@@ -164,6 +167,14 @@
     {% if int(sched_date.year) != int(year) %}
     {% set year=sched_date.year %}
     <strong>{{ year }}</strong>
+    {% end %}
+    {% else %}
+    {# 月の見出し行 (TODO-147)。週の先頭と、週の途中で月が替わる日の
+       直前に出す。日付欄からは年月を落としてあるので、週間表示で年月を
+       持っているのはここだけ #}
+    {% if sched_date.strftime('%Y/%m') != cur_ym %}
+    {% set cur_ym = sched_date.strftime('%Y/%m') %}
+    <div class="my-month-header">{{ cur_ym }}</div>
     {% end %}
     {% end %}
     {# ``id`` は前後数ヶ月ぶんの週すべてに付ける (TODO-069)。
@@ -198,6 +209,9 @@
         {% set class_today = 'my-fw-bold' %}
         {% end %}
 
+        {# 検索モードは日付が飛び飛びで、月の見出し行では追えないので、
+           日付欄に年月を残す (TODO-147)。週間表示では見出し行が持つ #}
+        {% if search_mode %}
         <div class="my-date-ym {{ class_today }}">
           <span class="my-date-year">
             {{ sched_date.strftime('%Y') }}
@@ -207,6 +221,7 @@
             {{ sched_date.strftime('%m/') }}
           </span>
         </div>
+        {% end %}
         <div class="my-date-day {{ class_today }}">
           {{ '%02d' % sched_date.day }}
         </div>
