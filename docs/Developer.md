@@ -8,7 +8,7 @@
 [../tests/README.md](../tests/README.md)、データ形式は
 [data-format.md](data-format.md) を見ること。
 
-## 技術スタック
+## 1. 技術スタック
 
 | もの | 何のためか |
 | --- | --- |
@@ -25,7 +25,7 @@
 | [Prettier](https://prettier.io/) | JavaScript の整形 |
 | [Node.js](https://nodejs.org/) | ESLint・Prettier の実行環境。`mise.toml` の `[tools]` で固定 |
 
-## 外部のライブラリ
+## 2. 外部のライブラリ
 
 **画面側では使っていない。** 外部の CDN も読まないので、ネットワークが
 届かない環境でも表示は崩れない。
@@ -44,7 +44,7 @@ SVG（`src/ytsched/webroot/static/icons/icon.svg`）で、ImageMagick が
 入っていれば `tools/make-icons.sh` で PNG と ICO を作り直せる。
 ホーム画面に追加したときのアイコンはこれを使う。
 
-## 開発環境の用意
+## 3. 開発環境の用意
 
 Python 3.14 以上と uv があれば足りる。
 
@@ -67,7 +67,7 @@ mise install
 npm install
 ```
 
-## mise のタスク
+## 4. mise のタスク
 
 `mise.toml` に定義がある。`build` は `test` に、`test` は `lint` に、
 `lint` は `fmt` と `fmtjs` と `typecheck` と `lintjs` に依存する。
@@ -99,7 +99,7 @@ mise run figs                              # 図に注釈を重ねる
 `uv sync` → `uv pip install -U` が走るので、上げ直したいときに明示的に
 叩く。
 
-## 個別コマンドで実行する場合
+## 5. 個別コマンドで実行する場合
 
 ```sh
 uv run pytest tests
@@ -141,7 +141,7 @@ uv run ytsched holiday 2028 2029 --datadir ~/ytsched/data
 `title` も一致する予定があれば飛ばす**（`type` は見ない）。指定した年が
 CSV に無ければ、その年は「データが無い」と報告して飛ばし、他の年は続ける。
 
-## 画面を撮る
+## 6. 画面を撮る
 
 見た目を変えたときは、テストだけでは確かめられない。`tools/screenshot.py`
 で画面を撮る（TODO-046）。**先にアプリを起動しておくこと。実データを
@@ -184,7 +184,7 @@ mise run shot -- --open -p todo046
   1
   ```
 
-## 図に注釈を入れる
+## 7. 図に注釈を入れる
 
 `docs/User.md` に貼っている画面図は、撮ったキャプチャに `tools/annotate.py`
 で引き出し線と吹き出しを重ねたもの（TODO-152）。キャプチャを HTML に貼り、
@@ -205,7 +205,7 @@ mise run figs -- --only user-week -o /tmp/try            # 1 枚だけ試す
 [../archives/todo/TODO-152. User.md に画面図を入れる.md](../archives/todo/TODO-152.%20User.md%20に画面図を入れる.md)
 に残してある（サンプルデータ、撮る URL、それぞれの高さ）。
 
-## テストの走らせ方
+## 8. テストの走らせ方
 
 `tests/` はいずれも `uv run pytest tests`（または `mise run test`）で
 まとめて動く。各テストファイルが何を見ているか、`helpers.py` の役割、
@@ -229,7 +229,7 @@ mise run figs -- --only user-week -o /tmp/try            # 1 枚だけ試す
 移行元（旧形式）の合成テストデータを作り直したいときは、
 `uv run python tests/make_test_data.py` を実行する。
 
-## ログの書き方
+## 9. ログの書き方
 
 `mylog.py` のラッパを使う。標準の `logging` は使わない。クラス本体に
 `__log = getLogger(__qualname__)` を 1 つ置く。
@@ -250,9 +250,9 @@ class SchedDataEnt:
 `_log = getLogger("main")` のように置く。詳しいサンプルは
 `src/ytsched/mylog.py` の docstring にある。
 
-## memo
+## 10. memo
 
-### JavaScript `Date` の罠
+### 10.1 JavaScript `Date` の罠
 
 `new Date()` の日付の区切り文字が
 `/` だと JST（+09:00）、`-` だと UTC とみなされる。
@@ -264,6 +264,6 @@ class SchedDataEnt:
 "2021-01-01T00:00:00.000Z"
 ```
 
-### JavaScript scroll・size 関連
+### 10.2 JavaScript scroll・size 関連
 
 ![](javascript-scroll.svg)

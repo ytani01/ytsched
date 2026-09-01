@@ -5,7 +5,7 @@
 画面の使い方は [User.md](User.md)、開発環境の用意は
 [Developer.md](Developer.md) を見ること。
 
-## 動かす環境
+## 1. 動かす環境
 
 | もの | 内容 |
 | --- | --- |
@@ -14,7 +14,7 @@
 | クライアント | スマホ・タブレット・PC の Google Chrome |
 | 前段 | Nginx, Apache などのリバースプロキシ |
 
-## インストール
+## 2. インストール
 
 Python 3.14 以上と [uv](https://docs.astral.sh/uv/) が必要。
 
@@ -33,7 +33,7 @@ ytsched webapp --datadir ~/ytsched/data --port 10085
 `--datadir` の既定は `~/ytsched/data`、`--port` の既定は 10085、
 URL の前置き `--urlprefix` の既定は `/ytsched`。
 
-## 更新
+## 3. 更新
 
 リポジトリを `git pull` したうえで、どちらかを実行する。
 
@@ -42,7 +42,7 @@ uv tool install --reinstall .   # リポジトリのカレントディレクト�
 uv tool upgrade ytsched         # どこからでも実行できる
 ```
 
-## systemd --user への登録
+## 4. systemd --user への登録
 
 ログイン中だけでなく常駐させたい場合は、systemd --user のユニットを
 作る。ポートや `--datadir` は環境ごとに違うため、リポジトリには
@@ -97,9 +97,9 @@ lingering を有効にする。
 sudo loginctl enable-linger $USER
 ```
 
-## リバースプロキシ
+## 5. リバースプロキシ
 
-**認証はアプリでは行わず、前段のリバースプロキシに任せる。**
+**認証はこのアプリでは行わず、前段のリバースプロキシに任せる。**
 単一ユーザ専用なので、この方がアプリ自体の脆弱性の影響を小さくできる。
 リバースプロキシ側で用意するもの:
 
@@ -110,7 +110,7 @@ sudo loginctl enable-linger $USER
 アプリはローカルの port（既定 10085）で待ち受けるだけにして、外からは
 リバースプロキシ経由でしか届かないようにする。
 
-## 日本の祝日を登録する
+## 6. 日本の祝日を登録する
 
 `ytsched holiday` で、内閣府の CSV から祝日を取り込んで予定として
 登録できる。年は 1 つ以上を引数で指定する。
@@ -123,7 +123,7 @@ ytsched holiday 2026 --dry-run          # 書き出さずに件数だけ見る
 同じ日付で同じ名称の予定が既にあれば飛ばすので、何度実行しても増えない。
 オプションの詳細は [Developer.md](Developer.md) を見ること。
 
-## 旧形式からの移行
+## 7. 旧形式からの移行
 
 10 年以上前に Perl CGI 版で作ったタブ区切りのデータは、
 `ytsched migrate` で JSON Lines へ変換する。元の `.cgi` は消さない。
