@@ -69,6 +69,9 @@ DEF_CHROMIUM = "/usr/bin/chromium"
 #: ``--open`` で開くもの。詳細 (detail) の開閉スイッチ
 DEF_TOGGLE = "input.my-longtext-sw"
 
+#: 既定のデバイスピクセル比。1 なら幅の指定がそのまま画像の幅になる
+DEF_SCALE = 1.0
+
 
 def shoot(
     url: str,
@@ -80,11 +83,15 @@ def shoot(
     toggle: str,
     open_toggles: bool,
     full_page: bool,
+    scale: float = DEF_SCALE,
 ) -> list[pathlib.Path]:
     """画面を撮って、保存したファイルの一覧を返す。
 
     ``open_toggles`` が真なら、``toggle`` に当たるチェックボックスを
     すべて入れた状態も撮る。幅ごとに ``closed`` と ``open`` の 2 枚。
+
+    ``scale`` はデバイスピクセル比。レイアウトは ``widths`` のままで、
+    画像だけが ``scale`` 倍の大きさになる (TODO-151)。
     """
     from playwright.sync_api import sync_playwright
 
@@ -96,7 +103,8 @@ def shoot(
         try:
             for width in widths:
                 page = browser.new_page(
-                    viewport={"width": width, "height": height}
+                    viewport={"width": width, "height": height},
+                    device_scale_factor=scale,
                 )
                 response = page.goto(url, wait_until="networkidle")
                 status = response.status if response is not None else "?"
@@ -155,6 +163,15 @@ def parse_args(argv: list[str] | None = None) -> Any:
         type=int,
         default=DEF_HEIGHT,
         help=f"画面の高さ (px) (既定: {DEF_HEIGHT})",
+    )
+    _ = parser.add_argument(
+        "--scale",
+        type=float,
+        default=DEF_SCALE,
+        help=(
+            "デバイスピクセル比。レイアウトは変えずに画像だけ大きくする"
+            f" (既定: {DEF_SCALE})"
+        ),
     )
     _ = parser.add_argument(
         "-o",
@@ -224,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
             toggle=args.toggle,
             open_toggles=args.open_toggles,
             full_page=args.full_page,
+            scale=args.scale,
         )
     except ImportError as ex:
         print(
