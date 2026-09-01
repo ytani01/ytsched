@@ -65,16 +65,16 @@
      {% end %}
 
 -->
-<div class="container-fluid p-0 border my-sde {{ class_bg }}">
-  <div class="row m-0">
+<div class="my-sde {{ class_bg }}">
+  <div class="my-sde-row">
     {% if not sde.is_todo() %}
-    <div class="col-1 p-0 text-start my-sde-time {{ class_canceled }}">
-      
+    <div class="my-sde-time {{ class_canceled }}">
+
       {{ time_start }}<br/>{{ time_end }}
-      
+
     </div>
     {% else %}
-    <div class="col-1 p-1 text-center">
+    <div class="my-sde-check-col">
       <svg class="my-icon my-sde-check">
         <use href="{{ static_url('icons/icons.svg') }}#square"></use>
       </svg>
@@ -82,7 +82,7 @@
     {% end %}<!-- if not todo -->
     <!-- 編集画面の ``orig_date`` は ``EditHandler`` が決めるので、
          ここからは送らない (TODO-034) -->
-    <div class="col-11 p-0 my-btn {{ class_canceled_items }}"
+    <div class="my-sde-content-col my-btn {{ class_canceled_items }}"
       data-action="edit-sde" data-date="{{ sched_date }}"
       data-sde-id="{{ sde.sde_id }}"
       data-todo-flag="{{ str(sde.is_todo()).lower() }}">
@@ -105,7 +105,7 @@
 
       {% set class_important = '' %}
       {% if sde.is_important() %}
-      {% set class_important = 'fw-bold' %}
+      {% set class_important = 'my-fw-bold' %}
       {% end %}
 
 
@@ -133,11 +133,11 @@
     </div>
   </div>
   {% if detail %}
-  <div class="row m-0">
+  <div class="my-sde-row">
     <input id="{{ sw_id }}"
       type="checkbox"
-      class="longtext-sw d-none">
-    <div class="col-1 p-0 m-0 text-center my-btn longtext-sw-label
+      class="my-longtext-sw">
+    <div class="my-btn my-longtext-sw-label
                 my-sde-detail-sw">
       <label for="{{ sw_id }}">
         <svg class="my-icon my-icon-lg">
@@ -145,12 +145,12 @@
         </svg>
       </label>
     </div>
-    <!-- 開いたときの ``.longtext`` は ``white-space: pre-wrap`` なので、
+    <!-- 開いたときの ``.my-longtext`` は ``white-space: pre-wrap`` なので、
          タグとの間の改行やインデントもそのまま見える。前後に空行を
          作らないよう、``{{ detail }}`` を開始タグ・終了タグに詰めて
          置いている (TODO-045)。 -->
-    <div class="col-11 p-0 longtext my-sde-detail {{ class_canceled }}"
+    <div class="my-longtext my-sde-detail {{ class_canceled }}"
       tabindex="0">{{ detail }}</div>
   </div>
   {% end %}
-</div><!-- container -->
+</div><!-- my-sde -->

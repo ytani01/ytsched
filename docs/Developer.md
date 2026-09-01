@@ -30,9 +30,12 @@
 **画面側では使っていない。** 外部の CDN も読まないので、ネットワークが
 届かない環境でも表示は崩れない。
 
-CSS は `src/ytsched/webroot/static/css/my.css` 1 つだけ。土台の指定
-（`body` のフォント・文字色・行の高さ、`box-sizing` など）は Bootstrap
-5.3.8（MIT License）から写したもので、ライセンス文書は
+CSS は `src/ytsched/webroot/static/css/my.css` 1 つだけ。クラス名は
+テンプレートの要素ごとの役割で付けてあり、`container-fluid` や `row`
+のような Bootstrap 由来の名前は残っていない。土台の指定
+（`body` のフォント・文字色・行の高さ、`box-sizing` など）と、
+役割クラスの中の一部の値は Bootstrap 5.3.8（MIT License）から写した
+もので、ライセンス文書は
 [licenses/bootstrap-LICENSE](licenses/bootstrap-LICENSE) に置いてある。
 
 アイコンは自作の線画で、`src/ytsched/webroot/static/icons/icons.svg` に
@@ -152,7 +155,7 @@ mise run shot -- --open -p todo046
 `{prefix}_{closed|open}_{幅}.png`。幅は既定で 412px（スマホ）と 800px の
 2 つで、`-w` を複数回渡せば変えられる。`--open` を付けると、詳細（detail）
 のような開閉するものを開いた状態も撮る（開くものは `--toggle` で指定。
-既定は `input.longtext-sw`）。
+既定は `input.my-longtext-sw`）。
 
 - 撮る URL は既定で `http://localhost:10085/ytsched/`。`--urlprefix` の
   既定（`/ytsched`）に合わせてある。一覧は `/` にも割り当ててあるので

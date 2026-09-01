@@ -25,10 +25,10 @@
           src="{{ static_url('js/edit-page.js') }}"></script>
   
   <div id="menu" name="menu"
-       class="container-fluid p-0 fixed-bottom my-bar my-follow-keyboard">
+       class="my-edit-bar my-follow-keyboard">
     <!-- ボタンを一定間隔で中央に並べる (TODO-101)。数が 4 つ (新規) と
-         5 つ (既存) で変わり、12 列の ``.row`` では割り切れない -->
-    <div class="my-edit-menu m-1">
+         5 つ (既存) で変わり、12 列の Grid では割り切れない -->
+    <div class="my-edit-menu">
 
       <!-- 保存しないで週表示へ戻る (TODO-065)。``history.back()`` では、
            更新 (``cmd=update``) のあとに編集画面へリダイレクトして
@@ -66,7 +66,7 @@
       </div>
 
     </div><!-- my-edit-menu -->
-  </div><!-- container -->
+  </div><!-- my-edit-bar -->
 </header>
 <main id="edit_main" class="my-edit-main">
   <div id="loadingSpinner" class="my-spinner">
@@ -105,39 +105,39 @@
            type="hidden" value="top" />
     {% end %}
 
-    <div class="container-fluid my-edit-body">
+    <div class="my-edit-body my-edit-form-body">
       <!-- 日付 -->
-      <div class="row p-1 my-edit-row">
-        <div class="col-1 p-0 text-center my-btn">
-          <svg class="my-icon my-icon-lg align-bottom" data-action="date-change"
+      <div class="my-edit-date-row">
+        <div class="my-edit-date-btn-col my-btn">
+          <svg class="my-icon my-icon-lg my-align-bottom" data-action="date-change"
              data-days="-1">
             <use href="{{ static_url('icons/icons.svg') }}#circle-up"></use>
           </svg>
         </div>
-        <div class="col-1 p-0 text-center my-btn">
-          <svg class="my-icon my-icon-lg align-bottom" data-action="date-today">
+        <div class="my-edit-date-btn-col my-btn">
+          <svg class="my-icon my-icon-lg my-align-bottom" data-action="date-today">
             <use href="{{ static_url('icons/icons.svg') }}#dot-circle"></use>
           </svg>
         </div>
-        <div class="col-1 p-0 text-center my-btn">
-          <svg class="my-icon my-icon-lg align-bottom" data-action="date-change"
+        <div class="my-edit-date-btn-col my-btn">
+          <svg class="my-icon my-icon-lg my-align-bottom" data-action="date-change"
              data-days="1">
             <use href="{{ static_url('icons/icons.svg') }}#circle-down"></use>
           </svg>
         </div>
 
-        <div class="col-9 p-1 text-start">
+        <div class="my-edit-date-input-col">
           <input id="date" name="date" type="date" value="{{ sde.date }}"
                  data-action="update-wday" />
           (<span id="wday" class="my-edit-wday">
             {{ date.strftime('%a') }}</span>)
-        </div><!-- col -->
-      </div><!-- row -->
+        </div><!-- my-edit-date-input-col -->
+      </div><!-- my-edit-date-row -->
 
       <!-- 時刻 -->
       {% set time_start_str = '' %}
       {% set time_end_str = '' %}
-      
+
       {% if sde.time_start %}
       {% set time_start_str = str(sde.time_start) %}
       {% end %}
@@ -145,8 +145,8 @@
       {% if sde.time_end %}
       {% set time_end_str = str(sde.time_end) %}
       {% end %}
-      <div class="row p-1 my-edit-row">
-        <div class="col">
+      <div class="my-edit-time-row">
+        <div class="my-edit-time-col">
           <input id="time_start" name="time_start"
                  class="my-input-time"
                  type="time" value="{{ time_start_str }}" />
@@ -154,55 +154,55 @@
           <input id="time_end" name="time_end"
                  class="my-input-time"
                  type="time" value="{{ time_end_str }}" />
-        </div><!-- col -->
-      </div><!-- row -->
+        </div><!-- my-edit-time-col -->
+      </div><!-- my-edit-time-row -->
 
       <!-- Type -->
-      <div class="row my-edit-row">
-        <div class="col">
+      <div class="my-edit-type-row">
+        <div class="my-edit-type-col">
           <span class="my-edit-bracket">【</span>
           <input id="sde_type" name="sde_type"
                  type="text" value="{{ sde.type }}"
                  class="my-input-type" />
           <span class="my-edit-bracket">】</span>
-        </div><!-- col -->
-      </div><!-- row -->
+        </div><!-- my-edit-type-col -->
+      </div><!-- my-edit-type-row -->
 
       <!-- タイトル -->
-      <div class="row my-edit-row">
-        <div class="col">
+      <div class="my-edit-title-row">
+        <div class="my-edit-title-col">
           <input id="title" name="title" class="my-input-full"
                  type="text" value="{{ sde.title }}" />
-        </div><!-- col -->
-      </div><!-- row -->
+        </div><!-- my-edit-title-col -->
+      </div><!-- my-edit-title-row -->
 
       <!-- 場所 -->
-      <div class="row my-edit-row">
-        <div class="col">
+      <div class="my-edit-place-row">
+        <div class="my-edit-place-col">
           @
           <input id="place" name="place" class="my-input-place"
                  type="text" value="{{ sde.place }}" size="30" />
-        </div><!-- col -->
-      </div><!-- row -->
+        </div><!-- my-edit-place-col -->
+      </div><!-- my-edit-place-row -->
 
       <!-- 詳細 -->
-      <div id="div_detail" class="row p-0 my-edit-row">
-        <div class="col p-0">
+      <div id="div_detail" class="my-edit-detail-row">
+        <div class="my-edit-detail-col">
           <textarea id="detail" name="detail" class="my-input-full"
                     data-action="update-detail">
             {{ sde.detail }}</textarea>
-        </div><!-- col -->
-      </div><!-- row -->
+        </div><!-- my-edit-detail-col -->
+      </div><!-- my-edit-detail-row -->
 
       <!-- ID -->
-      <div id="div_id" class="row text-end my-edit-id">
-        <div class="col p-0">
+      <div id="div_id" class="my-edit-id">
+        <div class="my-edit-id-col">
           <input id="sde_id" name="sde_id" size="15"
                  type="text" value="{{ sde.sde_id }}" readonly>
-        </div><!-- col -->
-      </div><!-- row -->
+        </div><!-- my-edit-id-col -->
+      </div><!-- my-edit-id -->
 
-    </div><!-- container -->
+    </div><!-- my-edit-form-body -->
   </form>
 </main>
 {% end %}

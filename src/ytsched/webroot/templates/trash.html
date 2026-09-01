@@ -3,22 +3,22 @@
 {% block content %}
 <script type="text/javascript"
         src="{{ static_url('js/trash-page.js') }}"></script>
-<header class="container-fluid p-2 fixed-top my-bar">
-  <div class="row my-row-middle">
-    <div class="col-2">
+<header class="my-trash-header">
+  <div class="my-trash-header-row my-row-middle">
+    <div class="my-trash-back-col">
       <a href="{{ url_prefix }}" class="my-btn" aria-label="一覧へ戻る">
         <svg class="my-icon my-icon-2x"><use href="{{ static_url('icons/icons.svg') }}#reply"></use></svg>
       </a>
     </div>
-    <div class="col-6 text-center">
+    <div class="my-trash-title-col">
       <span class="my-trash-title">ゴミ箱</span>
       <span class="my-fs-small">{{ entry_count }}件</span>
     </div>
-    <div class="col-2 text-end">
+    <div class="my-trash-select-col my-row-end">
       <input id="trash-select-all" class="my-trash-select" type="checkbox"
              aria-label="表示中をすべて選択"{% if not entry_count %} disabled{% end %}>
     </div>
-    <div class="col-2 text-end">
+    <div class="my-trash-delete-col my-row-end">
       <form id="trash-delete-form" action="{{ url_prefix }}trash" method="POST">
         <input type="hidden" name="cmd" value="delete_many">
         <button class="my-btn my-trash-delete" type="submit" aria-label="選択した項目を完全に削除" disabled>
@@ -28,9 +28,9 @@
     </div>
   </div>
 </header>
-<main class="container-fluid my-trash-main my-edit-body">
+<main class="my-trash-main my-edit-body">
   {% if not groups %}
-  <div class="my-fs-small text-center">ゴミ箱は空です</div>
+  <div class="my-fs-small my-trash-empty">ゴミ箱は空です</div>
   {% end %}
   {% for group in groups %}
   <section class="my-trash-group">
@@ -39,12 +39,12 @@
     {% end %}
     {% for entry in group %}
     {% set sde = entry.sde %}
-    <article class="my-sde my-sde-normal border my-trash-entry">
-      <div class="row m-0 p-1">
-        <div class="col-3 p-0 my-fs-small">{{ sde.date.strftime('%Y/%m/%d (%a)') }}</div>
-        <div class="col-2 p-0 my-fs-small">{{ sde.get_timestr() }}</div>
-        <div class="col-4 p-0 text-truncate"><span class="my-sde-type">【{{ sde.type }}】</span> <span class="my-sde-title">{{ sde.title }}</span></div>
-        <div class="col-3 p-0 text-end my-trash-actions">
+    <article class="my-sde my-sde-normal my-trash-entry">
+      <div class="my-trash-entry-row">
+        <div class="my-trash-date-col my-fs-small">{{ sde.date.strftime('%Y/%m/%d (%a)') }}</div>
+        <div class="my-trash-time-col my-fs-small">{{ sde.get_timestr() }}</div>
+        <div class="my-trash-entry-summary"><span class="my-sde-type">【{{ sde.type }}】</span> <span class="my-sde-title">{{ sde.title }}</span></div>
+        <div class="my-trash-actions">
           <form action="{{ url_prefix }}trash" method="POST">
             <input type="hidden" name="cmd" value="restore">
             <input type="hidden" name="sde_id" value="{{ sde.sde_id }}">
@@ -59,9 +59,9 @@
                  aria-label="{{ sde.title }}を選択">
         </div>
       </div>
-      {% if sde.place %}<div class="my-sde-place text-truncate px-1">@{{ sde.place }}</div>{% end %}
-      {% if sde.detail %}<div class="my-trash-detail px-1">{{ sde.detail }}</div>{% end %}
-      <div class="my-fs-x-small px-1">{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
+      {% if sde.place %}<div class="my-sde-place">@{{ sde.place }}</div>{% end %}
+      {% if sde.detail %}<div class="my-trash-detail">{{ sde.detail }}</div>{% end %}
+      <div class="my-fs-x-small">{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
     </article>
     {% end %}
   </section>

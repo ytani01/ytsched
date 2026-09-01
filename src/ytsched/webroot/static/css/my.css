@@ -1,16 +1,31 @@
 /*
  * ytsched のスタイルシート。
  *
- * Bootstrap をやめた (TODO-047) ので、これまで Bootstrap に任せていた
- * 土台の指定 (reboot) と、テンプレートで使っているユーティリティの
- * クラスは、このファイルが持っている。それらの値は
- * Bootstrap 5.3.8 (MIT License, Copyright (c) 2011-2025 The Bootstrap
- * Authors) から写した。ライセンス文書は
+ * クラス名は、テンプレートの要素ごとに 1 つの役割クラスにまとめてある
+ * (TODO-146)。以前は Bootstrap 5.3.8 由来のユーティリティクラス
+ * (``container-fluid`` ``row`` ``col-N`` ``p-*`` ``m-*`` ``text-*`` など)
+ * を重ね掛けしていたが、いまはテンプレートに ``my-`` で始まる役割クラスの
+ * 名前しか出てこない。
+ *
+ * それでも、Bootstrap の MIT 表記は消せない。写したのはクラス名では
+ * なく値のほうで、しかも大半は要素セレクタ (土台 / reboot) に付いている:
+ *
+ * - 土台 (``body`` ``b, strong`` ``img, svg`` ``label`` など、要素
+ *   セレクタなのでクラス名を変えても影響しない)
+ * - ``--my-body-font-family`` のフォント指定一式
+ * - ``.my-error-box`` の配色、``.my-sde`` の枠線の色 ``#dee2e6``
+ *   (旧 ``border``)、``border-radius: .375rem``、
+ *   ``z-index: 1030`` (旧 ``fixed-top``/``fixed-bottom``)、
+ *   グリッドのガター ``1.5rem`` (旧 ``--bs-gutter-x``)
+ *
+ * 値は Bootstrap 5.3.8 (MIT License, Copyright (c) 2011-2025 The
+ * Bootstrap Authors) から写した。ライセンス文書は
  * ``docs/licenses/bootstrap-LICENSE`` にある。
  *
- * 並び順に意味がある。Bootstrap から写したクラスを前に、``my-`` で
- * 始まるこのアプリ固有のクラスを後ろに置く。詳細度が同じなので後ろが
- * 勝ち、``!important`` を書かずに済む (TODO-047)。
+ * 以前あった「Bootstrap 由来のクラスを前に、``my-`` のクラスを後ろに
+ * 置いて詳細度で勝たせる」という並び順の決まりは、ユーティリティの
+ * 重ね掛けをやめたのでもう無い。1 要素 1 クラスなので、他の役割クラスと
+ * 競合することが無く、``!important`` はもう要らない (TODO-146 で削除)。
  */
 
 :root {
@@ -28,10 +43,11 @@
         "Noto Color Emoji";
 
     /*
-     * グリッドのガター (溝)。Bootstrap の ``--bs-gutter-x`` と同じ値で、
-     * その半分を ``.row`` の負のマージンと ``.row > *`` ・
-     * ``.container-fluid`` のパディングに使う。``p-*`` ``m-*`` は
-     * これを打ち消すためのもの。
+     * グリッドのガター (溝)。Bootstrap の ``--bs-gutter-x`` と同じ値
+     * (TODO-146 で役割クラスへ畳み込む前は、``.row`` の負のマージンと
+     * ``.row > *`` ・``.container-fluid`` のパディングに使っていた)。
+     * いまは、余白を上書きしていない列 (``.my-version-info`` など) の
+     * パディングに使っている。
      */
     --my-gutter-x: 1.5rem;
 }
@@ -113,52 +129,93 @@ textarea {
 }
 
 /* ===================================================================
- * ユーティリティ (Bootstrap から写したもの)
+ * ヘッダー・フッターの帯と、その中の行・列 (TODO-146)。
  *
- * この中でも順番に意味がある。``.container-fluid`` ``.row`` ``.alert``
- * が付けた余白を ``p-*`` ``m-*`` が打ち消すので、余白の指定はそれらの
- * 後ろに置くこと。
+ * どの行も、中身の合計がちょうど 12 列で折り返しは起きていないので、
+ * 12 列の CSS Grid のまま役割クラスへ畳み込んである (TODO-047 の
+ * ``.row``/``.col-N`` と同じ考え方)。トラックを ``minmax(0, 1fr)`` に
+ * し、列に ``min-width: 0`` を付けているのは、Grid の子の既定が
+ * ``min-width: auto`` で中身の長さに押し広げられてしまうため
+ * (TODO-045)。``.my-longtext`` の ``text-overflow`` はこれが無いと
+ * 効かない。
  * =================================================================== */
 
-.container-fluid {
+/* 週バー (TODO-055)。横ゲージと、日付欄を出す */
+.my-week-bar {
     width: 100%;
-    padding-right: calc(var(--my-gutter-x) * .5);
-    padding-left: calc(var(--my-gutter-x) * .5);
+    padding: .25rem;
+    margin-right: auto;
+    margin-left: auto;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    color: white;
+    background-color: #48C;
+}
+
+.my-week-bar-date-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin: 0;
+}
+
+.my-week-bar-date-col {
+    grid-column: span 12;
+    min-width: 0;
+    padding: .25rem;
+    text-align: center;
+}
+
+/* 知らせの枠 (不正な正規表現の知らせで使っている) */
+.my-error-box {
+    position: relative;
+    padding: .25rem;
+    margin: 0;
+    color: #58151c;
+    background-color: #f8d7da;
+    border: 1px solid #f1aeb5;
+    border-radius: .375rem;
+    text-align: center;
+}
+
+/* 一覧のメインコンテンツ (知らせ・検索バー・週間/月間表示) の入れ物 */
+.my-main-content {
+    width: 100%;
+    padding: 0;
     margin-right: auto;
     margin-left: auto;
 }
 
-/*
- * ``row`` / ``col-N`` は 12 列の CSS Grid。Bootstrap では flexbox
- * (``display: flex`` と ``width: N/12``) だったが、どの ``row`` も子の
- * 合計がちょうど 12 列で折り返しは起きていないので、Grid にしても
- * 見た目は変わらない (TODO-047)。
- *
- * トラックを ``minmax(0, 1fr)`` にし、``.row > *`` に ``min-width: 0``
- * を付けているのは、Grid の子も flex の子と同じで既定が
- * ``min-width: auto`` で、中身の長さに押し広げられてしまうため
- * (TODO-045)。``.longtext`` の ``text-overflow`` はこれが無いと効かない。
- */
-.row {
+/* 検索期間・件数のバー (TODO-116) */
+.my-search-bar {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    margin-top: 0;
-    margin-right: calc(-.5 * var(--my-gutter-x));
-    margin-left: calc(-.5 * var(--my-gutter-x));
+    margin: 0;
+    color: white;
+    background-color: #48C;
 }
 
-.row > * {
-    grid-column: span 12;
+.my-search-prev {
+    grid-column: span 2;
     min-width: 0;
-    padding-right: calc(var(--my-gutter-x) * .5);
-    padding-left: calc(var(--my-gutter-x) * .5);
+    padding: 0;
+    text-align: center;
+}
+
+.my-search-info {
+    grid-column: span 10;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
 }
 
 /*
  * 行の中身を、高さに関係なく上下の中央で揃える (TODO-067)。
  *
- * ``.row`` は Grid で、列は ``align-self: stretch`` で行の高さいっぱいに
- * なる。その中身をインラインのまま ``vertical-align`` で揃えると、高さの
+ * 行は Grid で、列は ``align-self: stretch`` で行の高さいっぱいになる。
+ * その中身をインラインのまま ``vertical-align`` で揃えると、高さの
  * 違う要素 (入力欄 25.5px・select 21px・アイコン 20px) は中心で揃わない。
  * 列を flex にすれば、高さに関係なく中央で揃う。
  *
@@ -175,146 +232,107 @@ textarea {
     gap: 0.25em;
 }
 
-.my-row-middle > .text-end,
-.my-row-middle > .text-end form {
+/* ``.my-row-middle`` の中で、右へ寄せたい列につける (旧 ``text-end``)。
+   検索欄の列 (main.html) と、ゴミ箱ヘッダーの選択・削除の列
+   (trash.html) の 3 か所で使う */
+.my-row-middle > .my-row-end,
+.my-row-middle > .my-row-end form {
     justify-content: flex-end;
 }
 
-/* 数字なしの ``col`` は 12 列ぶん。1 行に 1 つだけ置いて使っている。
-   使っていない番号もあるが、途中が抜けているほうが分かりにくいので
-   12 列ぶんそろえてある */
-.col {
-    grid-column: span 12;
-}
-
-.col-1 {
-    grid-column: span 1;
-}
-
-.col-2 {
-    grid-column: span 2;
-}
-
-.col-3 {
-    grid-column: span 3;
-}
-
-.col-4 {
-    grid-column: span 4;
-}
-
-.col-5 {
-    grid-column: span 5;
-}
-
-.col-6 {
-    grid-column: span 6;
-}
-
-.col-7 {
-    grid-column: span 7;
-}
-
-.col-8 {
-    grid-column: span 8;
-}
-
-.col-9 {
-    grid-column: span 9;
-}
-
-.col-10 {
-    grid-column: span 10;
-}
-
-.col-11 {
-    grid-column: span 11;
-}
-
-.col-12 {
-    grid-column: span 12;
-}
-
-/* 知らせの枠 (不正な正規表現の知らせで使っている) */
-.alert {
-    position: relative;
-    padding: 1rem 1rem;
-    margin-bottom: 1rem;
-    color: inherit;
-    background-color: transparent;
-    border: 1px solid transparent;
-    border-radius: .375rem;
-}
-
-.alert-danger {
-    color: #58151c;
-    background-color: #f8d7da;
-    border-color: #f1aeb5;
-}
-
-/* 余白。↑ の余白を打ち消すので、↑ より後に置くこと */
-.p-0 {
-    padding: 0;
-}
-
-.p-1 {
-    padding: .25rem;
-}
-
-.p-2 {
-    padding: .5rem;
-}
-
-.m-0 {
+/* メニューバーのナビゲーション行 */
+.my-menu-nav-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     margin: 0;
 }
 
-.m-1 {
-    margin: .25rem;
-}
-
-/* 文字 */
-.text-start {
-    text-align: left;
-}
-
-.text-end {
-    text-align: right;
-}
-
-.text-center {
+.my-menu-hamburger-col {
+    grid-column: span 2;
+    min-width: 0;
+    padding: 0;
     text-align: center;
 }
 
-.fw-bold {
-    font-weight: 700;
+.my-menu-hamburger-label {
+    margin: 0;
 }
 
-/* 隠す指定。後ろの ``my-*`` に負けると困るので、ここだけ
-   ``!important`` を残してある (TODO-047) */
-.d-none {
-    display: none !important;
+/* 週送り (back/forward) 共通の列 */
+.my-menu-nav-col {
+    grid-column: span 1;
+    min-width: 0;
+    padding: 0;
+    text-align: center;
 }
 
-.border {
-    border: 1px solid #dee2e6;
+.my-menu-home-col {
+    grid-column: span 3;
+    min-width: 0;
+    padding: 0;
+    text-align: center;
 }
 
-.fixed-bottom {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1030;
+.my-menu-search-col {
+    grid-column: span 5;
+    min-width: 0;
+    padding: 0;
+    text-align: right;
 }
 
-/* 週バーで使っている (TODO-055) */
-.fixed-top {
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 1030;
+/* チェックボックス自体は見せない (メニューの開閉スイッチ) */
+.my-menu-sw-hidden {
+    display: none;
+}
+
+/* バージョン表示の行 */
+.my-version-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin: .25rem;
+}
+
+.my-version-info {
+    grid-column: span 6;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+}
+
+.my-version-copy {
+    grid-column: span 6;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+    text-align: right;
+}
+
+/* フッターのアイコン行 (ゴミ箱・ToDo 日数・フィルタ) */
+.my-footer-icons-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin: .25rem;
+}
+
+.my-footer-trash-col {
+    grid-column: span 4;
+    min-width: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.my-footer-todo-col {
+    grid-column: span 3;
+    min-width: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.my-footer-filter-col {
+    grid-column: span 5;
+    min-width: 0;
+    padding: 0;
+    text-align: center;
 }
 
 /* ===================================================================
@@ -322,27 +340,114 @@ textarea {
  * 上のユーティリティと詳細度が同じなので、こちらが勝つ。
  * =================================================================== */
 
-.my-bar {
-    color: white;
-    background-color: #48C;
-}
-
 /*
  * ``a`` の既定の青を打ち消し、バー内の操作アイコンを文字と揃える。
  * 下線も消す。アイコンだけのボタンでは見えないが、アイコンの横に
  * 文字を出すと下線が付いてしまうため (TODO-144)。
+ *
+ * 色・背景 (旧 ``.my-bar``) は、帯になっている役割クラスそれぞれに
+ * 畳み込んである (``.my-week-bar`` ``.my-search-bar`` ``.my-menu-bar``
+ * ``.my-bar-content`` ``.my-edit-bar`` ``.my-trash-header``。TODO-146)。
  */
-.my-bar a.my-btn {
+.my-bar-content a.my-btn,
+.my-trash-header a.my-btn {
     color: white;
     text-decoration: none;
+}
+
+/* ゴミ箱のヘッダー (旧 ``container-fluid p-2 fixed-top my-bar``) */
+.my-trash-header {
+    width: 100%;
+    padding: .5rem;
+    margin-right: auto;
+    margin-left: auto;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    color: white;
+    background-color: #48C;
+}
+
+/* ヘッダーの行 (旧 ``row``。パディングの上書きは無いので既定のまま) */
+.my-trash-header-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin-top: 0;
+    margin-right: calc(-.5 * var(--my-gutter-x));
+    margin-left: calc(-.5 * var(--my-gutter-x));
+}
+
+.my-trash-back-col {
+    grid-column: span 2;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+}
+
+.my-trash-title-col {
+    grid-column: span 6;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+    text-align: center;
+}
+
+.my-trash-select-col {
+    grid-column: span 2;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+    text-align: right;
+}
+
+.my-trash-delete-col {
+    grid-column: span 2;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+    text-align: right;
+}
+
+/* ゴミ箱の 1 件分の行 (旧 ``row m-0 p-1``) */
+.my-trash-entry-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin: 0;
+    padding: .25rem;
+}
+
+.my-trash-date-col {
+    grid-column: span 3;
+    min-width: 0;
+    padding: 0;
+}
+
+.my-trash-time-col {
+    grid-column: span 2;
+    min-width: 0;
+    padding: 0;
+}
+
+/* 種別・タイトルの列 (旧 ``col-4 p-0``) */
+.my-trash-entry-summary {
+    grid-column: span 4;
+    min-width: 0;
+    padding: 0;
 }
 
 .my-bar-content {
     position: fixed;
     bottom: -60px;
+    right: 0;
+    left: 0;
     width: 100%;
+    padding: 0;
     transition: all 0.05s;
-    /* ``.fixed-bottom`` の z-index: 1030 を打ち消す。
+    color: white;
+    background-color: #48C;
+    /* 旧 ``.fixed-bottom`` の z-index: 1030 を打ち消す。
        これが無いと、閉じているメニューがメニューバーの上に出る */
     z-index: 100;
 }
@@ -352,17 +457,19 @@ textarea {
 }
 
 /*
- * 幅は ``col-11`` (Grid の 11 列ぶん) に任せる。``width: auto`` に
- * すると中身の長さまで伸びて ``row`` が折り返し、閉じているときに
- * 2 行になってしまう (TODO-045)。中身に押し広げられないための
- * ``min-width: 0`` は、``.row > *`` にまとめてかけてある (TODO-047)。
+ * 幅は Grid の 11 列ぶん (旧 ``col-11``) に任せる。``width: auto`` に
+ * すると中身の長さまで伸びて行が折り返し、閉じているときに
+ * 2 行になってしまう (TODO-045)。
  *
- * **``.row`` の直接の子であること**が前提。``.row > *`` は孫には
- * 当たらないので、テンプレートの入れ子を深くすると
- * ``text-overflow: ellipsis`` が黙って効かなくなり、TODO-045 と
- * 同じ症状 (閉じているのに 2 行になる) に戻る。
+ * **予定 1 件の行 (``.my-sde-row``) の直接の子であること**が前提。
+ * ``min-width: 0`` は Grid の子の既定 (``min-width: auto``) を打ち消す
+ * ためのもので、これが無いと中身に押し広げられて
+ * ``text-overflow: ellipsis`` が黙って効かなくなる (TODO-045)。
  */
-.longtext {
+.my-longtext {
+    grid-column: span 11;
+    min-width: 0;
+    padding: 0;
     border: 1px solid #CCC;
     border-radius: 0px 0px 10px 0px;
     white-space: nowrap;
@@ -370,7 +477,7 @@ textarea {
     text-overflow: ellipsis;
 }
 
-.longtext-sw:checked ~ .longtext {
+.my-longtext-sw:checked ~ .my-longtext {
     border: 1px solid #CCC;
     border-radius: 0px 0px 10px 0px;
     white-space: pre-wrap;
@@ -378,8 +485,14 @@ textarea {
     text-overflow: clip;
 }
 
-.longtext-sw:checked ~ .longtext-sw-label {
+.my-longtext-sw:checked ~ .my-longtext-sw-label {
     transform: scale(1,-1);
+}
+
+/* 開閉スイッチ自体は見せない (旧 ``d-none``)。単一のセレクタで、他の
+   役割クラスと競合しないので ``!important`` は要らない (TODO-146) */
+.my-longtext-sw {
+    display: none;
 }
 
 .my-btn:active {
@@ -504,16 +617,17 @@ textarea {
  * 縦位置。inline 要素 (アイコン・入力欄) に付けるもので、Grid の
  * ``align-self`` とは別物。
  *
- * ``.my-icon`` の ``vertical-align: -0.125em`` と詳細度が同じなので、
- * ユーティリティの節に置くと後ろの ``.my-icon`` に負けて、アイコンに
- * 付けても効かない。それで、他のユーティリティから離してここに
- * 置いてある (TODO-067)。
+ * アイコンの並びごとに揃え方が違い (同じ ``.my-icon-xl`` でも付く
+ * 箇所と付かない箇所がある)、アイコン自身の役割クラスへは畳み込め
+ * ないので、修飾クラスとして残してある (TODO-146)。``.my-icon`` の
+ * ``vertical-align: -0.125em`` と詳細度が同じなので、後ろに置いて
+ * 勝たせる (TODO-067)。
  */
-.align-middle {
+.my-align-middle {
     vertical-align: middle;
 }
 
-.align-bottom {
+.my-align-bottom {
     vertical-align: bottom;
 }
 
@@ -684,8 +798,12 @@ textarea {
     transition: transform 0.2s ease-out;
 }
 
-/* 日付ごとのブロック (``.border`` より後なので、こちらが勝つ) */
+/* 1 日ぶんの行 (旧 ``row p-0 m-0 border``) */
 .my-date-block {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
     background-color: #EEE;
     border-radius: 0px 15px 15px 0px;
     border: 2px solid #888;
@@ -696,14 +814,34 @@ textarea {
     border: 4px solid #28F;
 }
 
+/* 日付欄の列 (旧 ``col-1 p-0 text-center``) */
 .my-date-col {
+    grid-column: span 1;
+    min-width: 0;
+    padding: 0;
+    text-align: center;
     border: 1px #888 solid;
     border-radius: 0px 10px 10px 0px;
 }
 
-/* 日付ブロックの中身 (年月・日・曜日・今日からの日数) */
+/* 予定の列 (旧 ``col-11 p-0``) */
+.my-day-entries {
+    grid-column: span 11;
+    min-width: 0;
+    padding: 0;
+}
+
+/* 日付ブロックの中身 (年月・日・曜日・今日からの日数)。
+   今日は太字にする (旧 ``fw-bold``)。年月・日・曜日・日数の 4 か所に
+   条件付きで付くだけなので、それぞれの役割クラスへは畳み込めない
+   (TODO-146) */
+.my-fw-bold {
+    font-weight: 700;
+}
+
 .my-date-ym {
     line-height: 12px;
+    text-align: left;
 }
 
 .my-date-year {
@@ -717,16 +855,19 @@ textarea {
 .my-date-day {
     font-size: large;
     line-height: 16px;
+    text-align: center;
 }
 
 .my-date-wday {
     font-size: x-small;
     line-height: 12px;
+    text-align: right;
 }
 
 .my-date-diff {
     font-size: x-small;
     line-height: 14px;
+    text-align: center;
 }
 
 /* 曜日ごとの背景色 (0:月曜 .. 6:日曜) */
@@ -758,7 +899,21 @@ textarea {
     background-color: #FFCCCC;
 }
 
+/* メニューバー本体 (旧 ``container-fluid p-2 fixed-bottom my-bar``) */
 .my-menu-bar {
+    width: 100%;
+    padding: .5rem;
+    margin-right: auto;
+    margin-left: auto;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    color: white;
+    background-color: #48C;
+    /* 旧 ``.fixed-bottom`` の z-index: 1030 を打ち消す。閉じている
+       メニュー (``.my-bar-content``) がこの上に出てしまわないための
+       値 (TODO-047)。 */
     z-index: 200;
 }
 
@@ -774,10 +929,23 @@ textarea {
     vertical-align: middle;
 }
 
-/* 予定 1 件分の枠。font-size: 0 は inline-flex 同士の隙間を消すためのもの */
+/* 予定 1 件分の枠 (旧 ``container-fluid p-0 border``)。
+   ``font-size: 0`` は inline-flex 同士の隙間を消すためのもの */
 .my-sde {
+    width: 100%;
+    padding: 0;
+    margin-right: auto;
+    margin-left: auto;
+    border: 1px solid #dee2e6;
     font-size: 0;
     border-radius: 0px 15px 15px 10px;
+}
+
+/* 予定 1 件の中の行 (本文の行・詳細の行の 2 か所で使う。旧 ``row m-0``) */
+.my-sde-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin: 0;
 }
 
 .my-sde-normal {
@@ -810,16 +978,34 @@ textarea {
     line-height: 12px;
 }
 
-/* 時刻の欄 */
+/* 時刻の欄 (旧 ``col-1 p-0 text-start``) */
 .my-sde-time {
+    grid-column: span 1;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
     font-size: xx-small;
     font-weight: bold;
     line-height: 12px;
 }
 
-/* ToDo の行の左端に出る □ */
+/* ToDo の行の左端に出る □ の列 (旧 ``col-1 p-1 text-center``) */
+.my-sde-check-col {
+    grid-column: span 1;
+    min-width: 0;
+    padding: .25rem;
+    text-align: center;
+}
+
 .my-sde-check {
     font-size: small;
+}
+
+/* 本文の列 (旧 ``col-11 p-0``) */
+.my-sde-content-col {
+    grid-column: span 11;
+    min-width: 0;
+    padding: 0;
 }
 
 .my-sde-type {
@@ -834,8 +1020,13 @@ textarea {
     font-size: small;
 }
 
-/* 詳細の開閉ラベル */
+/* 詳細の開閉ラベルの列 (旧 ``col-1 p-0 m-0 text-center``) */
 .my-sde-detail-sw {
+    grid-column: span 1;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    text-align: center;
     font-size: small;
     line-height: 10px;
 }
@@ -848,7 +1039,11 @@ textarea {
     margin: 1px;
 }
 
+/* 詳細の欄 (旧 ``col-11 p-0``) */
 .my-sde-detail {
+    grid-column: span 11;
+    min-width: 0;
+    padding: 0;
     font-size: x-small;
 }
 
@@ -879,6 +1074,11 @@ textarea {
     padding: 55px 0.5rem 0.5rem;
 }
 
+/* ゴミ箱が空のときの知らせ (旧 ``text-center``) */
+.my-trash-empty {
+    text-align: center;
+}
+
 .my-trash-group {
     margin-bottom: 0.75rem;
 }
@@ -900,7 +1100,12 @@ textarea {
     white-space: pre-wrap;
 }
 
+/* 復活・削除ボタンの列 (旧 ``col-3 p-0 text-end``) */
 .my-trash-actions {
+    grid-column: span 3;
+    min-width: 0;
+    padding: 0;
+    text-align: right;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -929,8 +1134,22 @@ textarea {
     accent-color: #C33;
 }
 
+/* 背景色。編集画面 (``.my-edit-form-body``) とゴミ箱 (``.my-trash-main``)
+   の両方に付く共通の役割クラス */
 .my-edit-body {
     background-color: #EEE;
+}
+
+/* 編集画面のフォームの入れ物 (旧 ``container-fluid``)。``.my-trash-main``
+   には無関係に、編集画面の要素にだけ付ける。``.my-trash-main`` 自身が
+   すでにパディングを持っているので、こちらへ混ぜると後勝ちで
+   トラッシュ画面のパディングを上書きしてしまう (TODO-146) */
+.my-edit-form-body {
+    width: 100%;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+    margin-right: auto;
+    margin-left: auto;
 }
 
 /*
@@ -945,6 +1164,7 @@ textarea {
     justify-content: center;
     align-items: center;
     gap: 0.75rem;
+    margin: .25rem;
 }
 
 /* 指で押しやすいように、アイコンの左右にも当たり判定を持たせる */
@@ -953,9 +1173,93 @@ textarea {
     text-align: center;
 }
 
-/* 編集フォームの 1 行 */
-.my-edit-row {
+/*
+ * 編集フォームの行 (旧 ``row``) と列 (旧 ``col-N``)。
+ *
+ * 行ごとに、それ自身へ付けていたパディング (``p-1``/``p-0``/無し) が
+ * 違うので、``.my-edit-row`` 1 つにはまとめられない (TODO-146)。
+ * ``font-size: large`` は全部の行に共通なので、まとめて指定する。
+ */
+.my-edit-date-row,
+.my-edit-time-row,
+.my-edit-type-row,
+.my-edit-title-row,
+.my-edit-place-row,
+.my-edit-detail-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin-top: 0;
+    margin-right: calc(-.5 * var(--my-gutter-x));
+    margin-left: calc(-.5 * var(--my-gutter-x));
     font-size: large;
+}
+
+.my-edit-date-row,
+.my-edit-time-row {
+    padding: .25rem;
+}
+
+.my-edit-detail-row {
+    padding: 0;
+}
+
+/* 日付調整ボタン 3 つ共通の列 (旧 ``col-1 p-0 text-center``) */
+.my-edit-date-btn-col {
+    grid-column: span 1;
+    min-width: 0;
+    padding: 0;
+    text-align: center;
+}
+
+/* 日付入力欄の列 (旧 ``col-9 p-1 text-start``) */
+.my-edit-date-input-col {
+    grid-column: span 9;
+    min-width: 0;
+    padding: .25rem;
+    text-align: left;
+}
+
+/* 時刻の列 (旧 ``col p-0`` は無く、``.row > *`` のパディングのまま) */
+.my-edit-time-col {
+    grid-column: span 12;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+}
+
+/* 種別・タイトル・場所の列 (同上) */
+.my-edit-type-col,
+.my-edit-title-col,
+.my-edit-place-col {
+    grid-column: span 12;
+    min-width: 0;
+    padding-right: calc(var(--my-gutter-x) * .5);
+    padding-left: calc(var(--my-gutter-x) * .5);
+}
+
+/* 詳細の列 (旧 ``col p-0``) */
+.my-edit-detail-col {
+    grid-column: span 12;
+    min-width: 0;
+    padding: 0;
+}
+
+/* ID の行 (旧 ``row text-end``) と列 (旧 ``col p-0``)。
+   ``text-align`` は継承するので、行に付ければ列の中の入力欄まで届く */
+.my-edit-id {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin-top: 0;
+    margin-right: calc(-.5 * var(--my-gutter-x));
+    margin-left: calc(-.5 * var(--my-gutter-x));
+    text-align: right;
+    font-size: x-small;
+}
+
+.my-edit-id-col {
+    grid-column: span 12;
+    min-width: 0;
+    padding: 0;
 }
 
 /* 種別を囲む 【 】 */
@@ -965,10 +1269,6 @@ textarea {
 
 .my-edit-wday {
     font-size: small;
-}
-
-.my-edit-id {
-    font-size: x-small;
 }
 
 .my-input-time {
@@ -985,6 +1285,21 @@ textarea {
 
 .my-input-full {
     width: 100%;
+}
+
+/* 編集画面のボタンの帯 (旧 ``container-fluid p-0 fixed-bottom my-bar``) */
+.my-edit-bar {
+    width: 100%;
+    padding: 0;
+    margin-right: auto;
+    margin-left: auto;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    color: white;
+    background-color: #48C;
 }
 
 /*

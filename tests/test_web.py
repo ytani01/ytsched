@@ -580,7 +580,9 @@ class TestWeekBar(WebTestBase):
 
     def week_bar(self, body):
         """帯の中身を返す。帯が無ければ ``None``。"""
-        m = re.search(r'id="week_bar".*?<!-- container -->', body, re.DOTALL)
+        m = re.search(
+            r'id="week_bar".*?<!-- my-week-bar -->', body, re.DOTALL
+        )
         if m is None:
             return None
         return m.group(0)

@@ -67,7 +67,7 @@ DEF_OUTDIR = "~/tmp/playwright-mcp"
 DEF_CHROMIUM = "/usr/bin/chromium"
 
 #: ``--open`` で開くもの。詳細 (detail) の開閉スイッチ
-DEF_TOGGLE = "input.longtext-sw"
+DEF_TOGGLE = "input.my-longtext-sw"
 
 
 def shoot(

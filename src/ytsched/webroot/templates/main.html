@@ -26,7 +26,7 @@
        検索モードでは出さない。検索結果は日付が飛び飛びで週の区切りに
        合わず、期間は下の「検索期間・件数」が出しているため -->
   {% if not search_mode %}
-  <div id="week_bar" class="container-fluid p-1 fixed-top my-bar">
+  <div id="week_bar" class="my-week-bar">
     <!-- 横ゲージ (TODO-058)。タップ・クリックしたら、その位置が指す
          週の月曜へ移る (TODO-074)。日付セルなどと同じイベント委譲で
          登録し、mouseDownHdr()/mouseUpHdr() (swipe.js) にドラッグと
@@ -50,20 +50,20 @@
       <!-- 目盛り (.my-gauge-label) は、読み込み時に JavaScript の
            dispGaugeMarks() が描く (TODO-078) -->
     </div>
-    <div class="row m-0 mt-1">
-      <div class="col-12 p-1 text-center">
+    <div class="my-week-bar-date-row">
+      <div class="my-week-bar-date-col">
         <input id="header_date" name="date" type="date" value="{{ date }}"
           data-action="date-get" />
       </div>
     </div>
-  </div><!-- container -->
+  </div><!-- my-week-bar -->
   {% end %}
 
-  <div class="container-fluid p-0">
+  <div class="my-main-content">
 
     <!-- 不正な正規表現の知らせ (TODO-012) -->
     {% if filter_error or search_error %}
-    <div class="alert alert-danger p-1 m-0 text-center my-fs-small">
+    <div class="my-error-box my-fs-small">
       <svg class="my-icon">
         <use href="{{ static_url('icons/icons.svg') }}#warning"></use>
       </svg>
@@ -90,20 +90,20 @@
     {% set delta_from = (date_from - date) / date.resolution %}
     {% set delta_to = (date_to - date) / date.resolution %}
 
-    <div class="row m-0 my-bar">
+    <div class="my-search-bar">
       <!-- backward -->
-      <div class="col-2 p-0 text-center my-btn" data-action="search-prev"
+      <div class="my-search-prev my-btn" data-action="search-prev"
         data-date="{{ date }}" data-days="{{ str(date_from - date_to)[:-14] }}">
-        <svg class="my-icon my-icon-lg align-middle">
+        <svg class="my-icon my-icon-lg my-align-middle">
           <use href="{{ static_url('icons/icons.svg') }}#search"></use>
         </svg><br />
-        <svg class="my-icon my-icon-lg align-middle">
+        <svg class="my-icon my-icon-lg my-align-middle">
           <use href="{{ static_url('icons/icons.svg') }}#circle-up-fill"></use>
         </svg>
-      </div><!-- col -->
+      </div><!-- my-search-prev -->
 
       <!-- 検索期間・件数 -->
-      <div class="col-10 p-0 text-start">
+      <div class="my-search-info">
         <span class="my-fs-large">
           {{ date_from.strftime('%Y/%m/%d') }}
         </span>
@@ -174,7 +174,7 @@
        ``popstateHdr()``) の役目になった。日付は週をまたいで重複
        しないので、``id`` は全部に付いていてよい #}
     <div id="date-{{ sched_date }}"
-      class="row p-0 m-0 border {{ class_date_block }}">
+      class="{{ class_date_block }}">
 
       <!-- 日付 -->
       {% set weekday = sched_date.weekday() %}
@@ -188,17 +188,17 @@
          検索モードのときは今までどおり、その日の週へ移って検索を解除
          する。検索の解除 (``search_str`` を空で送る) は conf.json を
          書き換えるので POST。URL には載せない (TODO-050) #}
-      <div class="col-1 p-0 text-center my-btn my-date-col
+      <div class="my-btn my-date-col
                   my-wday-{{ weekday }}"
         {% if search_mode %}data-action="date-post"{% else %}data-action="date-edit"{% end %}
         data-date="{{ sched_date }}">
 
         {% set class_today = '' %}
         {% if today_flag %}
-        {% set class_today = 'fw-bold' %}
+        {% set class_today = 'my-fw-bold' %}
         {% end %}
 
-        <div class="text-start my-date-ym {{ class_today }}">
+        <div class="my-date-ym {{ class_today }}">
           <span class="my-date-year">
             {{ sched_date.strftime('%Y') }}
           </span>
@@ -207,26 +207,26 @@
             {{ sched_date.strftime('%m/') }}
           </span>
         </div>
-        <div class="text-center my-date-day {{ class_today }}">
+        <div class="my-date-day {{ class_today }}">
           {{ '%02d' % sched_date.day }}
         </div>
-        <div class="text-end my-date-wday {{ class_today }}">
+        <div class="my-date-wday {{ class_today }}">
           ({{ sched_date.strftime('%a') }})
         </div>
         {% set days = (sched_date - today).days %}
-        <div class="text-center my-date-diff {{ class_today }}">
+        <div class="my-date-diff {{ class_today }}">
           {{ '%+d' % days }}
         </div>
       </div>
 
       <!-- スケジュール -->
-      <div class="col-11 p-0">
+      <div class="my-day-entries">
         <!-- Schedule -->
         {% for sde in sched_ent.sde %}
         {% include sde.html %}
         {% end %}
-      </div><!-- col -->
-    </div><!-- row -->
+      </div><!-- my-day-entries -->
+    </div><!-- date_block -->
 
     {% end %}<!-- for sched_ent -->
 
@@ -266,47 +266,46 @@
     </div><!-- my-week-viewport -->
     {% end %}<!-- if view == 'month' -->
 
-  </div><!-- container -->
+  </div><!-- my-main-content -->
 </main>
 <footer>
   <!-- menu bar -->
   <div id="menu_bar"
-    class="container-fluid p-2 fixed-bottom my-bar my-menu-bar
-           my-follow-keyboard">
-    <div class="row m-0 my-row-middle">
+    class="my-menu-bar my-follow-keyboard">
+    <div class="my-menu-nav-row my-row-middle">
 
       <!-- menu_sw -->
-      <div class="col-2 p-0 text-center">
-        <label for="menu-sw" class="m-0 my-btn">
+      <div class="my-menu-hamburger-col">
+        <label for="menu-sw" class="my-menu-hamburger-label my-btn">
           &nbsp;
-          <svg class="my-icon my-icon-xl align-middle">
+          <svg class="my-icon my-icon-xl my-align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#bars"></use>
           </svg>
           &nbsp;
           &nbsp;
         </label>
-      </div><!-- col -->
+      </div><!-- my-menu-hamburger-col -->
 
       <!-- back (ダブルタップで自動ページ送り。TODO-084。
            リスナーの登録は main-page.js) -->
-      <div id="back_button" class="col-1 p-0 text-center my-btn"
+      <div id="back_button" class="my-menu-nav-col my-btn"
         data-page-turn="-1">
         <svg class="my-icon my-icon-xl">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-left"></use>
         </svg>
-      </div><!-- col -->
+      </div><!-- my-menu-nav-col -->
 
       <!-- forward (ダブルタップで自動ページ送り。TODO-084) -->
-      <div id="forward_button" class="col-1 p-0 text-center my-btn"
+      <div id="forward_button" class="my-menu-nav-col my-btn"
         data-page-turn="1">
         <svg class="my-icon my-icon-xl">
           <use href="{{ static_url('icons/icons.svg') }}#chevron-right"></use>
         </svg>
-      </div><!-- col -->
+      </div><!-- my-menu-nav-col -->
 
       <!-- home -->
       <div id="home_button"
-        class="col-3 p-0 text-center my-btn"
+        class="my-menu-home-col my-btn"
         data-action="home">
         <span class="my-home-date">
           {{ today.year }}<br />
@@ -316,25 +315,25 @@
           </span><br />
           &nbsp;&nbsp; {{ today.strftime('(%a)') }}
         </span>
-        <svg class="my-icon my-icon-home align-middle">
+        <svg class="my-icon my-icon-home my-align-middle">
           <use href="{{ static_url('icons/icons.svg') }}#home"></use>
         </svg>
-      </div><!-- col -->
+      </div><!-- my-menu-home-col -->
 
       <!-- search -->
-      <div class="col-5 p-0 text-end my-fs-medium">
+      <div class="my-menu-search-col my-fs-medium my-row-end">
         <form id="form_search" name="form_search"
           action="{{ url_prefix }}" method="POST">
 
-          <svg class="my-icon my-icon-xl my-btn align-middle"
+          <svg class="my-icon my-icon-xl my-btn my-align-middle"
             data-action="submit-form" data-form-id="form_search">
             <use href="{{ static_url('icons/icons.svg') }}#search"></use>
           </svg>
           <input id="search_str" name="search_str"
             type="text" size="6"
-            class="my-fs-small align-middle"
+            class="my-fs-small my-align-middle"
             value="{{ search_str }}" />
-          <svg class="my-icon my-icon-xl my-btn align-middle"
+          <svg class="my-icon my-icon-xl my-btn my-align-middle"
             data-action="clear-search">
             <use href="{{ static_url('icons/icons.svg') }}#backspace"></use>
           </svg>
@@ -342,47 +341,47 @@
           <input id="cur_day" name="cur_day"
             type="hidden" value="{{ date }}" />
         </form>
-      </div><!-- col -->
+      </div><!-- my-menu-search-col -->
 
-    </div><!-- row -->
-  </div><!-- container -->
+    </div><!-- my-menu-nav-row -->
+  </div><!-- my-menu-bar -->
 
-  <input id="menu-sw" type="checkbox" class="d-none">
+  <input id="menu-sw" type="checkbox" class="my-menu-sw-hidden">
 
-  <div class="container-fluid p-0 fixed-bottom my-bar my-bar-content">
+  <div class="my-bar-content">
 
-    <div class="row m-1">
-      <div class="col-6 my-fs-small">
+    <div class="my-version-row">
+      <div class="my-version-info my-fs-small">
         Version {{ version }}
         <span class="my-fs-xx-small">
           ({{ cache_size }})</span>
       </div>
-      <div class="col-6 text-end my-fs-small">
+      <div class="my-version-copy my-fs-small">
         (c) 2026 <strong>{{ author }}</strong>
       </div>
-      
-    </div><!-- row -->
-    <div class="row m-1 my-row-middle">
 
-      <div class="col-4 p-0 text-center">
+    </div><!-- my-version-row -->
+    <div class="my-footer-icons-row my-row-middle">
+
+      <div class="my-footer-trash-col">
         <a class="my-btn{% if not trash_count %} my-btn-disabled{% end %}"
           {% if trash_count %}href="{{ url_prefix }}trash"{% end %}>
-          <svg class="my-icon my-icon-xl align-middle">
+          <svg class="my-icon my-icon-xl my-align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
           </svg>
-          <span class="my-fs-medium align-middle">
+          <span class="my-fs-medium my-align-middle">
             {{ trash_count }}</span>
         </a>
-      </div><!-- col -->
+      </div><!-- my-footer-trash-col -->
 
       <!-- ToDo days -->
-      <div class="col-3 p-0 text-center">
+      <div class="my-footer-todo-col">
         <form id="todo_days_form" name="todo_days_form"
           action="{{ url_prefix }}" method="POST">
-          <svg class="my-icon my-icon-xl align-middle">
+          <svg class="my-icon my-icon-xl my-align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#list"></use>
           </svg>
-          <select id="todo_days" name="todo_days" class="align-middle"
+          <select id="todo_days" name="todo_days" class="my-align-middle"
             data-action="submit-form" data-form-id="todo_days_form">
             {% for opt in todo_days_list %}
             {% if todo_days_list[opt] == todo_days_value %}
@@ -397,24 +396,24 @@
             {% end %}
           </select>
         </form>
-      </div><!-- col -->
+      </div><!-- my-footer-todo-col -->
 
       <!-- filter -->
-      <div class="col-5 p-0 text-center my-fs-medium">
+      <div class="my-footer-filter-col my-fs-medium">
         <form id="form_filter" name="form_filter"
           action="{{ url_prefix }}" method="POST">
-          <svg class="my-icon my-icon-xl my-btn align-middle"
+          <svg class="my-icon my-icon-xl my-btn my-align-middle"
             data-action="submit-form" data-form-id="form_filter">
             <use href="{{ static_url('icons/icons.svg') }}#filter"></use>
           </svg>
           <input id="filter_str" name="filter_str" type="text" size="7"
-            class="my-fs-small align-middle"
+            class="my-fs-small my-align-middle"
             value="{{ filter_str }}" />
           <input name="cur_day"
             type="hidden" value="{{ date }}" />
         </form>
-      </div><!-- col -->
-    </div><!-- row -->        
-  </div><!-- container -->
+      </div><!-- my-footer-filter-col -->
+    </div><!-- my-footer-icons-row -->
+  </div><!-- my-bar-content -->
 </footer>
 {% end %}
