@@ -782,7 +782,36 @@ def _open_search(page, server, tmp_path, today, search_n=1):
     page.evaluate("document.forms['form_search'].submit()")
     page.wait_for_load_state("load")
     page.wait_for_selector("#main", state="visible")
-    assert page.locator("#footer_date").count() == 0
+    _assert_search_screen(page)
+
+
+def _in_search_mode(page):
+    """検索モードで表示されているか（TODO-165）。
+
+    サーバは検索モードのときだけ ``#main`` に ``data-search-date-to`` を
+    付ける（``main.html``）。
+
+    TODO-164 では ``#footer_date`` の有無で見ていたが、あの欄は
+    TODO-119 で消えていて**どちらのモードでも 0 件**になる。検索モードか
+    どうかを何も見ていなかった。
+    """
+    return page.locator("#main[data-search-date-to]").count() > 0
+
+
+def _assert_search_screen(page):
+    """検索画面の見た目になっていること（週パネル 1 枚・週バー無し）。"""
+    assert _in_search_mode(page), "検索モードになっていない"
+    assert page.locator(".my-week-panel").count() == 1
+    assert page.locator("#week_bar").count() == 0
+
+
+def _assert_top_screen(page):
+    """トップ画面（検索していない週間表示）の見た目になっていること。"""
+    assert not _in_search_mode(page), "検索モードが解けていない"
+    assert page.locator("#search_str").input_value() == ""
+    assert page.locator("#week_bar").count() == 1
+    assert page.locator(".my-week-panel").count() > 1
+    assert page.locator("#main[data-view='month']").count() == 0
 
 
 def test_footer_forward_button_moves_search_date_by_a_week(
@@ -953,47 +982,61 @@ def test_tap_outside_stops_auto_page_turn_without_week_slide_in_search_mode(
     assert _date_in_url(page) == stopped_at
 
 
-def test_home_button_single_tap_still_reloads_search_screen(
-    page, server, tmp_path
-):
-    """検索画面でホームボタンを 1 回だけ押しても、今週の月曜へ読み直す
-    （TODO-164）。
+def _touch_tap(page, locator):
+    """``locator`` の中心を指で 1 回タップする（TODO-165）。
 
-    ダブルタップと判定するために 350 ミリ秒待つようにしたぶん、
-    2 回目が来ない「本当のシングルタップ」でも動くことを見る。
+    ``page.touchscreen.tap()`` は CDP でタッチを流し込むので、ブラウザが
+    ``touchstart``/``touchend`` に続けて ``mousedown``/``mouseup`` も
+    作る。``homeButtonHdr()`` は ``mousedown`` から呼ばれるので、JS で
+    組み立てた ``TouchEvent``（``_touch_swipe``）では届かない。
     """
-    today = datetime.date.today()
-    _open_search(page, server, tmp_path, today)
-
-    page.locator("#home_button").click()
-
-    monday = _monday_of(today)
-    page.wait_for_url(
-        lambda url: f"date={monday.strftime('%Y-%m-%d')}" in url,
-        timeout=10000,
+    box = locator.bounding_box()
+    assert box is not None
+    page.touchscreen.tap(
+        box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
     )
-    # 検索モードのまま（フッターの日付欄が無い＝検索画面）
-    assert page.locator("#footer_date").count() == 0
 
 
-def test_home_button_double_tap_reloads_search_screen_like_normal_view(
-    page, server, tmp_path
-):
-    """検索画面でホームボタンをダブルタップすると、週間表示のダブル
-    タップと同じ読み直し（``sde_align=top`` 付き）になる（TODO-164）。
+def _double_tap_home_in_search(page, tap, interval_msec=None):
+    """検索画面のホームボタンを 2 回タップする（TODO-165）。
 
-    検索画面はシングルタップ自体がページの読み直しを伴うので、
-    1 回目のタップで即座に動くと ``clickCount`` が消えてダブルタップを
-    判定できなかった。350 ミリ秒待ってから判定するようにして直した。
+    1 回目のタップで即座にページの読み直しが始まるので、2 回目が落ちる
+    先は間隔によって変わる。
+
+    - ``interval_msec`` が ``None``: 間を置かずに続けて押す。2 回目は
+      **読み直しの途中**（まだ生きている古いページ）に落ちる
+    - 数値: 読み直しが終わるのを待ってから、1 回目の ``interval_msec``
+      ミリ秒後に押す。2 回目は**読み直した先のページ**に落ちる
+
+    検索画面の読み直しにかかる時間（この開発機で 180〜360 ミリ秒）と
+    同じくらいの間隔は、2 回目が遷移の最中に落ちて Playwright からは
+    狙って置けない。その帯は ``None`` 側で代わりに見る。
+
+    **読み直しが間に合わないときは skip せずに落とす。** skip にすると、
+    主要な退行テストが黙って消える。
     """
-    today = datetime.date.today()
-    _open_search(page, server, tmp_path, today)
+    if interval_msec is None:
+        tap(page)
+        tap(page)
+        return
 
-    home = page.locator("#home_button")
-    _tap(page, home)
-    _tap(page, home)
+    start = time.monotonic()
+    _mark(page)
+    tap(page)
+    page.wait_for_function("() => window.__ytsched_mark !== 1", timeout=10000)
+    page.wait_for_selector("#main", state="visible")
 
-    monday = _monday_of(today)
+    elapsed = (time.monotonic() - start) * 1000
+    assert elapsed < interval_msec, (
+        f"1 回目の読み直しに {elapsed:.0f} ミリ秒かかり、"
+        f"{interval_msec} ミリ秒後の 2 回目を置けない"
+    )
+    page.wait_for_timeout(interval_msec - elapsed)
+    tap(page)
+
+
+def _wait_for_top_screen(page, monday):
+    """トップ画面（``monday`` の週、先頭合わせ）になるまで待つ。"""
     page.wait_for_url(
         lambda url: (
             f"date={monday.strftime('%Y-%m-%d')}" in url
@@ -1001,7 +1044,197 @@ def test_home_button_double_tap_reloads_search_screen_like_normal_view(
         ),
         timeout=10000,
     )
-    assert page.locator("#footer_date").count() == 0
+    page.wait_for_selector("#main", state="visible")
+
+
+def test_home_button_single_tap_still_reloads_search_screen(
+    page, server, tmp_path
+):
+    """検索画面でホームボタンを 1 回だけ押すと、検索を保ったまま今週の
+    月曜へ読み直す（TODO-164・TODO-165）。
+
+    TODO-165 で 1 回目の遅延（350 ミリ秒）をやめたので、ダブルタップの
+    判定を挟んでもシングルタップがそのまま効くことを見る。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+    _mark(page)
+
+    page.locator("#home_button").click()
+
+    # 今日が月曜だと、検索画面の URL がすでに date=<今週の月曜> なので、
+    # URL だけ見ても何も検証したことにならない。読み直しが起きたことを
+    # 目印で確かめる
+    page.wait_for_function("() => window.__ytsched_mark !== 1", timeout=10000)
+    page.wait_for_selector("#main", state="visible")
+
+    monday = _monday_of(today)
+    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+    # ダブルタップではないので sde_align は付かない
+    assert "sde_align=top" not in page.url
+    _assert_search_screen(page)
+    assert page.locator("#search_str").input_value() == "けんさくよう"
+
+
+def test_home_button_double_tap_returns_to_the_top_screen_from_search(
+    page, server, tmp_path
+):
+    """検索画面でホームボタンをダブルタップすると、トップ画面（今週の
+    週間表示）へ戻る（TODO-165）。
+
+    TODO-164 では ``sde_align=top`` を付けて ``doGet`` するだけだった。
+    検索モードかどうかはサーバが ``conf.json`` の ``SearchStr`` で決めて
+    いるので、**検索モードのまま基準日だけが動いていた**。
+    ``search_str`` を空にして POST するようにして直した。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    _double_tap_home_in_search(
+        page, lambda pg: _tap(pg, pg.locator("#home_button"))
+    )
+
+    _wait_for_top_screen(page, _monday_of(today))
+    _assert_top_screen(page)
+
+
+@pytest.mark.parametrize("interval_msec", [500, 600])
+def test_home_button_double_tap_by_touch_returns_to_the_top_screen(
+    page_touch, server, tmp_path, interval_msec
+):
+    """指でのダブルタップは、現実的な間隔でも成立する（TODO-165）。
+
+    TODO-164 の作りは 1 回目のタップから 350 ミリ秒後に読み直しを始めて
+    いたので、それより遅い 2 回目は読み直しに飲まれて消えた。実機で
+    成立したのはタップ間隔 270 ミリ秒までで、人の指には狭すぎた。
+    TODO-164 のテストがマウスの速いクリックしか再現しておらず、これを
+    見逃した。
+
+    間隔は、TODO-164 が落ちる 350 ミリ秒より広いところを取る。300 ミリ秒
+    あたりは検索画面の読み直しにかかる時間と重なって狙って置けないので、
+    その帯は
+    ``test_home_button_double_tap_returns_to_the_top_screen_from_search``
+    （間を置かずに 2 回）が見ている。
+    """
+    today = datetime.date.today()
+    _open_search(page_touch, server, tmp_path, today)
+
+    _double_tap_home_in_search(
+        page_touch,
+        lambda pg: _touch_tap(pg, pg.locator("#home_button")),
+        interval_msec,
+    )
+
+    _wait_for_top_screen(page_touch, _monday_of(today))
+    _assert_top_screen(page_touch)
+
+
+def test_home_button_tap_after_another_operation_is_not_a_double_tap(
+    page, server, tmp_path
+):
+    """検索画面で「ホーム → 別の操作 → ホーム」は、1 秒に収まっても
+    ダブルタップにしない（TODO-165）。
+
+    ダブルタップの記録はページの読み直しをまたいで残るので、捨てないと
+    「ホームを 1 回押しただけなのに検索が消えた」ことになる。ホーム
+    ボタン以外を押したら記録を捨てる（``homeTapPointerDownHdr()``）。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    page.locator("#home_button").click()
+    monday = _monday_of(today)
+    page.wait_for_selector("#main", state="visible")
+    page.wait_for_function(
+        "(date) => new URL(location.href).searchParams.get('date') === date",
+        arg=monday.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+
+    # 間に別の操作を挟む（1 週送り）。ここで記録が捨てられる
+    _mark(page)
+    page.locator("#forward_button").click()
+    page.wait_for_function("() => window.__ytsched_mark !== 1", timeout=10000)
+    page.wait_for_selector("#main", state="visible")
+
+    # 続けてホームを 1 回。ここまで 1 秒に収まっていてもシングル扱い
+    _mark(page)
+    page.locator("#home_button").click()
+    page.wait_for_function("() => window.__ytsched_mark !== 1", timeout=10000)
+    page.wait_for_selector("#main", state="visible")
+
+    _assert_search_screen(page)
+    assert page.locator("#search_str").input_value() == "けんさくよう"
+
+
+def test_home_button_double_tap_keeps_the_tap_record(page, server, tmp_path):
+    """ダブルタップが成立しても、タップの記録は消さない（TODO-165）。
+
+    消してしまうと、トップ画面の読み込みが終わる前の 3 回目のタップが
+    「1 回目」に戻り、検索語つきの POST が 2 回目の遷移を上書きして
+    **検索画面へ引き戻される**。
+
+    その競合自体は、ローカルのサーバでは遷移が速すぎて 3 回目が必ず
+    新しいページに落ちるため再現できない。記録が残っていることを直に
+    見る。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    _double_tap_home_in_search(
+        page, lambda pg: _tap(pg, pg.locator("#home_button"))
+    )
+
+    _wait_for_top_screen(page, _monday_of(today))
+    assert page.evaluate(
+        "() => sessionStorage.getItem('ytsched_search_home_tap')"
+    ), "ダブルタップの成立でタップの記録が消えた"
+
+
+def test_home_button_double_tap_reloads_the_week_view(page, server):
+    """週間表示のホームボタンのダブルタップは、今までどおり今週の月曜を
+    先頭にして読み直す（TODO-069・TODO-165）。
+
+    TODO-165 で ``doGet`` から ``doPost``（``search_str`` を空にする）へ
+    変えたが、``MainHandler.post()`` のリダイレクト先は同じ URL になる。
+    """
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+    _mark(page)
+
+    home = page.locator("#home_button")
+    _tap(page, home)
+    _tap(page, home)
+
+    _wait_for_top_screen(page, monday)
+    assert not _marked(page), "ダブルタップでページが読み直されなかった"
+
+
+def test_home_button_double_tap_returns_to_the_week_view_from_month(
+    page, server
+):
+    """月間表示でホームボタンをダブルタップすると、週間表示へ戻る
+    （TODO-165）。
+
+    ``view`` は ``conf.json`` に保存されない（``get_view()``）ので、
+    ``view`` を付けない読み直しで週間表示に戻る。
+    """
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    page.goto(
+        f"{server}?date={monday.strftime('%Y-%m-%d')}&view=month",
+        wait_until="load",
+    )
+    page.wait_for_selector("#main", state="visible")
+    assert page.locator("#main[data-view='month']").count() == 1
+
+    home = page.locator("#home_button")
+    _tap(page, home)
+    _tap(page, home)
+
+    _wait_for_top_screen(page, monday)
+    _assert_top_screen(page)
 
 
 def test_keyboard_arrow_right_moves_search_date_by_a_week(

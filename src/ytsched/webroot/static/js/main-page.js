@@ -14,7 +14,7 @@
 //     ハンドラを、このファイル末尾で window のイベントに登録する。
 //     ページ送り関連 (startAutoPageTurn / stopAutoPageTurn /
 //     pageTurnPointerDownHdr / pageTurnPointerUpHdr / pageTurnPointerCancelHdr)
-//     はこのファイル内だけで使う
+//     と homeTapPointerDownHdr (TODO-165) は、このファイル内だけで使う
 // 外から使うもの:
 //   search_str0 / search_date_to / today_str / auto_turn_msec
 //     (main.html の <script>)
@@ -35,6 +35,93 @@
   const ytsched = window.ytsched;
   let clickCount = 0;
 
+  // 検索画面はホームボタンのシングルタップでもページを読み直す。その
+  // 前後でダブルタップの判定を引き継ぐための sessionStorage のキー
+  // (TODO-165)
+  const SEARCH_HOME_TAP_KEY = "ytsched_search_home_tap";
+
+  // 検索画面でダブルタップと見なす間隔 (msec)。ページの読み直しをまたぐ
+  // ぶん、通常表示の 350 では届かない。フッターの ◀▶ (TODO-123) と
+  // 揃えて 1000 にする
+  const SEARCH_HOME_DOUBLE_TAP_MSEC = 1000;
+
+  /**
+   * 検索画面で直前にホームボタンを押した時刻を読む。
+   *
+   * ``sessionStorage`` が使えないときは、ダブルタップを引き継がない
+   * だけにする (gauge.js の ``getGaugeMonday()`` と同じ考え方)。
+   *
+   * @return {number}   押した記録が無ければ 0
+   */
+  const getSearchHomeTapMsec = () => {
+    try {
+      return Number(sessionStorage.getItem(SEARCH_HOME_TAP_KEY)) || 0;
+    } catch (e) {
+      console.log(`getSearchHomeTapMsec: ${e}`);
+      return 0;
+    }
+  };
+
+  /**
+   * 検索画面でホームボタンを押した時刻を残す。``0`` なら記録を消す。
+   *
+   * @param {number} msec
+   */
+  const setSearchHomeTapMsec = (msec) => {
+    try {
+      if (msec) {
+        sessionStorage.setItem(SEARCH_HOME_TAP_KEY, String(msec));
+      } else {
+        sessionStorage.removeItem(SEARCH_HOME_TAP_KEY);
+      }
+    } catch (e) {
+      console.log(`setSearchHomeTapMsec: ${e}`);
+    }
+  };
+
+  /**
+   * 既定のトップ画面 (今週の週間表示) を読み直す (TODO-165)。
+   *
+   * **``search_str`` を空にして POST する。** 検索モードかどうかは
+   * サーバが ``conf.json`` の ``SearchStr`` で決めているので、``doGet``
+   * で読み直しても検索結果が返ってしまう。検索結果の日付欄
+   * (``date-post``) と同じ道を通して検索語を消す。
+   *
+   * ``MainHandler.post()`` はリダイレクト先へ ``sde_align`` を引き継ぐ
+   * ので、先頭に合わせるのもそのまま効く。``view`` は ``conf.json`` へ
+   * 保存されない (``get_view()``) ので、月間表示からも週間表示へ戻る。
+   *
+   * @param {String} monday_str
+   */
+  const reloadHome = (monday_str) => {
+    // search_str は URL に載せない (TODO-050)
+    ytsched.doPost(ytsched.url_prefix, {
+      date: monday_str,
+      search_str: "",
+      sde_align: "top",
+    });
+  };
+
+  /**
+   * ホームボタン以外を押したら、検索画面のダブルタップの記録を捨てる
+   * (TODO-165)。
+   *
+   * 記録はページの読み直しをまたいで残るので、消さないと「ホーム →
+   * 別の操作 → ホーム」が 1 秒に収まったときまでダブルタップと判定して
+   * しまう。フッターの ◀▶ が ``pageTurnPointerDownHdr()`` でしている
+   * 後始末 (TODO-123) と揃える。
+   */
+  const homeTapPointerDownHdr = (event) => {
+    if (
+      event.target &&
+      event.target.closest &&
+      event.target.closest('[data-action="home"]')
+    ) {
+      return;
+    }
+    setSearchHomeTapMsec(0);
+  };
+
   window.ytsched.homeButtonHdr = () => {
     // シングル・ダブルとも、今日ではなく今週の月曜日へ移動する
     // (TODO-105)。週間表示では週の頭が見えているほうが分かりやすい
@@ -45,36 +132,29 @@
     if (ytsched.search_str0) {
       // 検索画面ではシングルタップ自体がページの読み直しを伴う
       // （検索結果は日付範囲が限られていて、通常表示のように前後の週を
-      // 先読みしていないため）。下のシングル/ダブル判定のように 1 回目の
-      // タップで即座に動作すると、その読み直しで clickCount ごと消えて
-      // しまい、2 回目のタップをダブルタップと判定できない (TODO-164)。
-      // 350 ミリ秒待って、2 回目が来なければシングルタップの動作を
-      // 遅らせて行う
-      if (!clickCount) {
-        ++clickCount;
-        setTimeout(() => {
-          if (!clickCount) {
-            // 待っている間にダブルタップと判定されて処理済み
-            return;
-          }
-          clickCount = 0;
-          const el_search = document.getElementById("search_str");
-          const search_str = el_search.value;
-          // search_str は URL に載せない (TODO-050)
-          ytsched.doPost(ytsched.url_prefix, {
-            date: monday_str,
-            search_str: search_str,
-          });
-        }, 350);
-      } else {
-        // double click。週間表示のダブルタップと同じ読み直しにする
-        // (TODO-164)
-        clickCount = 0;
-        ytsched.doGet(ytsched.url_prefix, {
-          date: monday_str,
-          sde_align: "top",
-        });
+      // 先読みしていないため）。読み直しで clickCount が消えてしまうので、
+      // タップした時刻を sessionStorage へ残し、読み直した先のページで
+      // 2 回目かどうかを判定する (TODO-165)。
+      //
+      // 1 回目を 350 ミリ秒遅らせて 2 回目を待つやり方 (TODO-164) では、
+      // それより遅い 2 回目のタップが読み直しに飲まれてしまい、実機の指
+      // では成立しなかった (成立したのはタップ間隔 270 ミリ秒まで)
+      const now = Date.now();
+      if (now - getSearchHomeTapMsec() < SEARCH_HOME_DOUBLE_TAP_MSEC) {
+        // 記録は消さずに残す。トップ画面の読み込みが終わる前に 3 回目を
+        // 叩かれたとき、消してあると「1 回目」に戻ってしまい、検索語つき
+        // の POST が 2 回目の遷移を上書きして検索画面へ引き戻される
+        reloadHome(monday_str);
+        return;
       }
+      setSearchHomeTapMsec(now);
+
+      // 1 回目は待たずに読み直す (検索語はそのまま)。
+      // search_str は URL に載せない (TODO-050)
+      ytsched.doPost(ytsched.url_prefix, {
+        date: monday_str,
+        search_str: document.getElementById("search_str").value,
+      });
       return;
     }
 
@@ -92,7 +172,7 @@
       // データを読み直す (TODO-069)。前後数ヶ月ぶんを DOM に持つ
       // ようになったので、抱えたまま古くなる。ダブルタップが、
       // 手で取り直す道
-      ytsched.doGet(ytsched.url_prefix, { date: monday_str, sde_align: "top" });
+      reloadHome(monday_str);
     }
   };
 
@@ -546,6 +626,9 @@
   // pointerdown は capture で拾う (画面の他の場所を押したら止める分岐が、
   // ボタン側の分岐より先に効いてよい)
   window.addEventListener("pointerdown", pageTurnPointerDownHdr, true);
+  // 検索画面のホームボタンのダブルタップ (TODO-165)。ボタン以外を
+  // 押したら記録を捨てる。こちらも capture で拾う
+  window.addEventListener("pointerdown", homeTapPointerDownHdr, true);
   window.addEventListener("pointerup", pageTurnPointerUpHdr);
   window.addEventListener("pointercancel", pageTurnPointerCancelHdr);
   // 止まる条件: ボタンをもう一度タップ (pageTurnPointerUpHdr) / 画面の
