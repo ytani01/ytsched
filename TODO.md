@@ -1,10 +1,32 @@
 # TODO
 
-**残っている項目: TODO-154。** これまでに 156 件を決着させた。
+**残っている項目: TODO-157。** これまでに 156 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-157` から**。
+**番号は `TODO-158` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
+
+---
+
+## TODO-157. pyproject.toml の Tombi 警告を直す
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | main のみ |
+
+- [ ] `project.license` を PEP 639 の SPDX 文字列形式に直す
+- [ ] `tool.*` 系のテーブルをまとめて連続させ、tables-out-of-order を解消する
+
+Tombi が `pyproject.toml` に対して次の警告を出している。
+
+- `project.license` deprecated: `license = { file = "LICENSE" }` は非推奨。
+  LICENSE は MIT なので `license = "MIT"` に書き換える
+- `tables-out-of-order`（7 件）: `tool.hatch.*` / `tool.ruff.*` /
+  `tool.mypy.*` / `tool.basedpyright` の間に `build-system` や
+  `dependency-groups` が挟まっていて、`tool` 系のテーブルが連続していない。
+  `tool.*` 系をまとめて後ろに動かして解消する
+
+判断が要ることは無いので、テーブルの並べ替えのみ。動作に影響する変更ではない。
 
 ---
 
