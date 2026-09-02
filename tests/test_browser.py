@@ -953,6 +953,57 @@ def test_tap_outside_stops_auto_page_turn_without_week_slide_in_search_mode(
     assert _date_in_url(page) == stopped_at
 
 
+def test_home_button_single_tap_still_reloads_search_screen(
+    page, server, tmp_path
+):
+    """検索画面でホームボタンを 1 回だけ押しても、今週の月曜へ読み直す
+    （TODO-164）。
+
+    ダブルタップと判定するために 350 ミリ秒待つようにしたぶん、
+    2 回目が来ない「本当のシングルタップ」でも動くことを見る。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    page.locator("#home_button").click()
+
+    monday = _monday_of(today)
+    page.wait_for_url(
+        lambda url: f"date={monday.strftime('%Y-%m-%d')}" in url,
+        timeout=10000,
+    )
+    # 検索モードのまま（フッターの日付欄が無い＝検索画面）
+    assert page.locator("#footer_date").count() == 0
+
+
+def test_home_button_double_tap_reloads_search_screen_like_normal_view(
+    page, server, tmp_path
+):
+    """検索画面でホームボタンをダブルタップすると、週間表示のダブル
+    タップと同じ読み直し（``sde_align=top`` 付き）になる（TODO-164）。
+
+    検索画面はシングルタップ自体がページの読み直しを伴うので、
+    1 回目のタップで即座に動くと ``clickCount`` が消えてダブルタップを
+    判定できなかった。350 ミリ秒待ってから判定するようにして直した。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    home = page.locator("#home_button")
+    _tap(page, home)
+    _tap(page, home)
+
+    monday = _monday_of(today)
+    page.wait_for_url(
+        lambda url: (
+            f"date={monday.strftime('%Y-%m-%d')}" in url
+            and "sde_align=top" in url
+        ),
+        timeout=10000,
+    )
+    assert page.locator("#footer_date").count() == 0
+
+
 def test_keyboard_arrow_right_moves_search_date_by_a_week(
     page, server, tmp_path
 ):

@@ -42,31 +42,52 @@
       ytsched.mondayOf(ytsched.today_str),
     );
 
+    if (ytsched.search_str0) {
+      // 検索画面ではシングルタップ自体がページの読み直しを伴う
+      // （検索結果は日付範囲が限られていて、通常表示のように前後の週を
+      // 先読みしていないため）。下のシングル/ダブル判定のように 1 回目の
+      // タップで即座に動作すると、その読み直しで clickCount ごと消えて
+      // しまい、2 回目のタップをダブルタップと判定できない (TODO-164)。
+      // 350 ミリ秒待って、2 回目が来なければシングルタップの動作を
+      // 遅らせて行う
+      if (!clickCount) {
+        ++clickCount;
+        setTimeout(() => {
+          if (!clickCount) {
+            // 待っている間にダブルタップと判定されて処理済み
+            return;
+          }
+          clickCount = 0;
+          const el_search = document.getElementById("search_str");
+          const search_str = el_search.value;
+          // search_str は URL に載せない (TODO-050)
+          ytsched.doPost(ytsched.url_prefix, {
+            date: monday_str,
+            search_str: search_str,
+          });
+        }, 350);
+      } else {
+        // double click。週間表示のダブルタップと同じ読み直しにする
+        // (TODO-164)
+        clickCount = 0;
+        ytsched.doGet(ytsched.url_prefix, {
+          date: monday_str,
+          sde_align: "top",
+        });
+      }
+      return;
+    }
+
     if (!clickCount) {
       // single click
       ++clickCount;
       setTimeout(function () {
         clickCount = 0;
       }, 350);
-      console.log("single click");
-
-      console.log(`search_str0=${ytsched.search_str0}`);
-      if (ytsched.search_str0) {
-        const el_search = document.getElementById("search_str");
-        const search_str = el_search.value;
-        console.log(`search_str=${search_str}`);
-        // search_str は URL に載せない (TODO-050)
-        ytsched.doPost(ytsched.url_prefix, {
-          date: monday_str,
-          search_str: search_str,
-        });
-      }
       ytsched.scrollToDate(ytsched.url_prefix, monday_str, "top");
     } else {
       // double click
-      //event.preventDefault() ;
       clickCount = 0;
-      console.log("double click");
 
       // データを読み直す (TODO-069)。前後数ヶ月ぶんを DOM に持つ
       // ようになったので、抱えたまま古くなる。ダブルタップが、
