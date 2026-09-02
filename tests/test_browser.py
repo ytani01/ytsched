@@ -486,6 +486,27 @@ def test_week_panel_in_flow_follows_the_week(page, server):
     assert position == "static"
 
 
+def test_week_panel_content_top_matches_cur_and_near(page, server):
+    """隣の週（``position: absolute``）と今の週（通常フロー）とで、
+    中身（月見出し）の縦位置がそろっている（TODO-163）。
+
+    ``.my-month-header`` の margin-top が、週パネルがブロック整形
+    コンテキストを作るかどうかで抜け方が変わり、4px ズレていた。
+    週送りの最中に隣の週が一瞬 4px 下にズレて見えたのはこれが原因。
+    """
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    cur_top = page.locator(
+        ".my-week-cur .my-month-header"
+    ).first.bounding_box()["y"]
+    near_top = page.locator(
+        ".my-week-near .my-month-header"
+    ).first.bounding_box()["y"]
+
+    assert cur_top == near_top
+
+
 def _write_sched(tmp_path, date, title):
     """1 日分のデータファイルを書く（``tests/test_web.py`` と同じ形）。"""
     import json

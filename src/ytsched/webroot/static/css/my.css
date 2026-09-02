@@ -763,12 +763,19 @@ textarea {
     visibility: hidden;
 }
 
+/* ``flow-root`` にするのは、隣の週 (position: absolute) と今の週
+   (通常フロー) とでブロック整形コンテキストの有無が分かれ、
+   ``.my-month-header`` の margin-top の抜け方が変わって週送り中に
+   中身が 4px ズレるのを防ぐため (TODO-163)。今の週は元々整形
+   コンテキストを持たないぶん margin が外へ抜けていたが、
+   ``flow-root`` でパネル自身の上端が 4px 上がって相殺されるので、
+   静止しているときの見た目は変わらない */
 .my-week-near {
-    display: block;
+    display: flow-root;
 }
 
 .my-week-cur {
-    display: block;
+    display: flow-root;
     position: static;
     width: 100%;
     visibility: visible;
