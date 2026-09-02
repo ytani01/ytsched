@@ -8,7 +8,7 @@
 
 ## ※※※ 注意 ※※※
 
-- このソフトにはセキュリティ機能はありません。
+- このソフト自体にはセキュリティやプライバシー保護機能はありません。
 - リバースプロキシやファイヤーウォールの内側でこのサーバーを起動することを前提としています。
 - 一人用です。
 
@@ -142,3 +142,9 @@ ytsched webapp --datadir ~/ytsched/data --port 10085
 | [docs/User.md](docs/User.md) | ユーザーズマニュアル |
 | [docs/Developer.md](docs/Developer.md) | 開発環境、開発ツール、テスト、ログ |
 | [docs/data-format.md](docs/data-format.md) | データの保存形式 |
+
+## 6. 歴史
+
+- 2005年 Perl CGIで初版作成。
+- 2013年 Pythonベースに移植。
+- 2026年 Python 3.14 / uv / pytest の環境へ移行。
