@@ -155,19 +155,6 @@ textarea {
     background-color: #48C;
 }
 
-.my-week-bar-date-row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    margin: 0;
-}
-
-.my-week-bar-date-col {
-    grid-column: span 12;
-    min-width: 0;
-    padding: .25rem;
-    text-align: center;
-}
-
 /* 知らせの枠 (不正な正規表現の知らせで使っている) */
 .my-error-box {
     position: relative;
@@ -256,12 +243,26 @@ textarea {
     flex: 1 1 0;
     justify-content: flex-start;
     min-width: 0;
+    /* .my-row-middle > * の gap (TODO-162) が、ハンバーガーと
+       my-menu-nav-center の間にだけ余計な間隔を作り、週送りの中央寄せが
+       ずれて見えるので打ち消す */
+    gap: 0;
 }
 
 .my-menu-hamburger-col {
     min-width: 0;
     padding: 0;
     text-align: center;
+}
+
+/* ハンバーガーの右端からホームボタンまでの残り幅の中央に週送りを置く
+   (TODO-162) */
+.my-menu-nav-center {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
 }
 
 .my-menu-hamburger-label {
@@ -276,9 +277,9 @@ textarea {
 }
 
 /* forward 側と back の間だけ間隔を空け、押し間違えないようにする
-   (TODO-161) */
+   (TODO-161・TODO-162) */
 .my-menu-nav-col-gap {
-    margin-left: 0.5em;
+    margin-left: 1.5em;
 }
 
 .my-menu-home-col {

@@ -409,8 +409,8 @@ def test_week_move_does_not_reload_the_page(page, server):
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
-def test_week_move_updates_header_date_and_hides_footer_date(page, server):
-    """週送りでヘッダーの日付を揃え、フッターには日付欄を出さない。"""
+def test_week_move_updates_cur_day_and_hides_date_inputs(page, server):
+    """週送りで #cur_day を揃え、ヘッダー・フッターに日付欄を出さない。"""
     monday = _monday_of(datetime.date.today())
     _open(page, server, monday.strftime("%Y-%m-%d"))
 
@@ -424,7 +424,7 @@ def test_week_move_updates_header_date_and_hides_footer_date(page, server):
         timeout=10000,
     )
 
-    assert page.locator("#header_date").input_value() == expected
+    assert page.locator("#header_date").count() == 0
     assert page.locator("#footer_date").count() == 0
     assert page.locator("#cur_day").input_value() == expected
 

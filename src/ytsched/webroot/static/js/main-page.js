@@ -160,9 +160,6 @@
       return;
     }
     switch (el.dataset.action) {
-      case "date-get":
-        ytsched.doGet(ytsched.url_prefix, { date: el.value });
-        break;
       case "search-date":
         ytsched.doGetDate(ytsched.url_prefix, el.value);
         break;
@@ -251,9 +248,12 @@
     }
 
     const el_sde_align = document.getElementById("sde_align");
-    const el_header_date = document.getElementById("header_date");
-    // 検索表示にはヘッダーの日付入力欄が無いので、検索の基準日を使う。
-    const date = el_header_date ? el_header_date.value : ytsched.search_date_to;
+    // 検索モードでは検索の基準日、そうでなければリクエストされた日
+    // (#cur_day、week.js の setActiveWeek() が書き換える前の初期値)
+    // を使う。activeMonday はその週の月曜であり、リクエストされた
+    // 特定の日とは限らない (TODO-162 reviewer 指摘)。
+    const date =
+      ytsched.search_date_to || document.getElementById("cur_day").value;
     // 読み直したあとの位置合わせは一度で移す。"auto" は CSS の
     // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
     // アニメーションになってしまう (TODO-041)
