@@ -299,6 +299,12 @@ textarea {
     padding-left: calc(var(--my-gutter-x) * .5);
 }
 
+/* リンク先 (User.md) を示す下線は残し、``a`` の既定の青・訪問後の紫を
+   打ち消す (TODO-160) */
+.my-version-info a {
+    color: white;
+}
+
 .my-version-copy {
     grid-column: span 6;
     min-width: 0;
@@ -555,14 +561,6 @@ textarea {
 .my-icon-xl {
     width: 1.6em;
     height: 1.6em;
-}
-
-/* ホームボタンのアイコン。隣の日付表示 (``.my-home-date``) が
-   ``line-height: 10px`` の 3 行で 30px あるので、それに揃える
-   (1.875em = 30px。TODO-102) */
-.my-icon-home {
-    width: 1.875em;
-    height: 1.875em;
 }
 
 .my-icon-2x {
@@ -907,18 +905,6 @@ textarea {
        メニュー (``.my-bar-content``) がこの上に出てしまわないための
        値 (TODO-047)。 */
     z-index: 200;
-}
-
-/* 3 行 (年 / 月日 / 曜日) を明示的に改行して出している。
-   ``line-height`` が文字 (10px) より低い 8px だったので、上下の行が
-   重なっていた (TODO-061) */
-.my-home-date {
-    display: inline-block;
-    font-size: xx-small;
-    font-weight: bold;
-    line-height: 10px;
-    text-align: left;
-    vertical-align: middle;
 }
 
 /* 予定 1 件分の枠 (旧 ``container-fluid p-0 border``)。
