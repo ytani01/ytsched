@@ -240,15 +240,25 @@ textarea {
     justify-content: flex-end;
 }
 
-/* メニューバーのナビゲーション行 */
+/*
+ * メニューバーのナビゲーション行 (TODO-161)。
+ *
+ * 左側（ハンバーガー・週送り）と右側（検索）を flex: 1 で等幅にすると、
+ * 間のホームボタンが常に行の中央に来る。左右の幅が違っても中央は揃う。
+ */
 .my-menu-nav-row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    display: flex;
+    align-items: center;
     margin: 0;
 }
 
+.my-menu-nav-left {
+    flex: 1 1 0;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
 .my-menu-hamburger-col {
-    grid-column: span 2;
     min-width: 0;
     padding: 0;
     text-align: center;
@@ -260,21 +270,26 @@ textarea {
 
 /* 週送り (back/forward) 共通の列 */
 .my-menu-nav-col {
-    grid-column: span 1;
     min-width: 0;
     padding: 0;
     text-align: center;
 }
 
+/* forward 側と back の間だけ間隔を空け、押し間違えないようにする
+   (TODO-161) */
+.my-menu-nav-col-gap {
+    margin-left: 0.5em;
+}
+
 .my-menu-home-col {
-    grid-column: span 3;
+    flex: 0 0 auto;
     min-width: 0;
     padding: 0;
     text-align: center;
 }
 
 .my-menu-search-col {
-    grid-column: span 5;
+    flex: 1 1 0;
     min-width: 0;
     padding: 0;
     text-align: right;

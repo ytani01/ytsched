@@ -291,34 +291,42 @@
     class="my-menu-bar my-follow-keyboard">
     <div class="my-menu-nav-row my-row-middle">
 
-      <!-- menu_sw -->
-      <div class="my-menu-hamburger-col">
-        <label for="menu-sw" class="my-menu-hamburger-label my-btn">
-          &nbsp;
-          <svg class="my-icon my-icon-xl my-align-middle">
-            <use href="{{ static_url('icons/icons.svg') }}#bars"></use>
+      <!-- 左側（ハンバーガー・週送り）と右側（検索）を等幅にすることで、
+           間のホームボタンが行の中央に揃う -->
+      <div class="my-menu-nav-left my-row-middle">
+
+        <!-- menu_sw -->
+        <div class="my-menu-hamburger-col">
+          <label for="menu-sw" class="my-menu-hamburger-label my-btn">
+            &nbsp;
+            <svg class="my-icon my-icon-xl my-align-middle">
+              <use href="{{ static_url('icons/icons.svg') }}#bars"></use>
+            </svg>
+            &nbsp;
+            &nbsp;
+          </label>
+        </div><!-- my-menu-hamburger-col -->
+
+        <!-- back (ダブルタップで自動ページ送り。TODO-084。
+             リスナーの登録は main-page.js) -->
+        <div id="back_button" class="my-menu-nav-col my-btn"
+          data-page-turn="-1">
+          <svg class="my-icon my-icon-xl">
+            <use href="{{ static_url('icons/icons.svg') }}#triangle-left"></use>
           </svg>
-          &nbsp;
-          &nbsp;
-        </label>
-      </div><!-- my-menu-hamburger-col -->
+        </div><!-- my-menu-nav-col -->
 
-      <!-- back (ダブルタップで自動ページ送り。TODO-084。
-           リスナーの登録は main-page.js) -->
-      <div id="back_button" class="my-menu-nav-col my-btn"
-        data-page-turn="-1">
-        <svg class="my-icon my-icon-xl">
-          <use href="{{ static_url('icons/icons.svg') }}#triangle-left"></use>
-        </svg>
-      </div><!-- my-menu-nav-col -->
+        <!-- forward (ダブルタップで自動ページ送り。TODO-084。
+             back との間に my-menu-nav-col-gap で間隔を空け、
+             押し間違えないようにする。TODO-161) -->
+        <div id="forward_button" class="my-menu-nav-col my-menu-nav-col-gap my-btn"
+          data-page-turn="1">
+          <svg class="my-icon my-icon-xl">
+            <use href="{{ static_url('icons/icons.svg') }}#triangle-right"></use>
+          </svg>
+        </div><!-- my-menu-nav-col -->
 
-      <!-- forward (ダブルタップで自動ページ送り。TODO-084) -->
-      <div id="forward_button" class="my-menu-nav-col my-btn"
-        data-page-turn="1">
-        <svg class="my-icon my-icon-xl">
-          <use href="{{ static_url('icons/icons.svg') }}#triangle-right"></use>
-        </svg>
-      </div><!-- my-menu-nav-col -->
+      </div><!-- my-menu-nav-left -->
 
       <!-- home -->
       <div id="home_button"
