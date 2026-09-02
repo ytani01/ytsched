@@ -1,10 +1,28 @@
 # TODO
 
-**残っている項目: TODO-154。** これまでに 158 件を決着させた。
+**残っている項目: TODO-154、TODO-159。** これまでに 158 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-159` から**。
+**番号は `TODO-160` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
+
+---
+
+## TODO-159. フッターの ＜ ＞（chevron-left/right）を塗りつぶし三角形にする
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | main のみ |
+
+- [ ] `icons.svg` に塗りつぶし三角形のアイコンを足す
+- [ ] `main.html` の `back_button` / `forward_button` を差し替える
+
+フッターの前週・次週ボタン（`main.html` の `back_button` /
+`forward_button`）が使っている `chevron-left` / `chevron-right`
+（線画の山かっこ）を、塗りつぶしの三角形に変える。TODO-048 で
+Font Awesome をやめて自作 SVG に統一した経緯があるので、Unicode の
+記号ではなく、既存の `icons.svg` の作法（`circle-up-fill` などと同じ
+`fill="currentColor" stroke="none"`）に合わせて三角形のシンボルを足す。
 
 ---
 
