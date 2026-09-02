@@ -3,7 +3,7 @@ name = "ytsched"
 dynamic = ["version"]
 description = "ytsched: YT Scheduler"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
 authors = [
     { name = "ytani01", email = "yoichi@tanibayashi.jp" }
 ]
@@ -21,12 +21,6 @@ ytsched = "ytsched.__main__:cli"
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/ytsched"]
-
 [dependency-groups]
 dev = [
     "basedpyright>=1.39.10",
@@ -36,6 +30,12 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.16.3",
 ]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ytsched"]
 
 [tool.ruff]
 line-length = 78
