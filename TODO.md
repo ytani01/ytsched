@@ -1,10 +1,25 @@
 # TODO
 
-**残っている項目: TODO-154。** これまでに 157 件を決着させた。
+**残っている項目: TODO-154、TODO-158。** これまでに 157 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-158` から**。
+**番号は `TODO-159` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
+
+---
+
+## TODO-158. バージョン表示をクリックすると GitHub 上の User.md を開くようにする
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | main のみ |
+
+- [ ] `main.html` の `ytsched {{ version }}` をリンクにする
+
+`main.html` のフッターにあるバージョン表示（`ytsched {{ version }}`）を、
+GitHub 上の `docs/User.md` へのリンクにする。ブランチはデフォルト
+ブランチ（GitHub の `HEAD` 参照）に固定する
+（`https://github.com/ytani01/ytsched/blob/HEAD/docs/User.md`）。
 
 ---
 
