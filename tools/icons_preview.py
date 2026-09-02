@@ -49,8 +49,8 @@ ICONS = (
     ("home", "今日へ戻る / メニューバー"),
     ("search", "検索 / 検索欄・期間送り"),
     ("bars", "メニューの開閉 / メニューバー"),
-    ("chevron-left", "前の週へ / メニューバー"),
-    ("chevron-right", "次の週へ / メニューバー"),
+    ("triangle-left", "前の週へ / メニューバー"),
+    ("triangle-right", "次の週へ / メニューバー"),
     ("angle-down", "詳細の開閉 / 予定の行"),
     ("filter", "絞り込み / メニュー"),
     ("plus-square", "予定を足す / 日付ブロック"),
@@ -169,8 +169,8 @@ def build(sprite: str) -> str:
         icon(i, cls)
         for i, cls in (
             ("bars", "my-icon-lg"),
-            ("chevron-left", ""),
-            ("chevron-right", ""),
+            ("triangle-left", ""),
+            ("triangle-right", ""),
             ("home", "my-icon-lg"),
             ("search", "my-icon-lg"),
             ("backspace", "my-icon-lg"),

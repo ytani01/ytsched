@@ -36,14 +36,16 @@
     <path d="M3.5 18h17"/>
   </symbol>
 
-  <!-- 山かっこ左: 前の週へ (main.html) -->
-  <symbol id="chevron-left" viewBox="0 0 24 24">
-    <path d="M15 4.5 7.5 12 15 19.5"/>
+  <!-- 塗りつぶし三角形左: 前の週へ (main.html のフッター) -->
+  <symbol id="triangle-left" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="none"
+          d="M17 4.5 6.5 12 17 19.5Z"/>
   </symbol>
 
-  <!-- 山かっこ右: 次の週へ (main.html) -->
-  <symbol id="chevron-right" viewBox="0 0 24 24">
-    <path d="M9 4.5 16.5 12 9 19.5"/>
+  <!-- 塗りつぶし三角形右: 次の週へ (main.html のフッター) -->
+  <symbol id="triangle-right" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="none"
+          d="M7 4.5 17.5 12 7 19.5Z"/>
   </symbol>
 
   <!-- 下向きの山: 詳細の開閉 (sde.html) -->
