@@ -45,6 +45,7 @@ from test_web import (
 )
 
 from ytsched import handler_util
+from ytsched.conf import ConfFile
 from ytsched.main_binder import MainBinder
 from ytsched.main_handler import MainHandler
 from ytsched.main_view import MainViewBuilder
@@ -58,6 +59,18 @@ from ytsched.sched_update import SchedUpdater
 from ytsched.ytsched import SchedData
 
 CONF_FNAME = "conf.json"
+
+
+def expected_conf(**overrides):
+    """``ConfFile.DEF_CONF`` を土台に、変わったキーだけ上書きした
+    ``conf.json`` の期待値 (TODO-167)。
+
+    ``conf.json`` には常に既定 9 キーが入るので、辞書全体の完全一致で
+    「見ていないキーが巻き添えで書き換わっていないか」まで確かめる。
+    """
+    conf = dict(ConfFile.DEF_CONF)
+    conf.update(overrides)
+    return conf
 
 
 def test_cookie_todo_days_is_removed():
@@ -104,12 +117,12 @@ def test_binder_update_conf_args_returns_and_saves_all_four(tmp_path):
     handler.on_finish()
 
     conf_data = json.loads((datadir / CONF_FNAME).read_text(encoding="utf-8"))
-    assert conf_data == {
-        "SearchStr": "abc",
-        "FilterStr": "def",
-        "ToDo_Days": "3",
-        "SearchN": "9",
-    }
+    assert conf_data == expected_conf(
+        SearchStr="abc",
+        FilterStr="def",
+        ToDo_Days="3",
+        SearchN="9",
+    )
 
 
 #
@@ -134,17 +147,19 @@ class TestConfArgs(WebTestBase):
     """
 
     def conf_data(self):
-        """``conf.json`` の中身。ファイルが無ければ ``None``。"""
+        """``conf.json`` の中身。
+
+        ``conf.json`` は既定値の入ったものが常に作られる (TODO-167)
+        ので、ファイルが無いことは無い。
+        """
         path = self.datadir / CONF_FNAME
-        if not path.exists():
-            return None
         return json.loads(path.read_text(encoding="utf-8"))
 
     def test_empty_search_str_is_saved(self):
         """空の ``search_str`` は「渡された」扱いで、保存される。"""
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_str="")
 
-        assert self.conf_data() == {"SearchStr": ""}
+        assert self.conf_data() == expected_conf()
 
     def test_empty_filter_str_is_saved(self):
         """空の ``filter_str`` は「渡された」扱いで、保存される。
@@ -153,7 +168,7 @@ class TestConfArgs(WebTestBase):
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="")
 
-        assert self.conf_data() == {"FilterStr": ""}
+        assert self.conf_data() == expected_conf()
 
     def test_empty_search_str_clears_saved_search_str(self):
         """空の ``search_str`` は、保存済みの検索語を消す。"""
@@ -162,7 +177,7 @@ class TestConfArgs(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_str="")
 
-        assert self.conf_data() == {"SearchStr": ""}
+        assert self.conf_data() == expected_conf()
         # 検索モードから抜けるので、検索期間・件数のバーは出ない
         assert "目標件数" not in body
 
@@ -183,7 +198,7 @@ class TestConfArgs(WebTestBase):
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="")
 
-        assert self.conf_data() == {"FilterStr": ""}
+        assert self.conf_data() == expected_conf()
         assert "歯医者" in body
         assert "定例ミーティング" in body
 
@@ -200,7 +215,7 @@ class TestConfArgs(WebTestBase):
         )
 
         assert res.code == 200
-        assert self.conf_data() is None
+        assert self.conf_data() == expected_conf()
 
     def test_empty_search_n_does_not_break_next_request(self):
         """空の ``search_n`` のあとも、次の表示は既定値のまま。"""
@@ -221,7 +236,7 @@ class TestConfArgs(WebTestBase):
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="")
 
-        assert self.conf_data() is None
+        assert self.conf_data() == expected_conf()
 
     def test_search_str_is_saved_normalized(self):
         """``search_str`` は、保存も表示も ``normalize()`` 後（TODO-029）。
@@ -233,7 +248,7 @@ class TestConfArgs(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, search_str="ABC"
         )
 
-        assert self.conf_data() == {"SearchStr": "abc"}
+        assert self.conf_data() == expected_conf(SearchStr="abc")
         assert 'value="abc"' in body
 
     def test_search_str_zenkaku_paren_is_normalized(self):
@@ -242,7 +257,7 @@ class TestConfArgs(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, search_str="（重要）"
         )
 
-        assert self.conf_data() == {"SearchStr": "(重要)"}
+        assert self.conf_data() == expected_conf(SearchStr="(重要)")
         assert 'value="(重要)"' in body
 
     def test_filter_str_is_saved_normalized(self):
@@ -254,7 +269,7 @@ class TestConfArgs(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC（重要）"
         )
 
-        assert self.conf_data() == {"FilterStr": "abc(重要)"}
+        assert self.conf_data() == expected_conf(FilterStr="abc(重要)")
         assert 'value="abc(重要)"' in body
 
     def test_saved_filter_str_is_not_rewritten_when_unchanged(self):
@@ -262,7 +277,7 @@ class TestConfArgs(WebTestBase):
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="ABC")
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, filter_str="abc")
 
-        assert self.conf_data() == {"FilterStr": "abc"}
+        assert self.conf_data() == expected_conf(FilterStr="abc")
 
 
 #

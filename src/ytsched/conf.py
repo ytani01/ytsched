@@ -11,6 +11,7 @@ __date__ = "2026/08"
 import json
 import os
 from pathlib import Path
+from typing import ClassVar
 
 from .mylog import getLogger
 
@@ -33,6 +34,31 @@ class ConfFile:
 
     FNAME = "conf.json"
     ENCODING = "utf-8"
+
+    #: ``conf.json`` が無いときに書き出す既定値 (TODO-167)。
+    #: 画面から自動保存されるキーも含めた全キー。値は文字列。
+    #: ``main_binder.MainBinder`` / ``trash_handler`` の既定と揃えて
+    #: あるかどうかは、テスト側で両方を import して確かめる
+    #: (循環参照を避けるため、ここでは素の dict として持つ)。
+    #: - ``SearchStr`` ``FilterStr``: 未指定
+    #: - ``ToDo_Days``: ``MainBinder.DEF_TODO_DAYS`` (365) = ``"1y"``
+    #: - ``SearchN``: ``MainBinder.DEF_SEARCH_N`` (5)
+    #: - ``MonthCal``: ``MainBinder.DEF_MONTH_CAL`` (True) = ``"1"``
+    #: - ``LoadWeekPages``: ``MainBinder.DEF_LOAD_WEEK_PAGES`` (4)
+    #: - ``LoadMonthPages``: ``MainBinder.DEF_LOAD_MONTH_PAGES`` (2)
+    #: - ``AutoTurnMsec``: ``MainBinder.DEF_AUTO_TURN_MSEC`` (700)
+    #: - ``TrashMax``: ``trash_handler.TrashHandler.DEF_TRASH_MAX`` (100)
+    DEF_CONF: ClassVar[dict[str, str]] = {
+        "SearchStr": "",
+        "FilterStr": "",
+        "ToDo_Days": "1y",
+        "SearchN": "5",
+        "MonthCal": "1",
+        "LoadWeekPages": "4",
+        "LoadMonthPages": "2",
+        "AutoTurnMsec": "700",
+        "TrashMax": "100",
+    }
 
     def __init__(self, pathname: str | Path):
         """Constructor
@@ -64,6 +90,11 @@ class ConfFile:
         ファイルそのものが読めない場合 (``PermissionError`` など) は
         捕まえない。設定の中身の問題ではなく、直すべき環境の問題なので、
         黙って既定値で動かない (TODO-032)。
+
+        ファイルが無い場合は、``DEF_CONF`` の既定値を書いたものを作る
+        (TODO-167)。書けなかった場合 (``PermissionError`` など) は
+        ``save_if_dirty()`` と同じく警告を 1 行出すだけにして、例外は
+        外へ出さない (手元に手本が無いだけで、動作には困らないため)。
         """
         self.__log.debug("")
 
@@ -72,12 +103,18 @@ class ConfFile:
                 raw = f.read()
                 st = os.fstat(f.fileno())
         except FileNotFoundError:
-            self._conf = {}
-            # ``None`` は「無い」ことを表す。あとでファイルができれば
-            # ``Path.stat()`` の結果と食い違うので、``is_stale()`` が
-            # 読み直しが要ると判断できる (``SchedDataFile`` と同じ。
-            # TODO-080)
-            self._stat_key = None
+            self._conf = dict(self.DEF_CONF)
+            self._dirty = True
+            try:
+                self._save()
+            except OSError as e:
+                self.__log.warning(f"{self.pathname}: {e} .. not saved")
+                # ``None`` は「無い」ことを表す。あとでファイルができれば
+                # ``Path.stat()`` の結果と食い違うので、``is_stale()`` が
+                # 読み直しが要ると判断できる (``SchedDataFile`` と同じ。
+                # TODO-080)
+                self._stat_key = None
+            self._dirty = False
             return
 
         # 読んだ fd から ``fstat()`` するので、読んだ内容とずれない

@@ -191,9 +191,11 @@ classDiagram
   `get_conf()`/`set_conf()` は `ConfFile`（`conf.py`）へ委譲するだけ。
   `ConfFile` は `WebServer` が 1 つだけ作って全ハンドラで共有する
   （`SchedData` と同じ持ち方）。JSON のオブジェクト 1 つで、値は
-  すべて文字列（TODO-032）。**`LoadMonths`・`LoadMonthPages`・
+  すべて文字列（TODO-032）。**`LoadWeekPages`・`LoadMonthPages`・
   `AutoTurnMsec` を除いて**、人が手で編集するファイルではない
   （この 3 つについては `MainHandler` の項を参照）。
+  ファイルが無ければ、既定値を書いたものを作る（`ConfFile._load()`。
+  TODO-167）。
   読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
   でないキー）は、警告を 1 行出して無視する。
   外部からの書き換えの検出・読み直しは `SchedDataFile.is_stale()` と
@@ -216,9 +218,10 @@ classDiagram
   （`SchedLoader.load_week()`。TODO-049）。検索したときだけは週で
   区切らず、条件に当たった日を古いほうへさかのぼって並べる
   （`SchedLoader.search()`）。
-  **返す HTML には、前後 1 ヶ月ぶんの週も一緒に入れる**（TODO-069）。
-  ブラウザはこの中を動くかぎりページを読み直さない。何ヶ月ぶんかは
-  `conf.json` の `LoadMonths` で変えられる（既定 1、範囲 0〜24）。
+  **返す HTML には、前後何週ぶんかの週も一緒に入れる**（TODO-069）。
+  ブラウザはこの中を動くかぎりページを読み直さない。何週ぶんかは
+  `conf.json` の `LoadWeekPages` で変えられる（既定 4、範囲
+  0〜103。TODO-167）。
   フッターの ◀▶ をダブルタップしたときの自動ページ送りの間隔（msec）は
   `conf.json` の `AutoTurnMsec` で変えられる（既定 700、範囲
   300〜10000。TODO-084）。**この 2 つと、月間表示の `LoadMonthPages`

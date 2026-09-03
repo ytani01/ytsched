@@ -288,7 +288,9 @@ def test_double_tap_starts_auto_page_turn(page, server, tmp_path):
 
     ``AutoTurnMsec`` を下限（300）にして待つ時間を短くする。
     """
-    write_conf(tmp_path / "data", {"AutoTurnMsec": "300", "LoadMonths": "2"})
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "300", "LoadWeekPages": "9"}
+    )
     monday = _monday_of(datetime.date.today())
     _open(page, server, monday.strftime("%Y-%m-%d"))
 
@@ -308,7 +310,9 @@ def test_double_tap_starts_auto_page_turn(page, server, tmp_path):
 
 def test_tap_again_stops_auto_page_turn(page, server, tmp_path):
     """自動送り中にもう一度タップすると止まる（TODO-084）。"""
-    write_conf(tmp_path / "data", {"AutoTurnMsec": "300", "LoadMonths": "2"})
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "300", "LoadWeekPages": "9"}
+    )
     monday = _monday_of(datetime.date.today())
     _open(page, server, monday.strftime("%Y-%m-%d"))
 
@@ -432,7 +436,7 @@ def test_week_move_updates_cur_day_and_hides_date_inputs(page, server):
 def test_week_move_reloads_outside_the_loaded_range(page, server):
     """持っている範囲の外へ出るときは読み直す（TODO-069）。
 
-    既定の ``LoadMonths``（1）では前後 4 週を持つので、5 回送ると
+    既定の ``LoadWeekPages``（4）では前後 4 週を持つので、5 回送ると
     範囲の外に出る。そこで初めてサーバへ行く。
     """
     monday = _monday_of(datetime.date.today())

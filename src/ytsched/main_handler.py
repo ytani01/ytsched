@@ -30,9 +30,9 @@ class MainHandler(HandlerBase):
     TODO_DAYS = MainBinder.TODO_DAYS
     DEF_TODO_DAYS = MainBinder.DEF_TODO_DAYS
     DEF_MONTH_CAL = MainBinder.DEF_MONTH_CAL
-    DEF_LOAD_MONTHS = MainBinder.DEF_LOAD_MONTHS
-    LOAD_MONTHS_MIN = MainBinder.LOAD_MONTHS_MIN
-    LOAD_MONTHS_MAX = MainBinder.LOAD_MONTHS_MAX
+    DEF_LOAD_WEEK_PAGES = MainBinder.DEF_LOAD_WEEK_PAGES
+    LOAD_WEEK_PAGES_MIN = MainBinder.LOAD_WEEK_PAGES_MIN
+    LOAD_WEEK_PAGES_MAX = MainBinder.LOAD_WEEK_PAGES_MAX
     DEF_AUTO_TURN_MSEC = MainBinder.DEF_AUTO_TURN_MSEC
     AUTO_TURN_MSEC_MIN = MainBinder.AUTO_TURN_MSEC_MIN
     AUTO_TURN_MSEC_MAX = MainBinder.AUTO_TURN_MSEC_MAX
@@ -88,11 +88,6 @@ class MainHandler(HandlerBase):
         return (
             path if not params else f"{path}?{urllib.parse.urlencode(params)}"
         )
-
-    @staticmethod
-    def months2weeks(months: int) -> int:
-        """既存の呼び出し先を保つ。"""
-        return MainViewBuilder.months2weeks(months)
 
     def exec_cmd(self) -> tuple[datetime.date | None, str | None]:
         """更新コマンドを実行し、必要なら編集画面の URL を返す。"""

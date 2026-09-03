@@ -20,7 +20,6 @@ from .sched_load import (
 class MainViewBuilder:
     """``main.html`` へ渡す値を、データ読み込みを含めて組み立てる。"""
 
-    DAYS_PER_MONTH: ClassVar[int] = 30
     #: 1 ブロックに収める月数（TODO-137）。ブロックの区切りは
     #: 1〜6月・7〜12月の 2 つだけなので 6 固定
     MONTHS_PER_BLOCK: ClassVar[int] = 6
@@ -99,10 +98,6 @@ class MainViewBuilder:
             "month_blocks": [],
         }
 
-    @classmethod
-    def months2weeks(cls, months: int) -> int:
-        return round(months * cls.DAYS_PER_MONTH / 7)
-
     def _mk_weeks(
         self,
         args: DisplayArgs,
@@ -116,10 +111,7 @@ class MainViewBuilder:
                 SchedWeek(offset=0, monday=monday, sched=sched, month_cals=[])
             ]
         weeks = []
-        for offset in range(
-            -self.months2weeks(args.load_months),
-            self.months2weeks(args.load_months) + 1,
-        ):
+        for offset in range(-args.load_week_pages, args.load_week_pages + 1):
             monday = date_from + datetime.timedelta(7 * offset)
             sched_offset = (
                 sched

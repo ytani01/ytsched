@@ -56,10 +56,17 @@ def test_settings_are_read(datadir):
 
 
 def test_load_conf_no_file(datadir):
+    """``conf.json`` が無ければ、既定値を書いたものが作られる
+    (TODO-167)。
+    """
     handler = make_handler(make_app(datadir), HandlerBase)
 
-    assert handler._conf.to_dict() == {}
-    assert handler.get_conf("ToDo_Days") is None
+    assert handler._conf.to_dict() == ConfFile.DEF_CONF
+    assert handler.get_conf("ToDo_Days") == "1y"
+    assert (
+        json.loads((datadir / CONF_FNAME).read_text(encoding="utf-8"))
+        == ConfFile.DEF_CONF
+    )
 
 
 def test_load_conf(datadir):
@@ -86,8 +93,9 @@ def test_save_conf_is_json(datadir):
     handler.on_finish()
 
     text = (datadir / CONF_FNAME).read_text(encoding="utf-8")
-    assert text == '{\n  "SearchStr": "会議"\n}\n'
-    assert json.loads(text) == {"SearchStr": "会議"}
+    expected = dict(ConfFile.DEF_CONF)
+    expected["SearchStr"] = "会議"
+    assert text == json.dumps(expected, ensure_ascii=False, indent=2) + "\n"
 
 
 def test_conf_round_trip(datadir):
@@ -120,7 +128,7 @@ def test_conf_reloads_when_file_changed_outside(datadir):
     """
     app = make_app(datadir)
     handler1 = make_handler(app, HandlerBase)
-    assert handler1.get_conf("ToDo_Days") is None
+    assert handler1.get_conf("ToDo_Days") == "1y"
 
     # mtime の分解能で不安定にならないよう、明示的に時刻をずらす
     conf_path = datadir / CONF_FNAME
@@ -298,9 +306,43 @@ def test_conf_is_not_locale_dependent(tmp_path, datadir):
     res = run_in_c_locale(tmp_path, C_LOCALE_CONF_SCRIPT, datadir)
 
     assert res.returncode == 0, res.stderr
-    assert (datadir / CONF_FNAME).read_text(
-        encoding="utf-8"
-    ) == '{\n  "SearchStr": "会議"\n}\n'
+    text = (datadir / CONF_FNAME).read_text(encoding="utf-8")
+    expected = dict(ConfFile.DEF_CONF)
+    expected["SearchStr"] = "会議"
+    assert text == json.dumps(expected, ensure_ascii=False, indent=2) + "\n"
+
+
+#
+# ConfFile.DEF_CONF が各クラスの既定と一致しているか (TODO-167)
+#
+def test_def_conf_matches_each_class_default():
+    """``ConfFile.DEF_CONF`` の値が、各クラスの既定とズレていない。
+
+    ``conf.py`` は ``main_binder``/``trash_handler`` から使われる側
+    なので、循環参照を避けて素の dict で持っている。ズレたまま
+    気づかないのを防ぐため、ここで突き合わせる。
+    """
+    from ytsched import handler_util
+    from ytsched.main_binder import MainBinder
+    from ytsched.trash_handler import TrashHandler
+
+    def_conf = ConfFile.DEF_CONF
+
+    assert def_conf["SearchStr"] == ""
+    assert def_conf["FilterStr"] == ""
+    assert (
+        MainBinder.TODO_DAYS[def_conf["ToDo_Days"]]
+        == MainBinder.DEF_TODO_DAYS
+    )
+    assert int(def_conf["SearchN"]) == MainBinder.DEF_SEARCH_N
+    assert (
+        handler_util.str2month_cal(def_conf["MonthCal"])
+        == MainBinder.DEF_MONTH_CAL
+    )
+    assert int(def_conf["LoadWeekPages"]) == MainBinder.DEF_LOAD_WEEK_PAGES
+    assert int(def_conf["LoadMonthPages"]) == MainBinder.DEF_LOAD_MONTH_PAGES
+    assert int(def_conf["AutoTurnMsec"]) == MainBinder.DEF_AUTO_TURN_MSEC
+    assert int(def_conf["TrashMax"]) == TrashHandler.DEF_TRASH_MAX
 
 
 #

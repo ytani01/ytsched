@@ -947,9 +947,11 @@ class TestInvalidArgs(WebTestBase):
     """
 
     def conf_data(self):
-        """``conf.json`` の中身。ファイルが無ければ ``None``。"""
-        if not (self.datadir / CONF_FNAME).exists():
-            return None
+        """``conf.json`` の中身。
+
+        ``conf.json`` は既定値の入ったものが常に作られる (TODO-167)
+        ので、ファイルが無いことは無い。
+        """
         return read_conf(self.datadir)
 
     def today_id(self):
@@ -965,10 +967,14 @@ class TestInvalidArgs(WebTestBase):
         assert date_id(DATE1) in body
 
     def test_invalid_search_n_is_not_saved(self):
-        """数字にならない ``search_n`` は ``conf.json`` に残らない。"""
+        """数字にならない ``search_n`` は ``conf.json`` に残らない。
+
+        ``conf.json`` は既定値の入ったものが常に作られる
+        (TODO-167) ので、キーそのものは既定値のまま。
+        """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, search_n="abc")
 
-        assert self.conf_data() is None
+        assert self.conf_data()["SearchN"] == str(MainHandler.DEF_SEARCH_N)
 
     def test_invalid_search_n_does_not_break_next_request(self):
         """一度踏んでも、次の素の GET が開ける。
@@ -1036,10 +1042,14 @@ class TestInvalidArgs(WebTestBase):
         assert date_id(DATE1) in body
 
     def test_invalid_todo_days_is_not_saved(self):
-        """数字にならない ``todo_days`` は ``conf.json`` に残らない。"""
+        """数字にならない ``todo_days`` は ``conf.json`` に残らない。
+
+        ``conf.json`` は既定値の入ったものが常に作られる
+        (TODO-167) ので、キーそのものは既定値のまま。
+        """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="abc")
 
-        assert self.conf_data() is None
+        assert self.conf_data()["ToDo_Days"] == "1y"
 
     def test_invalid_todo_days_falls_back_to_the_default(self):
         """数字にならない ``todo_days`` は既定値になる。"""
@@ -1059,59 +1069,58 @@ class TestInvalidArgs(WebTestBase):
         assert f'value="{MainHandler.DEF_TODO_DAYS}" selected' in body
 
     #
-    # LoadMonths (TODO-069)
+    # LoadWeekPages (TODO-069・TODO-167)
     #
     def week_panel_count(self, body):
         """描かれた週の数（``.my-week-panel`` の数）。"""
         return body.count('class="my-week-panel')
 
-    def test_load_months_default_is_one_month_each_way(self):
-        """既定では前後 1 ヶ月ぶん（前後 4 週 + 今の週 = 9 週）。"""
+    def test_load_week_pages_default_is_four_weeks_each_way(self):
+        """既定では前後 4 週ぶん（前後 4 週 + 今の週 = 9 週）。"""
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
-        weeks_n = MainHandler.months2weeks(MainHandler.DEF_LOAD_MONTHS)
+        weeks_n = MainHandler.DEF_LOAD_WEEK_PAGES
         assert self.week_panel_count(body) == weeks_n * 2 + 1
 
-    def test_load_months_zero_leaves_only_the_current_week(self):
+    def test_load_week_pages_zero_leaves_only_the_current_week(self):
         """``0`` なら今の週だけ。"""
-        write_conf(self.datadir, {"LoadMonths": "0"})
+        write_conf(self.datadir, {"LoadWeekPages": "0"})
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
         assert self.week_panel_count(body) == 1
 
-    def test_load_months_widens_the_range(self):
+    def test_load_week_pages_widens_the_range(self):
         """大きくすると、その分だけ週が増える。"""
-        write_conf(self.datadir, {"LoadMonths": "2"})
+        write_conf(self.datadir, {"LoadWeekPages": "2"})
 
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
-        weeks_n = MainHandler.months2weeks(2)
-        assert self.week_panel_count(body) == weeks_n * 2 + 1
+        assert self.week_panel_count(body) == 2 * 2 + 1
 
-    def test_broken_load_months_falls_back_to_the_default(self):
+    def test_broken_load_week_pages_falls_back_to_the_default(self):
         """数字にならない値も、範囲の外も既定値へ落とす。"""
-        for value in ("abc", "-1", "99"):
-            write_conf(self.datadir, {"LoadMonths": value})
+        for value in ("abc", "-1", "104"):
+            write_conf(self.datadir, {"LoadWeekPages": value})
 
             body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
 
-            weeks_n = MainHandler.months2weeks(MainHandler.DEF_LOAD_MONTHS)
+            weeks_n = MainHandler.DEF_LOAD_WEEK_PAGES
             assert self.week_panel_count(body) == weeks_n * 2 + 1, value
 
-    def test_load_months_is_not_overwritten(self):
+    def test_load_week_pages_is_not_overwritten(self):
         """手で書いた値は ``conf.json`` から消えない。
 
         画面から変える設定ではないので、アプリは読むだけで
         ``set_conf()`` しない（TODO-069）。他の設定を保存したときに
         巻き添えで消えないことまで見る。
         """
-        write_conf(self.datadir, {"LoadMonths": "2"})
+        write_conf(self.datadir, {"LoadWeekPages": "2"})
 
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
 
         conf = read_conf(self.datadir)
-        assert conf["LoadMonths"] == "2"
+        assert conf["LoadWeekPages"] == "2"
         assert conf["ToDo_Days"] == "7"
 
     #
@@ -1146,7 +1155,7 @@ class TestInvalidArgs(WebTestBase):
             ), value
 
     def test_auto_turn_msec_is_not_overwritten(self):
-        """手で書いた値は ``conf.json`` から消えない (``LoadMonths`` と同じ)。
+        """手で書いた値は ``conf.json`` から消えない (``LoadWeekPages`` と同じ)。
 
         画面から変える設定ではないので、アプリは読むだけで
         ``set_conf()`` しない。他の設定を保存したときに巻き添えで
@@ -1275,14 +1284,18 @@ class TestInvalidArgs(WebTestBase):
         assert date_id(DATE1) in body
 
     def test_huge_todo_days_is_not_saved(self):
-        """大きすぎる ``todo_days`` は ``conf.json`` に残らない。"""
+        """大きすぎる ``todo_days`` は ``conf.json`` に残らない。
+
+        ``conf.json`` は既定値の入ったものが常に作られる
+        (TODO-167) ので、キーそのものは既定値のまま。
+        """
         self.write_todo(DATE1)
 
         self.get_body(
             URL_PREFIX + "/", date=DATE1_STR, todo_days="99999999999"
         )
 
-        assert self.conf_data() is None
+        assert self.conf_data()["ToDo_Days"] == "1y"
 
     def test_huge_todo_days_does_not_break_next_request(self):
         """一度踏んでも、次の素の GET が開ける。

@@ -51,7 +51,7 @@ class DisplayArgs:
     filter_error: bool
     search_re: re.Pattern[str] | None
     search_error: bool
-    load_months: int
+    load_week_pages: int
     load_month_pages: int
     auto_turn_msec: int
 
@@ -75,7 +75,7 @@ class MainBinder:
     __log = getLogger(__qualname__)
 
     DEF_SEARCH_N = 5
-    CONF_KEY_LOAD_MONTHS = "LoadMonths"
+    CONF_KEY_LOAD_WEEK_PAGES = "LoadWeekPages"
     CONF_KEY_LOAD_MONTH_PAGES = "LoadMonthPages"
     CONF_KEY_TODO_DAYS = "ToDo_Days"
     CONF_KEY_FILTER_STR = "FilterStr"
@@ -96,9 +96,9 @@ class MainBinder:
     }
     DEF_TODO_DAYS = 365
     DEF_MONTH_CAL = True
-    DEF_LOAD_MONTHS = 1
-    LOAD_MONTHS_MIN = 0
-    LOAD_MONTHS_MAX = 24
+    DEF_LOAD_WEEK_PAGES = 4
+    LOAD_WEEK_PAGES_MIN = 0
+    LOAD_WEEK_PAGES_MAX = 103
     DEF_LOAD_MONTH_PAGES = 2
     LOAD_MONTH_PAGES_MIN = 0
     LOAD_MONTH_PAGES_MAX = 10
@@ -165,11 +165,11 @@ class MainBinder:
             filter_error=filter_error,
             search_re=search_re,
             search_error=search_error,
-            load_months=self._get_conf_int(
-                self.CONF_KEY_LOAD_MONTHS,
-                self.DEF_LOAD_MONTHS,
-                self.LOAD_MONTHS_MIN,
-                self.LOAD_MONTHS_MAX,
+            load_week_pages=self._get_conf_int(
+                self.CONF_KEY_LOAD_WEEK_PAGES,
+                self.DEF_LOAD_WEEK_PAGES,
+                self.LOAD_WEEK_PAGES_MIN,
+                self.LOAD_WEEK_PAGES_MAX,
             ),
             load_month_pages=self._get_conf_int(
                 self.CONF_KEY_LOAD_MONTH_PAGES,
