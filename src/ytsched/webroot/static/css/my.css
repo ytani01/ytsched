@@ -1090,6 +1090,11 @@ textarea {
     padding-bottom: 45px;
 }
 
+/* 上下にボタンバーが出るときのメイン領域 (TODO-177) */
+.my-edit-main-with-top-bar {
+    padding-top: 45px;
+}
+
 /* ゴミ箱。地の色は一覧の週間/月間表示と揃える (TODO-176)。ゴミ箱の
    予定は ``.my-date-block`` (#EEE) なので、地を少し濃くしてカードとして
    浮かせる。以前は編集画面と共用の ``.my-edit-body`` (#EEE) を重ねて
@@ -1352,12 +1357,23 @@ textarea {
     margin-right: auto;
     margin-left: auto;
     position: fixed;
-    bottom: 0;
     right: 0;
     left: 0;
     z-index: 1030;
     color: white;
     background-color: #48C;
+}
+
+/* 編集画面の上部ボタンバー (TODO-177) */
+.my-edit-bar-top {
+    top: 0;
+    bottom: auto;
+}
+
+/* 編集画面の下部ボタンバー (TODO-177) */
+.my-edit-bar-bottom {
+    bottom: 0;
+    top: auto;
 }
 
 /*

@@ -141,9 +141,10 @@
     document
       .getElementById("edit_main")
       .addEventListener("change", actionChangeHdr);
-    document
-      .getElementById("menu")
-      .addEventListener("mousedown", actionMouseDownHdr);
+    // ボタンバーが上下 2 か所にあるので、両方にリスナーを付ける (TODO-177)
+    document.querySelectorAll(".my-edit-bar").forEach((el) => {
+      el.addEventListener("mousedown", actionMouseDownHdr);
+    });
   };
 
   window.addEventListener("load", function () {

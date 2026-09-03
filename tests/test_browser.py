@@ -216,7 +216,7 @@ def test_date_column_and_edit_menu_are_delegated(page, server):
     page.wait_for_selector("#input_form", state="visible")
     assert page.locator("#date").input_value() == date
 
-    page.locator('[data-action="back"]').click()
+    page.locator('[data-action="back"]').first.click()
     page.wait_for_selector("#main", state="visible")
     assert _date_in_url(page) == date
 
@@ -686,9 +686,37 @@ def test_update_button_still_submits(page, server, tmp_path):
 
     page.locator("#title").fill("更新ボタンで変更")
     with page.expect_navigation(wait_until="load"):
-        page.locator('[data-action="submit-cmd"][data-cmd="update"]').click()
+        page.locator(
+            '[data-action="submit-cmd"][data-cmd="update"]'
+        ).first.click()
 
     assert page.locator("#title").input_value() == "更新ボタンで変更"
+
+
+def test_update_button_in_bottom_bar_also_submits(page, server, tmp_path):
+    """下側の帯の更新ボタンも予定を更新する（TODO-177）。
+
+    ボタンの帯は上下 2 か所にあり、``edit-page.js`` は
+    ``.my-edit-bar`` を回してリスナーを付けている。上の
+    ``test_update_button_still_submits`` が押すのは DOM 順で先に来る
+    上側なので、下側にもリスナーが付いていることをここで見る。
+    """
+    date = datetime.date.today()
+    _write_sched(tmp_path, date, "変更前")
+    _open_edit(page, server, date.isoformat(), f"id-{date}")
+
+    assert (
+        page.locator('[data-action="submit-cmd"][data-cmd="update"]').count()
+        == 2
+    )
+
+    page.locator("#title").fill("下の更新ボタンで変更")
+    with page.expect_navigation(wait_until="load"):
+        page.locator(
+            '[data-action="submit-cmd"][data-cmd="update"]'
+        ).last.click()
+
+    assert page.locator("#title").input_value() == "下の更新ボタンで変更"
 
 
 def test_long_search_result_loads_without_javascript_error(

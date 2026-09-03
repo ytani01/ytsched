@@ -23,52 +23,12 @@
 <header>
   <script type="text/javascript"
           src="{{ static_url('js/edit-page.js') }}"></script>
-  
-  <div id="menu" name="menu"
-       class="my-edit-bar my-follow-keyboard">
-    <!-- ボタンを一定間隔で中央に並べる (TODO-101)。数が 4 つ (新規) と
-         5 つ (既存) で変わり、12 列の Grid では割り切れない -->
-    <div class="my-edit-menu">
 
-      <!-- 保存しないで週表示へ戻る (TODO-065)。``history.back()`` では、
-           更新 (``cmd=update``) のあとに編集画面へリダイレクトして
-           留まるぶん、ひとつ前の編集画面へ戻ってしまう -->
-      <div class="my-btn" data-action="back" data-date="{{ date }}">
-        <svg class="my-icon my-icon-2x">
-          <use href="{{ static_url('icons/icons.svg') }}#reply"></use>
-        </svg>
-      </div>
-
-      <div class="my-btn" data-action="submit-cmd" data-cmd="update">
-        <svg class="my-icon my-icon-2x">
-          <use href="{{ static_url('icons/icons.svg') }}#sync"></use>
-        </svg>
-      </div>
-
-      <div class="my-btn" data-action="submit-cmd" data-cmd="fix">
-        <svg class="my-icon my-icon-2x">
-          <use href="{{ static_url('icons/icons.svg') }}#check-square"></use>
-        </svg>
-      </div>
-
-      {% if not new_flag %}
-      <div class="my-btn" data-action="submit-cmd" data-cmd="add">
-        <svg class="my-icon my-icon-2x">
-          <use href="{{ static_url('icons/icons.svg') }}#clone"></use>
-        </svg>
-      </div>
-      {% end %}
-
-      <div class="my-btn" data-action="submit-cmd" data-cmd="del">
-        <svg class="my-icon my-icon-2x">
-          <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
-        </svg>
-      </div>
-
-    </div><!-- my-edit-menu -->
-  </div><!-- my-edit-bar -->
+  <div class="my-edit-bar my-edit-bar-top">
+    {% include edit_menu.html %}
+  </div><!-- my-edit-bar my-edit-bar-top -->
 </header>
-<main id="edit_main" class="my-edit-main">
+<main id="edit_main" class="my-edit-main my-edit-main-with-top-bar">
   <div id="loadingSpinner" class="my-spinner">
     <svg class="my-icon my-icon-9x my-icon-spin">
       <use href="{{ static_url('icons/icons.svg') }}#spinner"></use>
@@ -197,7 +157,7 @@
       <!-- ID -->
       <div id="div_id" class="my-edit-id">
         <div class="my-edit-id-col">
-          <input id="sde_id" name="sde_id" size="15"
+          <input id="sde_id" name="sde_id" size="45"
                  type="text" value="{{ sde.sde_id }}" readonly>
         </div><!-- my-edit-id-col -->
       </div><!-- my-edit-id -->
@@ -205,4 +165,9 @@
     </div><!-- my-edit-form-body -->
   </form>
 </main>
+
+<footer class="my-edit-bar my-edit-bar-bottom my-follow-keyboard">
+  {% include edit_menu.html %}
+</footer><!-- my-edit-bar my-edit-bar-bottom -->
+
 {% end %}
