@@ -14,6 +14,7 @@ chromium を動かして、URL だけでなく**画面が変わったか**まで
 """
 
 import datetime
+import json
 import socket
 import subprocess
 import sys
@@ -2171,3 +2172,139 @@ def test_gauge_drag_needle_does_not_jump_back_on_release(page, server):
         "() => document.getElementById('gauge_r').style.left"
     )
     assert abs(float(left_after.rstrip("%")) - (50 + end_x_percent)) < 0.5
+
+
+# ページの読み直しをまたいで針の位置の変化を拾うための仕込み（TODO-180）。
+# ドラッグ先が先読みの範囲の外だと ``scrollToDate()`` がページを読み直す
+# ので、``window`` に置いた記録は消えてしまう。``sessionStorage`` へ書く
+GAUGE_LOG_KEY = "__gauge_left_log"
+
+GAUGE_LOG_SCRIPT = """
+(() => {
+  const KEY = '__KEY__';
+  const log = (v) => {
+    const a = JSON.parse(sessionStorage.getItem(KEY) || '[]');
+    a.push(v);
+    sessionStorage.setItem(KEY, JSON.stringify(a));
+  };
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('gauge_r');
+    if (!el) { return; }
+    log('LOAD:' + el.style.left);
+    new MutationObserver(() => log(el.style.left))
+      .observe(el, {attributes: true, attributeFilter: ['style']});
+  });
+})();
+""".replace("__KEY__", GAUGE_LOG_KEY)
+
+
+def _gauge_log(page):
+    """記録した針の位置を読む。"""
+    raw = page.evaluate("(k) => sessionStorage.getItem(k)", GAUGE_LOG_KEY)
+    return json.loads(raw) if raw else []
+
+
+def _drag_gauge_and_release(page, end_days):
+    """ゲージの帯を今週の位置から ``end_days`` 先まで引いて、離す。
+
+    離す直前に記録を空にするので、``_gauge_log()`` で読めるのは
+    「離したあとの針の動き」だけになる（TODO-180）。
+
+    @return 目的地の位置（％）
+    """
+    end_x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", end_days
+    )
+
+    box = page.locator(".my-gauge-bar").bounding_box()
+    assert box is not None
+    start_x = box["x"] + box["width"] / 2  # 今週（中央）から始める
+    end_x = box["x"] + box["width"] * (50 + end_x_percent) / 100
+    drag_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(start_x, drag_y)
+    page.mouse.down()
+    page.mouse.move(end_x, drag_y)
+    page.wait_for_timeout(200)
+
+    page.evaluate("(k) => sessionStorage.setItem(k, '[]')", GAUGE_LOG_KEY)
+    page.mouse.up()
+
+    return 50 + end_x_percent
+
+
+def _assert_needle_did_not_pass_this_week(page, target_percent):
+    """離したあと、針が今週の位置（50%）を経由していないことを見る。"""
+    log = _gauge_log(page)
+    for left in log:
+        percent = left.removeprefix("LOAD:")
+        if not percent:
+            continue  # 読み込んだ直後（まだ置かれていない）
+        assert abs(float(percent.rstrip("%")) - 50.0) > 0.5, (
+            f"針が今週の位置を経由している: {log}"
+        )
+
+    left_after = page.evaluate(
+        "() => document.getElementById('gauge_r').style.left"
+    )
+    assert abs(float(left_after.rstrip("%")) - target_percent) < 0.5, (
+        f"針が移り先の週に居ない: {left_after} != {target_percent}%"
+    )
+
+
+def test_gauge_drag_needle_does_not_pass_this_week_on_reload(page, server):
+    """週間表示で、先読みの範囲の外へドラッグして離しても、針が今週の
+    位置を経由しない（TODO-180）。
+
+    ``LoadWeekPages`` は 4 なので、5 週先はページの読み直しになる。
+    読み直した先では針が消えるので、TODO-179 で入れた「針が既に位置を
+    持っているか」の分岐では間に合わなかった。"""
+    page.add_init_script(GAUGE_LOG_SCRIPT)
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    target_percent = _drag_gauge_and_release(page, 35)  # +5w
+
+    # ページの読み直しを待つ（起きなければテストの前提が崩れている）
+    page.wait_for_function(
+        """(k) => JSON.parse(sessionStorage.getItem(k) || '[]')
+                    .some((v) => v.startsWith('LOAD:'))""",
+        arg=GAUGE_LOG_KEY,
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+    page.wait_for_timeout(500)
+
+    expected = monday + datetime.timedelta(days=35)
+    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+    _assert_needle_did_not_pass_this_week(page, target_percent)
+
+
+def test_gauge_drag_needle_does_not_pass_this_week_on_reload_month(
+    page, server
+):
+    """月間表示でも同じ（TODO-180）。
+
+    ``LoadMonthPages`` は 2 なので、範囲は週間表示より広い。3 年先まで
+    引くとページの読み直しになる。"""
+    page.add_init_script(GAUGE_LOG_SCRIPT)
+    monday = _monday_of(datetime.date.today())
+    page.goto(
+        f"{server}?date={monday.strftime('%Y-%m-%d')}&view=month",
+        wait_until="load",
+    )
+    page.wait_for_selector("#main", state="visible")
+
+    target_percent = _drag_gauge_and_release(page, 365 * 3)  # +3y
+
+    page.wait_for_function(
+        """(k) => JSON.parse(sessionStorage.getItem(k) || '[]')
+                    .some((v) => v.startsWith('LOAD:'))""",
+        arg=GAUGE_LOG_KEY,
+        timeout=10000,
+    )
+    page.wait_for_selector("#main", state="visible")
+    page.wait_for_timeout(500)
+
+    assert "view=month" in page.url
+    _assert_needle_did_not_pass_this_week(page, target_percent)

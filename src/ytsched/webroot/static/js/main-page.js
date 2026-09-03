@@ -50,7 +50,7 @@
    * 検索画面で直前にホームボタンを押した時刻を読む。
    *
    * ``sessionStorage`` が使えないときは、ダブルタップを引き継がない
-   * だけにする (gauge.js の ``getGaugeMonday()`` と同じ考え方)。
+   * だけにする (gauge.js の ``getGaugeStart()`` と同じ考え方)。
    *
    * @return {number}   押した記録が無ければ 0
    */

@@ -16,7 +16,7 @@
 //   gaugeBarPointerCancelHdr -- main-page.js が window の pointerdown / pointermove /
 //                              pointerup / pointercancel に登録する (TODO-178)
 //   ほかの定数・関数 (DAYS_* / days2xPercent / xPercent2days / GAUGE_MARKS /
-//     gaugeDiffLabel / setGaugePosition / GAUGE_MONDAY_KEY / get・setGaugeMonday /
+//     gaugeDiffLabel / setGaugePosition / GAUGE_START_KEY / get・setGaugeStart /
 //     placeGaugeWithoutTransition) はこのファイル内だけで使う
 // 外から使うもの (nav.js は base.html でこのあとに読み込まれるが、
 //   呼ぶのは実行時なので前方参照でよい):
@@ -197,40 +197,46 @@
     }
   };
 
-  // 直前に見ていた週の月曜 (TODO-049)。ページを読み直したあと、
-  // この位置からいまの週へ針を動かして見せるために使う
-  const GAUGE_MONDAY_KEY = "ytsched_gauge_monday";
+  // 次にページを読み込んだとき、針を置き始める位置 (週の月曜)。
+  // ページの読み直しをまたいで残るのはこれだけなので、読み直しのあと
+  // 針をどこから動かして見せるかは、ここに書いてある値で決まる
+  // (TODO-180)。
+  //
+  // 以前は「直前に見ていた週」(``ytsched_gauge_monday``) を持ち、それを
+  // 出発点に流用していた (TODO-049)。ドラッグで飛んだときは「直前に見て
+  // いた週」と「針の出発点」が違うので、意味を出発点のほうに寄せた
+  const GAUGE_START_KEY = "ytsched_gauge_start";
 
   /**
-   * ``sessionStorage`` から直前の週の月曜を読む。
+   * ``sessionStorage`` から針の出発点を読む。
    *
    * Safari の「すべての Cookie をブロック」設定や、``allow-same-origin``
    * の無い ``<iframe>`` では ``sessionStorage`` へのアクセスが
-   * ``SecurityError`` を投げる。読めなければ「前の週は不明」として
+   * ``SecurityError`` を投げる。読めなければ「出発点は不明」として
    * ``null`` を返すだけにする (TODO-049)。
    *
    * @return {String | null}
    */
-  const getGaugeMonday = () => {
+  const getGaugeStart = () => {
     try {
-      return sessionStorage.getItem(GAUGE_MONDAY_KEY);
+      return sessionStorage.getItem(GAUGE_START_KEY);
     } catch (e) {
-      console.log(`getGaugeMonday: ${e}`);
+      console.log(`getGaugeStart: ${e}`);
       return null;
     }
   };
 
   /**
-   * ``sessionStorage`` へ今の週の月曜を書く。書けなくても黙って諦める
-   * (TODO-049。理由は ``getGaugeMonday()`` を参照)。
+   * ``sessionStorage`` へ針の出発点を書く。書けなくても黙って諦める
+   * (TODO-049。理由は ``getGaugeStart()`` を参照)。
    *
    * @param {String} monday_str   'YYYY-mm-dd'
    */
-  const setGaugeMonday = (monday_str) => {
+  const setGaugeStart = (monday_str) => {
     try {
-      sessionStorage.setItem(GAUGE_MONDAY_KEY, monday_str);
+      sessionStorage.setItem(GAUGE_START_KEY, monday_str);
     } catch (e) {
-      console.log(`setGaugeMonday: ${e}`);
+      console.log(`setGaugeStart: ${e}`);
     }
   };
 
@@ -253,23 +259,31 @@
     ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
   };
 
+  // ページを読み込んでから、一度でも針を置いたか (TODO-180)。
+  // ``sessionStorage`` の出発点を使うのは、読み込んだあとの 1 回だけ。
+  // 2 回目からは針が今いる位置から動かせばよい
+  let gaugePlaced = false;
+
   /**
    * ゲージの針を動かす。
    *
-   * ドラッグ中は針に触らず、``sessionStorage`` への記録だけを済ませて
-   * 返す (TODO-178)。ドラッグの途中で setActiveWeek() を通ると、
-   * 追従で dispGauge() が呼ばれて針が勝手に動く。
+   * ドラッグ中は針に触らず、出発点の記録だけを済ませて返す (TODO-178)。
+   * ドラッグの途中で setActiveWeek() を通ると、追従で dispGauge() が
+   * 呼ばれて針が勝手に動く。
    *
-   * ``sessionStorage`` に前回表示していた週の月曜を持っていれば、まず
-   * ``transition`` を効かせずにその位置へ針を置き、次のフレームで
-   * 今の週へ動かす (TODO-049)。ページを読み直すたびに呼ばれるので、
+   * ページを読み込んでから初めての呼び出しでは、``sessionStorage`` に
+   * 残っている出発点 (``GAUGE_START_KEY``) へ ``transition`` を効かせず
+   * に針を置いてから、次のフレームで今の週へ動かす (TODO-049)。
    * ``transition`` だけでは針の初期値が "auto" のままで補間が起きず、
-   * 動いて見えない。``sessionStorage`` が使えない環境でも、針の位置を
-   * 合わせること自体は続ける (``getGaugeMonday()``/``setGaugeMonday()``
+   * 動いて見えない。出発点が今の週と同じなら、動かす先が無いので
+   * そのまま置く。``sessionStorage`` が使えない環境でも、針の位置を
+   * 合わせること自体は続ける (``getGaugeStart()``/``setGaugeStart()``
    * が例外を握りつぶす)。
    *
-   * これはページを読み直した直後だけの処置なので、針が既に位置
-   * (``style.left``) を持っているときはやらない (TODO-179)。
+   * 2 回目からは、針が今いる位置から目的地へ動かす。以前はここを
+   * 「針が ``style.left`` を持っているか」で見分けていたが (TODO-179)、
+   * 読み直した直後かどうかを当てるには間接的で、ページの読み直しを
+   * はさむドラッグで見分けを誤っていた (TODO-180)。
    *
    * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
    */
@@ -287,35 +301,36 @@
     const monday_str = ytsched.getLocaltimeDateString(
       ytsched.mondayOf(date_str),
     );
-    const prev_monday_str = getGaugeMonday();
-    setGaugeMonday(monday_str);
 
-    // ドラッグ中は針に触らない (TODO-178)
+    // ドラッグ中は針に触らない (TODO-178)。読み直しになったときの
+    // 出発点だけは、追従した先の週にしておく
     if (gaugeBarDragStart) {
+      setGaugeStart(monday_str);
       return;
     }
 
-    // 針が既に位置を持っていれば、そこから目的地へ動かす (TODO-179)。
-    // ドラッグで指の位置まで来ている針を前の週へ置き直すと、いったん
-    // そこへ戻ってから動くので、今週を見ていたときは中央 (±0) を
-    // 一瞬経由して見える
-    if (ytsched.ytState.elGaugeR0.style.left) {
-      setGaugePosition(monday_str);
+    if (!gaugePlaced) {
+      gaugePlaced = true;
+      const start_str = getGaugeStart();
+      setGaugeStart(monday_str);
+
+      if (start_str && start_str !== monday_str) {
+        placeGaugeWithoutTransition(start_str);
+        requestAnimationFrame(() => {
+          setGaugePosition(monday_str);
+        });
+        return;
+      }
+
+      // 動かす先が無いので、そのまま置く。``setGaugePosition()`` を直に
+      // 呼ぶと、針の ``left`` が CSS の初期値 (``left: 50%``) のままな
+      // ので、中央から目的地まで transition が掛かる (TODO-060)
+      placeGaugeWithoutTransition(monday_str);
       return;
     }
 
-    if (prev_monday_str && prev_monday_str !== monday_str) {
-      placeGaugeWithoutTransition(prev_monday_str);
-      requestAnimationFrame(() => {
-        setGaugePosition(monday_str);
-      });
-      return;
-    }
-
-    // 動かす先が無いので、そのまま置く。``setGaugePosition()`` を直に
-    // 呼ぶと、針の ``left`` が CSS の初期値 (``left: 50%``) のままな
-    // ので、中央から目的地まで transition が掛かる (TODO-060)
-    placeGaugeWithoutTransition(monday_str);
+    setGaugeStart(monday_str);
+    setGaugePosition(monday_str);
   };
 
   // ドラッグの状態 (TODO-178)
@@ -525,6 +540,15 @@
       gaugeBarHistoryPushed = false;
       return;
     }
+
+    // 移り先が先読みの範囲の外だと、``scrollToDate()`` はページを
+    // 読み直す。針は読み直しで消えるので、離した位置を出発点として
+    // 残しておく (TODO-180)。読み直した先では出発点と目的地が同じに
+    // なり、針は動かずにそこへ出る。読み直しにならなければ、この
+    // あとの ``dispGauge()`` が同じ値で上書きする
+    setGaugeStart(
+      ytsched.getLocaltimeDateString(ytsched.mondayOf(gaugeBarDragMonday)),
+    );
 
     // 最後の週へ移動 (TODO-178)
     // ドラッグ 1 回で履歴は 1 つだけ積む
