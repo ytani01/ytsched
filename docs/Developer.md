@@ -124,6 +124,15 @@ uv run ytsched webapp --datadir ~/ytsched/data --port 10085
 uv run ytsched migrate --datadir ~/ytsched/data
 ```
 
+旧形式から移ってきた `sde_id`（UUID でない）を UUID へ振り直す
+（`ytsched fix-id`、TODO-170）。元に戻せないので、まず `--dry-run` で
+件数を確かめること:
+
+```sh
+uv run ytsched fix-id --datadir ~/ytsched/data --dry-run
+uv run ytsched fix-id --datadir ~/ytsched/data
+```
+
 日本の祝日の取得・登録（`ytsched holiday`、TODO-126）:
 
 ```sh

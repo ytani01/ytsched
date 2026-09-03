@@ -134,3 +134,21 @@ ytsched migrate --datadir ~/ytsched/data --dry-run
 ```
 
 データ形式そのものは [data-format.md](data-format.md) にある。
+
+## 8. `sde_id` を UUID に揃える
+
+旧形式から移行したデータは `sde_id` が独自の形のまま残っていて、UUID
+とは限らない。`ytsched fix-id` で、UUID でない `sde_id` だけを UUID へ
+振り直せる。
+
+```sh
+ytsched fix-id --datadir ~/ytsched/data --dry-run   # 書き出さずに件数だけ見る
+ytsched fix-id --datadir ~/ytsched/data
+```
+
+**元に戻せない。** 実行する前に、まず `--dry-run` で件数を確かめること。
+`.bak` は作らないので、実行前にデータディレクトリごとコピーしておく。
+
+```sh
+cp -a ~/ytsched/data ~/ytsched/data.bak
+```

@@ -42,9 +42,9 @@ TODO-153 は 1 日 1 回まとめて出すだけで、個々の予定の「N 分
 |------|------|------|
 | 見込み | Opus 5 / effort high | implementer + verifier + reviewer |
 
-- [ ] `ytsched fix-id` を作る（`src/ytsched/fix_id.py` と `__main__.py`）
-- [ ] `tests/test_fix_id.py`
-- [ ] 文書（`docs/data-format.md` の `sde_id` の行、`docs/Install.md`、
+- [x] `ytsched fix-id` を作る（`src/ytsched/fix_id.py` と `__main__.py`）
+- [x] `tests/test_fix_id.py`
+- [x] 文書（`docs/data-format.md` の `sde_id` の行、`docs/Install.md`、
       `docs/Developer.md`、`src/README.md`）
 - [ ] 実データへ適用（実行するのは利用者）
 

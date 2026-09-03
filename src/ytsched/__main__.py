@@ -11,6 +11,7 @@ import click
 
 from . import __prog_name__, __version__
 from .click_utils import click_common_opts
+from .fix_id import IdFixer
 from .holiday import DEF_URL, HolidayRegistrar
 from .migrate import Migrator
 from .mylog import getLogger, loggerInit
@@ -94,6 +95,44 @@ def migrate(ctx, datadir, dry_run, error_file, debug):
     loggerInit(debug=debug)
 
     app = Migrator(datadir, dry_run=dry_run, error_file=error_file)
+    try:
+        app.main()
+    finally:
+        _log.info("end")
+
+
+@cli.command(
+    name="fix-id",
+    help="""
+予定の sde_id を UUID へ振り直す
+
+旧形式から移ってきた sde_id は独自の形のまま残っている。UUID でない
+sde_id だけを新しい UUID へ差し替えて書き戻す。元に戻せないので、
+まず --dry-run で件数を確かめてから実行すること。
+""",
+)
+@click.option(
+    "--datadir",
+    "--data",
+    "datadir",
+    type=click.Path(),
+    default=SchedDataFile.DEF_TOP_DIR,
+    help=f"data directory, default='{SchedDataFile.DEF_TOP_DIR}'",
+)
+@click.option(
+    "--dry-run",
+    "dry_run",
+    is_flag=True,
+    default=False,
+    help="書き出さずに、件数だけ出す",
+)
+@click_common_opts(__version__)
+def fix_id(ctx, datadir, dry_run, debug):
+    """fix-id"""
+    debug = _is_debug(ctx, debug)
+    loggerInit(debug=debug)
+
+    app = IdFixer(datadir, dry_run=dry_run)
     try:
         app.main()
     finally:
