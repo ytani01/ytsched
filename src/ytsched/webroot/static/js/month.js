@@ -44,6 +44,13 @@
    * で探す。``week.js`` の ``weekOffsetOfDate()`` は月間表示では常に
    * null を返すので、こちらを使う。
    *
+   * ブロックへ移るだけだと、今日がすでに表示中のブロックに入っている
+   * ときに移り先が同じパネルになり、ゲージの針も ``activeMonday`` も
+   * 動かなかった (TODO-173)。パネルの ``data-monday`` はブロックの
+   * 代表日なので、渡された日付を基準日として ``setActiveWeek()`` へ
+   * 一緒に渡す。ホームボタン・キーの ``Home``・戻る/進むは、どれも
+   * ここを通る。
+   *
    * @param {String} date_str   'YYYY-mm-dd'
    * @param {boolean} push_flag   ``setActiveWeek()`` へそのまま渡す
    * @return {boolean}   移れたら true
@@ -59,7 +66,11 @@
     if (!panel) {
       return false;
     }
-    return ytsched.setActiveWeek(Number(panel.dataset.offset), push_flag);
+    return ytsched.setActiveWeek(
+      Number(panel.dataset.offset),
+      push_flag,
+      date_str,
+    );
   };
 
   /**

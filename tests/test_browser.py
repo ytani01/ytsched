@@ -1587,6 +1587,57 @@ def test_month_view_round_trip(page, server):
     assert "view=month" not in page.url
 
 
+def _same_block_other_month(today):
+    """``today`` と同じ 6 ヶ月ブロックにあり、月だけが違う日を返す
+    （TODO-173）。
+
+    ブロックの区切りは 1〜6 月・7〜12 月なので、ブロックの先頭月
+    （今日がその月なら次の月）の 15 日にする。ホームボタンを押す前の
+    ゲージが ``±0`` にならない距離が要るので、月をずらす。
+    """
+    start_month = 1 if today.month <= 6 else 7
+    month = start_month if today.month != start_month else start_month + 1
+    return datetime.date(today.year, month, 15)
+
+
+def test_home_button_in_month_view_moves_the_gauge_needle(page, server):
+    """月間表示でホームボタンを押すと、ゲージの針が中央（``±0``）へ戻る
+    （TODO-173）。
+
+    今日と同じ 6 ヶ月ブロックの別の月を開くと、移り先が同じパネルに
+    なる。パネルの ``data-monday`` はブロックの代表日のままなので、
+    ``setActiveBlockOfDate()`` が押された日付を ``setActiveWeek()`` へ
+    渡さないと、針も ``activeMonday`` も動かなかった。
+    """
+    today = datetime.date.today()
+    target = _same_block_other_month(today)
+
+    page.goto(f"{server}?date={target}&view=month", wait_until="load")
+    page.wait_for_selector("#main", state="visible")
+    assert page.locator("#main[data-view='month']").count() == 1
+
+    label = page.locator("#gauge_r_label")
+    label.wait_for(state="visible", timeout=10000)
+    page.wait_for_function(
+        "() => document.getElementById('gauge_r_label').textContent.trim()"
+        " !== ''",
+        timeout=10000,
+    )
+    assert label.text_content().strip() != "\u00b10"
+
+    _tap(page, page.locator("#home_button"))
+
+    page.wait_for_function(
+        "() => document.getElementById('gauge_r_label').textContent.trim()"
+        " === '\u00b10'",
+        timeout=10000,
+    )
+
+    # 読み直さずに、月間表示のまま針だけが動く
+    assert page.locator("#main[data-view='month']").count() == 1
+    assert _date_in_url(page) == _monday_of(today).strftime("%Y-%m-%d")
+
+
 def test_touch_swipe_in_mini_cal_from_non_monday_moves_by_a_month(
     page_touch, server
 ):

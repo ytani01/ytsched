@@ -136,11 +136,24 @@
    * ``push_flag`` が真なら URL を履歴に積む。戻る/進むから呼ぶときは
    * 偽にする (``popstate`` で来た時点で URL はもう動いている)。
    *
+   * ``base_date`` を渡すと、パネルの ``data-monday`` の代わりに、その
+   * 日付を基準日として使う (TODO-173)。月間表示のパネルは 6 ヶ月
+   * ブロックで、``data-monday`` はブロックの代表日 (``base_date``、
+   * main_view.py) のままページを読み直すまで変わらない。今日を含む
+   * ブロックがすでに表示中だと、ホームボタンで移る先が同じパネルに
+   * なり、ゲージの針が動かなかった。移り先の日付を渡してもらえば、
+   * ゲージ・``activeMonday``・URL がその日を指す。
+   *
    * @param {number} offset
    * @param {boolean} push_flag
+   * @param {String | null} base_date   'YYYY-mm-dd'
    * @return {boolean}   移れたら true
    */
-  window.ytsched.setActiveWeek = (offset, push_flag = true) => {
+  window.ytsched.setActiveWeek = (
+    offset,
+    push_flag = true,
+    base_date = null,
+  ) => {
     const panel = weekPanelOf(offset);
     if (!panel) {
       return false;
@@ -155,7 +168,7 @@
     ytsched.ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
     ytsched.ytState.elWeekWrap.style.transform = "";
 
-    const monday = panel.dataset.monday;
+    const monday = base_date || panel.dataset.monday;
     ytsched.ytState.activeMonday = monday;
 
     // 画面に出ている #cur_day を合わせる (TODO-111)
