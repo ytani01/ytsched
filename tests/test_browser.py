@@ -1888,6 +1888,28 @@ def test_gauge_marks_are_drawn_at_the_same_position(page, server):
     assert _gauge_mark_left(page, "+1w") == pytest.approx(53.79, abs=0.01)
 
 
+def test_gauge_marks_sit_below_the_top_of_the_bar(page, server):
+    """目盛りが帯の上端に張り付かず、下寄りに描かれる（TODO-182）。
+
+    中身は ``--my-gauge-shift`` で帯の上端から下げる。この値の単位を
+    落とすと ``top: calc(19px + var(--my-gauge-shift))`` が「長さ＋数値」
+    で不正になり、軸・今週のしるし・目盛りラベルの ``top`` が 0 へ潰れて、
+    帯の最上段で針や差分ラベルと重なる。目盛りラベルが帯の上端から
+    十分に下がり、かつ帯の下端との間に指で押す余地が残ることを見る。
+    """
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    bar = page.locator(".my-gauge-bar").bounding_box()
+    label = page.locator(".my-gauge-label").first.bounding_box()
+    assert bar is not None
+    assert label is not None
+
+    # 帯の上端に張り付いていない（単位落ちだと top が 0 に潰れる）
+    assert label["y"] - bar["y"] > 10
+    # 帯の下端との間に、指で押す余地が残る
+    assert (bar["y"] + bar["height"]) - (label["y"] + label["height"]) > 8
+
+
 def test_x_percent2days_inverts_days2x_percent(page, server):
     """``xPercent2days()`` が ``days2xPercent()`` の逆になっている
     （TODO-074）。往復させて元の日数に戻ることを見る。
