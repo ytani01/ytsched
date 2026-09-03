@@ -5,9 +5,14 @@
 // 月間表示 (TODO-137)
 //
 // 外へ出すもの:
-//   blockKeyOfDate()       -- このファイル内だけで使う (内部)
 //   setActiveBlockOfDate() -- nav.js (popstateHdr / scrollToDate)
+//   hasBlockOfDate()       -- gauge.js (gaugeBarPointerMoveHdr、
+//                             ドラッグ中の先読み済みブロック判定)
 //   moveActiveBlock()      -- week.js (moveActiveDate、月間表示のとき)
+// 内部関数:
+//   blockKeyOfDate()       -- ブロック先頭月を計算
+//   blockPanelOf()         -- date_str のブロックパネルを探す（week.js の
+//                             weekPanelOf() と同じパターン）
 // 外から使うもの:
 //   ytState (state.js)          -- elWeekWrap・activeWeekOffset・activeMonday
 //   hasAdjacentWeek() / setActiveWeek() / slideWeekWrap() (week.js)
@@ -28,11 +33,39 @@
    * @param {String} date_str   'YYYY-mm-dd'
    * @return {String}   'YYYY-01' / 'YYYY-07'
    */
-  window.ytsched.blockKeyOfDate = (date_str) => {
+  const blockKeyOfDate = (date_str) => {
     const d = new Date(date_str.split("-").join("/"));
     const year = d.getFullYear();
     const start_month = d.getMonth() < 6 ? 1 : 7;
     return `${year}-${String(start_month).padStart(2, "0")}`;
+  };
+
+  /**
+   * ``date_str`` を含むブロックのパネルを DOM から探す (内部、week.js の
+   * `weekPanelOf()` と同じパターン)。見つからなければ null。
+   *
+   * @param {String} date_str   'YYYY-mm-dd'
+   * @return {Element | null}
+   */
+  const blockPanelOf = (date_str) => {
+    if (!ytsched.ytState.elWeekWrap || !date_str) {
+      return null;
+    }
+    const key = blockKeyOfDate(date_str);
+    return ytsched.ytState.elWeekWrap.querySelector(
+      `.my-month-panel[data-block="${key}"]`,
+    );
+  };
+
+  /**
+   * ``date_str`` を含むブロックのパネルが DOM にあるかどうかを調べる
+   * (TODO-178)。ゲージドラッグの 1 秒後の追従判定に使う。
+   *
+   * @param {String} date_str   'YYYY-mm-dd'
+   * @return {boolean}
+   */
+  window.ytsched.hasBlockOfDate = (date_str) => {
+    return !!blockPanelOf(date_str);
   };
 
   /**
@@ -56,13 +89,7 @@
    * @return {boolean}   移れたら true
    */
   window.ytsched.setActiveBlockOfDate = (date_str, push_flag = true) => {
-    if (!ytsched.ytState.elWeekWrap || !date_str) {
-      return false;
-    }
-    const key = ytsched.blockKeyOfDate(date_str);
-    const panel = ytsched.ytState.elWeekWrap.querySelector(
-      `.my-month-panel[data-block="${key}"]`,
-    );
+    const panel = blockPanelOf(date_str);
     if (!panel) {
       return false;
     }

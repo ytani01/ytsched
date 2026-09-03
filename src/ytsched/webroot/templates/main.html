@@ -27,11 +27,12 @@
        合わず、期間は下の「検索期間・件数」が出しているため -->
   {% if not search_mode %}
   <div id="week_bar" class="my-week-bar">
-    <!-- 横ゲージ (TODO-058)。タップ・クリックしたら、その位置が指す
-         週の月曜へ移る (TODO-074)。日付セルなどと同じイベント委譲で
-         登録し、mouseDownHdr()/mouseUpHdr() (swipe.js) にドラッグと
-         クリックの区別を任せる -->
-    <div class="my-gauge-bar" data-action="gauge-click">
+    <!-- 横ゲージ (TODO-058)。pointer イベント (gaugeBarPointerDownHdr など)
+         で拾う。離した位置が指す週の月曜へ移る (TODO-074)。ドラッグの間は
+         針とラベルだけが指に付いてきて、動きが 1 秒止まったら画面も追従する
+         (TODO-178)。追従するのは、移り先が DOM にある (先読み済みの) ときだけ。
+         範囲の外を指しているときは、指を離したときに移る -->
+    <div class="my-gauge-bar">
       <div class="my-gauge-axis"></div>
       <div class="my-gauge-base"></div>
       <!-- 針と、今週からの差 (TODO-066)。

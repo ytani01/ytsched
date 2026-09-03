@@ -12,17 +12,21 @@
 //                        main-page.js (homeButtonHdr)
 //   dispGauge()        -- week.js (setActiveWeek)・main-page.js (onloadHdr)
 //   dispGaugeMarks()   -- main-page.js (onloadHdr)
-//   gaugeBarClickHdr() -- main.html の .my-gauge-bar の onmousedown
+//   gaugeBarPointerDownHdr / gaugeBarPointerMoveHdr / gaugeBarPointerUpHdr /
+//   gaugeBarPointerCancelHdr -- main-page.js が window の pointerdown / pointermove /
+//                              pointerup / pointercancel に登録する (TODO-178)
 //   ほかの定数・関数 (DAYS_* / days2xPercent / xPercent2days / GAUGE_MARKS /
 //     gaugeDiffLabel / setGaugePosition / GAUGE_MONDAY_KEY / get・setGaugeMonday /
 //     placeGaugeWithoutTransition) はこのファイル内だけで使う
 // 外から使うもの (nav.js は base.html でこのあとに読み込まれるが、
 //   呼ぶのは実行時なので前方参照でよい):
-//   shiftDays() (nav.js)              -- mondayOf・gaugeBarClickHdr
-//   getLocaltimeDateString() (nav.js) -- setGaugePosition・dispGauge・gaugeBarClickHdr
+//   shiftDays() (nav.js)              -- mondayOf・gaugeBarPointerUpHdr
+//   getLocaltimeDateString() (nav.js) -- setGaugePosition・dispGauge・gaugeBarPointerUpHdr
 //   calcDays() (nav.js)              -- setGaugePosition
-//   scrollToDate() (nav.js)          -- gaugeBarClickHdr
+//   scrollToDate() (nav.js)          -- gaugeBarPointerUpHdr
+//   weekOffsetOfDate() (week.js)      -- gaugeBarPointerMoveHdr (1 秒ごとの追従判定)
 //   ytState (state.js)               -- ytState.elGaugeR0
+//   hasBlockOfDate() (month.js)       -- gaugeBarPointerMoveHdr (月間表示での追従判定)
 (() => {
   const ytsched = window.ytsched;
 
@@ -252,6 +256,10 @@
   /**
    * ゲージの針を動かす。
    *
+   * ドラッグ中は針に触らず、``sessionStorage`` への記録だけを済ませて
+   * 返す (TODO-178)。ドラッグの途中で setActiveWeek() を通ると、
+   * 追従で dispGauge() が呼ばれて針が勝手に動く。
+   *
    * ``sessionStorage`` に前回表示していた週の月曜を持っていれば、まず
    * ``transition`` を効かせずにその位置へ針を置き、次のフレームで
    * 今の週へ動かす (TODO-049)。ページを読み直すたびに呼ばれるので、
@@ -279,6 +287,11 @@
     const prev_monday_str = getGaugeMonday();
     setGaugeMonday(monday_str);
 
+    // ドラッグ中は針に触らない (TODO-178)
+    if (gaugeBarDragStart) {
+      return;
+    }
+
     if (prev_monday_str && prev_monday_str !== monday_str) {
       placeGaugeWithoutTransition(prev_monday_str);
       requestAnimationFrame(() => {
@@ -293,37 +306,27 @@
     placeGaugeWithoutTransition(monday_str);
   };
 
+  // ドラッグの状態 (TODO-178)
+  let gaugeBarDragStart = null; // { clientX, t, pointerId } または null
+  let gaugeBarDragMonday = null; // ドラッグ中の現在の週の月曜 ('YYYY-mm-dd')
+  let gaugeBarFollowTimeoutId = null; // 1 秒後の追従タイマー
+  let gaugeBarHistoryPushed = false; // ドラッグ中に履歴を積んだか
+
   /**
-   * ゲージの帯 (``.my-gauge-bar``) をタップ・クリックしたら、その位置が
-   * 指す週の月曜へ移る (TODO-074)。ドラッグでの追従は無く、タップした
-   * 瞬間の位置だけを見る。範囲の頭打ちも無い (逆算した先へそのまま飛ぶ)。
+   * 帯の clientX からその位置の週の月曜を計算する (TODO-178)。
+   * down / move / up で使い回す。
    *
-   * ``.my-gauge-bar`` に ``onmousedown`` 属性で登録してある。ここが
-   * 呼ばれるまでの経路は、既存のボタン (``moveToMonday()`` など) と同じ
-   * (``mouseDownHdr()`` / ``mouseUpHdr()`` を参照)。マウスは、押した位置
-   * から動かずに離すとクリックと見なされ、``mouseUpHdr()`` がここへ
-   * ``mouseup`` の event を渡して呼ぶ。動いていない前提なので、
-   * ``event.clientX`` は押したときと同じ位置を指す。タッチも、動きが
-   * 無ければブラウザが作る合成 ``mousedown``/``mouseup`` がそのまま
-   * 素通りして同じ経路を通る (``mouseDownHdr()`` の
-   * ``MOUSE_AFTER_TOUCH_MSEC`` を参照)。どちらの経路でも
-   * ``target``/``currentTarget`` が指す要素は食い違うことがあるので、
-   * それには頼らず ``.my-gauge-bar`` 自体を取り直す (検索モードでは
-   * 週バーごと出ないので見つからない。TODO-058 と同じ前提)。
-   *
-   * 帯の左端を 0%・右端を 100% として、中央 (50%) からの割合を
-   * ``xPercent2days()`` に渡し、今週の月曜からの日数を出す。
-   *
-   * @param {Event} event
+   * @param {number} clientX
+   * @return {String | null}   週の月曜 ('YYYY-mm-dd')、帯が無ければ null
    */
-  window.ytsched.gaugeBarClickHdr = (event) => {
+  const mondayFromClientX = (clientX) => {
     const el_bar = document.querySelector(".my-gauge-bar");
     if (!el_bar) {
-      return;
+      return null;
     }
 
     const rect = el_bar.getBoundingClientRect();
-    const x_percent = ((event.clientX - rect.left) / rect.width) * 100 - 50;
+    const x_percent = ((clientX - rect.left) / rect.width) * 100 - 50;
     const days = ytsched.xPercent2days(x_percent);
 
     const this_monday = ytsched.mondayOf(
@@ -334,10 +337,223 @@
       ytsched.getLocaltimeDateString(target_date),
     );
 
-    // パスは onloadHdr() と同じく location.pathname でよい (TODO-074)
+    return ytsched.getLocaltimeDateString(monday);
+  };
+
+  /**
+   * 現在のドラッグの週が先読み済み (DOM にある) かどうかを調べる
+   * (TODO-178)。週表示と月間表示で判定方法が違う。
+   *
+   * @return {boolean}
+   */
+  const gaugeBarDragWeekIsLoaded = () => {
+    if (!gaugeBarDragMonday) {
+      return false;
+    }
+
+    if (ytsched.view_month) {
+      // 月間表示: 月間パネルが DOM にあるか (TODO-178)
+      return ytsched.hasBlockOfDate(gaugeBarDragMonday);
+    }
+
+    // 週間表示: weekOffsetOfDate() が見つかるか
+    return ytsched.weekOffsetOfDate(gaugeBarDragMonday) !== null;
+  };
+
+  /**
+   * 1 秒後の追従タイマーを張る (TODO-178)。
+   * pointerdown と pointermove の両方から呼ばれる。
+   */
+  const startGaugeBarFollowTimer = () => {
+    clearTimeout(gaugeBarFollowTimeoutId);
+    if (gaugeBarDragWeekIsLoaded()) {
+      gaugeBarFollowTimeoutId = setTimeout(() => {
+        if (gaugeBarDragMonday && gaugeBarDragWeekIsLoaded()) {
+          const push_flag = !gaugeBarHistoryPushed;
+          if (push_flag) {
+            gaugeBarHistoryPushed = true;
+          }
+          ytsched.scrollToDate(
+            location.pathname,
+            gaugeBarDragMonday,
+            "top",
+            "instant",
+            push_flag,
+          );
+        }
+      }, 1000);
+    }
+  };
+
+  /**
+   * ドラッグが始まった (TODO-178)。帯の上を pointerdown したら、
+   * 状態を持つ。window への capture委譲で拾う。既にドラッグ中なら何もしない。
+   *
+   * @param {PointerEvent} event
+   */
+  window.ytsched.gaugeBarPointerDownHdr = (event) => {
+    const el =
+      event.target && event.target.closest
+        ? event.target.closest(".my-gauge-bar")
+        : null;
+
+    if (!el) {
+      return;
+    }
+
+    // 左ボタン以外は何もしない
+    if (event.button !== 0) {
+      return;
+    }
+
+    // 既にドラッグ中なら何もしない(2 本目の指など)
+    if (gaugeBarDragStart) {
+      return;
+    }
+
+    event.preventDefault(); // マウスでドラッグ中に文字が選択されないように
+    gaugeBarDragStart = {
+      clientX: event.clientX,
+      t: Date.now(),
+      pointerId: event.pointerId,
+    };
+    gaugeBarDragMonday = mondayFromClientX(event.clientX);
+    gaugeBarHistoryPushed = false; // ドラッグ開始時に履歴フラグをリセット
+
+    // transition を外す (ドラッグ中は指に追従するため)
+    ytsched.ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
+
+    // 1 秒後の追従タイマーを張る
+    startGaugeBarFollowTimer();
+  };
+
+  /**
+   * ドラッグ中に針を動かす (TODO-178)。
+   *
+   * @param {PointerEvent} event
+   */
+  window.ytsched.gaugeBarPointerMoveHdr = (event) => {
+    if (!gaugeBarDragStart) {
+      return;
+    }
+
+    // pointerId が異なれば何もしない(2 本目の指など)
+    if (event.pointerId !== gaugeBarDragStart.pointerId) {
+      return;
+    }
+
+    // ボタンが離れていたら後始末する (ウィンドウ外で離した場合など)
+    if (!(event.buttons & 1)) {
+      gaugeBarDragStart = null;
+      gaugeBarDragMonday = null;
+      gaugeBarHistoryPushed = false;
+      clearTimeout(gaugeBarFollowTimeoutId);
+      ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+      ytsched.dispGauge(ytsched.ytState.activeMonday);
+      return;
+    }
+
+    gaugeBarDragMonday = mondayFromClientX(event.clientX);
+    if (!gaugeBarDragMonday) {
+      return;
+    }
+
+    // 針だけを動かす (dispGauge は呼ばない)
+    const this_monday = ytsched.mondayOf(
+      ytsched.getLocaltimeDateString(new Date()),
+    );
+    const target_monday = ytsched.mondayOf(gaugeBarDragMonday);
+    const rel_days = ytsched.calcDays(this_monday, target_monday);
+
+    ytsched.ytState.elGaugeR0.style.left = `${50 + ytsched.days2xPercent(rel_days)}%`;
+
+    const elLabel = document.getElementById("gauge_r_label");
+    if (elLabel) {
+      elLabel.textContent = ytsched.gaugeDiffLabel(
+        Math.round(rel_days / 7) * 7,
+      );
+    }
+
+    // 1 秒止まったら追従 (TODO-178)
+    startGaugeBarFollowTimer();
+  };
+
+  /**
+   * ドラッグが終わった (TODO-178)。指を離したら、最後の週へ移動する。
+   *
+   * @param {PointerEvent} event
+   */
+  window.ytsched.gaugeBarPointerUpHdr = (event) => {
+    if (!gaugeBarDragStart) {
+      return;
+    }
+
+    // pointerId が異なれば何もしない(別の指など)
+    if (event.pointerId !== gaugeBarDragStart.pointerId) {
+      return;
+    }
+
+    clearTimeout(gaugeBarFollowTimeoutId);
+    gaugeBarFollowTimeoutId = null;
+
+    // transition を戻す
+    ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+
+    const el_bar = document.querySelector(".my-gauge-bar");
+    if (!el_bar) {
+      gaugeBarDragStart = null;
+      gaugeBarDragMonday = null;
+      gaugeBarHistoryPushed = false;
+      return;
+    }
+
+    gaugeBarDragStart = null;
+
+    if (!gaugeBarDragMonday) {
+      gaugeBarHistoryPushed = false;
+      return;
+    }
+
+    // 最後の週へ移動 (TODO-178)
+    // ドラッグ 1 回で履歴は 1 つだけ積む
+    const push_flag = !gaugeBarHistoryPushed;
     ytsched.scrollToDate(
       location.pathname,
-      ytsched.getLocaltimeDateString(monday),
+      gaugeBarDragMonday,
+      "top",
+      "smooth",
+      push_flag,
     );
+    gaugeBarDragMonday = null;
+    gaugeBarHistoryPushed = false;
+  };
+
+  /**
+   * ドラッグが割り込まれた (TODO-178)。針を元の週へ戻す。
+   *
+   * @param {PointerEvent} event
+   */
+  window.ytsched.gaugeBarPointerCancelHdr = (event) => {
+    if (!gaugeBarDragStart) {
+      return;
+    }
+
+    // pointerId が異なれば何もしない(別の指など)
+    if (event.pointerId !== gaugeBarDragStart.pointerId) {
+      return;
+    }
+
+    clearTimeout(gaugeBarFollowTimeoutId);
+    gaugeBarFollowTimeoutId = null;
+
+    // transition を戻す
+    ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+
+    gaugeBarDragStart = null;
+    gaugeBarDragMonday = null;
+    gaugeBarHistoryPushed = false;
+
+    // 針を現在の週へ戻す (TODO-178)
+    ytsched.dispGauge(ytsched.ytState.activeMonday);
   };
 })();

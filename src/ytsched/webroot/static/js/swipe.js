@@ -199,7 +199,7 @@
   /**
    * 指が触れたとき (TODO-054)。
    *
-   * 次の 3 つは、始めた時点で見送る。
+   * 次の 4 つは、始めた時点で見送る。
    *
    * - **2 本以上の指。** ピンチで拡大しているときに週が変わらないように
    * - **画面の左右の端から始まったもの。** iOS Safari の画面端スワイプ
@@ -209,6 +209,9 @@
    * - **ページ送りボタン (``[data-page-turn]``) の上で始まったもの。**
    *   ボタン側は ``pointerdown``/``pointerup`` (main-page.js) で拾うので、
    *   ここで拾うと週送りが二重に効く (TODO-084)
+   * - **ゲージの帯 (``.my-gauge-bar``) の上で始まったもの。**
+   *   帯の上からの横の動きをドラッグとして拾わせないため (TODO-178)。
+   *   帯自体は pointer イベントで拾う
    */
   window.ytsched.touchStartHdr = (event) => {
     lastTouchMsec = Date.now();
@@ -223,7 +226,7 @@
     if (
       el &&
       el.closest &&
-      el.closest("input, textarea, select, [data-page-turn]")
+      el.closest("input, textarea, select, [data-page-turn], .my-gauge-bar")
     ) {
       return;
     }
@@ -326,7 +329,7 @@
    * ``onmousedown`` は発火しない。動かずに離したときに ``mouseUpHdr``
    * が自前で呼ぶ。
    *
-   * 次の 3 つは、始めた時点で見送る (伝播を止めず、今までどおり動く)。
+   * 次の 4 つは、始めた時点で見送る (伝播を止めず、今までどおり動く)。
    *
    * - **タッチ由来の ``mousedown``。** ブラウザはタッチのあとにこれを
    *   作って投げてくる。タッチでの挙動は変えない
@@ -336,6 +339,8 @@
    * - **ページ送りボタン (``[data-page-turn]``) の上。** ``pointerdown``
    *   を邪魔しないよう、``stopPropagation()``/``preventDefault()`` の前で
    *   返す (TODO-084)
+   * - **ゲージの帯 (``.my-gauge-bar``) の上。** 帯の上からの横の動きを
+   *   週送りとして拾わせないため (TODO-178)。帯自体は pointer イベントで拾う
    */
   window.ytsched.mouseDownHdr = (event) => {
     if (
@@ -362,7 +367,11 @@
     if (!el || !el.closest) {
       return;
     }
-    if (el.closest("input, textarea, select, label, a, [data-page-turn]")) {
+    if (
+      el.closest(
+        "input, textarea, select, label, a, [data-page-turn], .my-gauge-bar",
+      )
+    ) {
       return;
     }
 

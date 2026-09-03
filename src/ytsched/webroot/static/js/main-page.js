@@ -11,7 +11,8 @@
 //   window.ytsched.view_month -- onloadHdr() が #main の data-view から
 //     入れる。week.js・nav.js・swipe.js が読む (TODO-137)
 //   onloadHdr()・keyHdr (keyboard.js)・popstateHdr (nav.js)・swipe.js の各
-//     ハンドラを、このファイル末尾で window のイベントに登録する。
+//     ハンドラと、gauge.js の gaugeBarPointer* ハンドラを、このファイル末尾で
+//     window のイベントに登録する (TODO-178)。
 //     ページ送り関連 (startAutoPageTurn / stopAutoPageTurn /
 //     pageTurnPointerDownHdr / pageTurnPointerUpHdr / pageTurnPointerCancelHdr)
 //     と homeTapPointerDownHdr (TODO-165) は、このファイル内だけで使う
@@ -189,9 +190,6 @@
       return;
     }
     switch (el.dataset.action) {
-      case "gauge-click":
-        ytsched.gaugeBarClickHdr(event);
-        break;
       case "search-prev":
         ytsched.doGetDate(
           ytsched.url_prefix,
@@ -627,6 +625,12 @@
   window.addEventListener("mousedown", ytsched.mouseDownHdr, true);
   window.addEventListener("mousemove", ytsched.mouseMoveHdr);
   window.addEventListener("mouseup", ytsched.mouseUpHdr);
+  // ゲージの帯のドラッグ・タップ (TODO-178)。window への委譲で capture で拾う
+  // (既存のボタン操作と同じパターン)。move と up / cancel は bubble で拾う
+  window.addEventListener("pointerdown", ytsched.gaugeBarPointerDownHdr, true);
+  window.addEventListener("pointermove", ytsched.gaugeBarPointerMoveHdr);
+  window.addEventListener("pointerup", ytsched.gaugeBarPointerUpHdr);
+  window.addEventListener("pointercancel", ytsched.gaugeBarPointerCancelHdr);
   // フッターの ◀▶ のダブルタップで自動ページ送り (TODO-084)。
   // pointerdown は capture で拾う (画面の他の場所を押したら止める分岐が、
   // ボタン側の分岐より先に効いてよい)

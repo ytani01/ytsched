@@ -647,9 +647,21 @@ textarea {
    接していた) */
 .my-gauge-bar {
     position: relative;
-    height: 33px;
+    height: 44px;
     margin: 0 16px;
     cursor: pointer;
+    /* ドラッグを pointer イベントで拾うので、ブラウザの縦スクロールに
+       取られないようにする (TODO-178) */
+    touch-action: none;
+}
+
+/* 中身 (軸・今週のしるし・針・目盛り) を、帯の下端へ寄せる幅
+   (TODO-178)。指で操作しやすいように帯を 33px から 44px へ広げたが、
+   広げたぶんを下に空けると、目盛りが指で隠れて読めない。中身は
+   下詰めにして、空きを上に置く。中身そのものの高さは 32px なので
+   44 - 32 = 12px */
+:root {
+    --my-gauge-shift: 12px;
 }
 
 /* タップ・クリックできることが分かるように (TODO-074)。
@@ -664,7 +676,7 @@ textarea {
     position: absolute;
     left: 0;
     right: 0;
-    top: 19px;
+    top: calc(19px + var(--my-gauge-shift));
     height: 1px;
     background-color: #FFF;
     opacity: 0.5;
@@ -673,7 +685,7 @@ textarea {
 /* 今週のしるし (中央に固定) */
 .my-gauge-base {
     position: absolute;
-    top: 15px;
+    top: calc(15px + var(--my-gauge-shift));
     left: 50%;
     width: 2px;
     height: 9px;
@@ -688,7 +700,7 @@ textarea {
    中央 (left: 50%) を基準に置く */
 .my-gauge-r {
     position: absolute;
-    top: 0;
+    top: var(--my-gauge-shift);
     left: 50%;
     width: 12px;
     height: 20px;
@@ -737,7 +749,7 @@ textarea {
    目盛りは 14 個のまま間引かない */
 .my-gauge-label {
     position: absolute;
-    top: 22px;
+    top: calc(22px + var(--my-gauge-shift));
     font-size: 10px;
     line-height: 10px;
     white-space: nowrap;

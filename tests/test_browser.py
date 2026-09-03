@@ -1936,3 +1936,175 @@ def test_gauge_bar_click_moves_to_the_tapped_week(page, server):
         timeout=10000,
     )
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+
+
+def test_gauge_drag_does_not_move_screen_while_dragging(page, server):
+    """ゲージのドラッグ中は、画面が動かず、針とラベルだけが動く（TODO-178）。"""
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    start_days = 7  # +1w で押す
+    end_days = 28  # +4w まで動かす
+    start_x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", start_days
+    )
+    end_x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", end_days
+    )
+
+    box = page.locator(".my-gauge-bar").bounding_box()
+    assert box is not None
+    start_x = box["x"] + box["width"] * (50 + start_x_percent) / 100
+    end_x = box["x"] + box["width"] * (50 + end_x_percent) / 100
+    drag_y = box["y"] + box["height"] / 2
+
+    # 初期状態の針の文字
+    initial_label = page.locator("#gauge_r_label").inner_text()
+
+    # ドラッグ中: 画面が動かず、針とラベルだけが動く
+    page.mouse.move(start_x, drag_y)
+    page.mouse.down()
+    page.wait_for_timeout(200)  # 少し待つ
+    page.mouse.move(end_x, drag_y)  # +4w の位置まで動かす
+    page.wait_for_timeout(200)
+
+    # URL は変わっていない（追従していない）
+    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+    # 針とラベルは動いている
+    moved_label = page.locator("#gauge_r_label").inner_text()
+    assert moved_label != initial_label, "ドラッグ中にラベルが動いているはず"
+
+    page.mouse.up()
+
+    # 離したら、最後の週へ移動する
+    expected = monday + datetime.timedelta(days=end_days)
+    page.wait_for_function(
+        """(monday) => {
+            const cur = document.querySelector('.my-week-cur');
+            return cur && cur.dataset.monday === monday;
+        }""",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=5000,
+    )
+    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+
+
+def test_gauge_drag_follows_after_1_second_stop(page, server):
+    """ゲージドラッグで 1 秒止まると、先読み済みの週へ画面が移る（TODO-178）。
+    URL の `date` が変わり、ページの読み直しは起きない。"""
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    target_days = 7  # 1 週間先（先読み済み）
+    x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", target_days
+    )
+
+    box = page.locator(".my-gauge-bar").bounding_box()
+    assert box is not None
+    drag_x = box["x"] + box["width"] * (50 + x_percent) / 100
+    drag_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(drag_x, drag_y)
+    page.mouse.down()
+
+    # 1 秒以上止まったら、追従が起きる（スクロール位置が更新される）
+    expected = monday + datetime.timedelta(days=target_days)
+    page.wait_for_function(
+        """(monday) => {
+            const cur = document.querySelector('.my-week-cur');
+            return cur && cur.dataset.monday === monday;
+        }""",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=3000,  # 1 秒タイマー + スクロール処理の時間
+    )
+
+    page.mouse.up()
+
+    # URL も変わっている
+    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+
+
+def test_gauge_drag_pushes_history_only_once(page, server):
+    """ゲージドラッグで履歴は 1 回だけ増える（TODO-178）。
+    最初の追従で push、その後と指を離したときは replace なので、
+    戻ると元の画面へ一度で戻れる。"""
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    # ドラッグして 1 秒後の追従を起こす
+    target_days = 7
+    x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", target_days
+    )
+
+    box = page.locator(".my-gauge-bar").bounding_box()
+    assert box is not None
+    drag_x = box["x"] + box["width"] * (50 + x_percent) / 100
+    drag_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(drag_x, drag_y)
+    page.mouse.down()
+
+    # 追従が起きるまで待つ
+    expected = monday + datetime.timedelta(days=target_days)
+    page.wait_for_function(
+        """(monday) => {
+            const cur = document.querySelector('.my-week-cur');
+            return cur && cur.dataset.monday === monday;
+        }""",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=3000,
+    )
+
+    page.mouse.up()
+    page.wait_for_timeout(100)
+
+    # 戻る（1 回で元の週に戻るはず）
+    page.go_back()
+    page.wait_for_function(
+        """(monday) => {
+            const cur = document.querySelector('.my-week-cur');
+            return cur && cur.dataset.monday === monday;
+        }""",
+        arg=monday.strftime("%Y-%m-%d"),
+        timeout=5000,
+    )
+    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+
+
+def test_gauge_tap_moves_to_the_tapped_week(page, server):
+    """ゲージドラッグで動かさずに離したときは、いままでどおりその位置の週へ移る
+    （既存のタップ動作、TODO-074）。"""
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    target_days = 7  # 1 週間先
+    x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", target_days
+    )
+
+    box = page.locator(".my-gauge-bar").bounding_box()
+    assert box is not None
+    tap_x = box["x"] + box["width"] * (50 + x_percent) / 100
+    tap_y = box["y"] + box["height"] / 2
+
+    # タップ（動かさずに離す）
+    page.mouse.move(tap_x, tap_y)
+    page.mouse.down()
+    page.mouse.up()
+
+    expected = monday + datetime.timedelta(days=target_days)
+    page.wait_for_function(
+        """(monday) => {
+            const cur = document.querySelector('.my-week-cur');
+            return cur && cur.dataset.monday === monday;
+        }""",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=5000,
+    )
+    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
