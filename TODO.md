@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-154・TODO-167。** これまでに 165 件を決着させた。
+**残っている項目: TODO-154・TODO-167・TODO-168。** これまでに 165 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-168` から**。
+**番号は `TODO-169` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
 
@@ -68,6 +68,26 @@ TODO-153 は 1 日 1 回まとめて出すだけで、個々の予定の「N 分
   キー名が変わっても手本が手元にあるようにする。中身は画面から
   自動保存されるキーも含めた全キー。書き出しは `ConfFile`
   （`src/ytsched/conf.py`）の役目
+
+---
+
+## TODO-168. `ruff` が `archives/` を見ないようにする
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort medium | main + verifier |
+
+- [ ] `pyproject.toml` の `[tool.ruff]` に `extend-exclude = ["archives"]` を足す
+
+`ruff format` は Markdown の中の ```` ```python ```` ブロックも整形する。
+TODO-167 で implementer が対象パスを指定せず `uv run ruff format` を
+叩いたところ、`archives/` 以下の報告ファイル 9 件と
+`archives/agents/TODO-060/probe.py` が書き換わった（管理者が戻した）。
+`archives/` は決着した項目の記録で、整形の対象ではない。
+
+`mise run fmt` は `src tests tools` に絞ってあるので、そのタスク経由では
+起きない。効くのは `pyproject.toml` 側で、そこに書けば対象を指定せずに
+叩いたときも `ruff check` も `archives/` を見なくなる。
 
 ---
 
