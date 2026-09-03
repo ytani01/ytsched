@@ -36,7 +36,38 @@ TODO-153 は 1 日 1 回まとめて出すだけで、個々の予定の「N 分
 
 ---
 
-## TODO-167. 設定項目 LoadMonths を LoadWeekPages にして、週単位で指定するようにする。
+## TODO-167. 設定項目 `LoadMonths` を `LoadWeekPages` にして、週単位で指定する
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | implementer + verifier |
+
+- [ ] `conf.json` のキーを `LoadWeekPages` にする（既定 4、範囲 0〜103）
+- [ ] `months2weeks()` を削除する
+- [ ] `conf.json` が無ければ既定値で作る
+- [ ] 文書とテストを直す
+
+週間表示の先読み範囲は `LoadMonths`（既定 1、範囲 0〜24）で月単位に
+指定し、`months2weeks()`（`round(months * 30 / 7)`）で週数へ換算して
+いる。1 ヶ月と書いても実際に増えるのは前後 4 週で、指定と挙動が対応
+しない。TODO-166 で足した月間表示の `LoadMonthPages` は画面数で直接
+指定しているので、週間表示もそちらに揃える。
+
+決めたこと:
+
+- **`LoadWeekPages` は既定 4、範囲 0〜103。** 既定は現行の
+  `LoadMonths=1`（前後 4 週）と同じ挙動。上限は `LoadMonths=24` に
+  相当する週数
+- **旧 `LoadMonths` は読まない。** `conf.json` の書き換えは利用者が
+  やる（単一ユーザー専用で、手で書く設定のため）
+- **`months2weeks()` は削除する。** `main_view.py` の定義、
+  `main_handler.py` の再公開、`tests/test_web.py` の `LoadMonths`
+  テスト群も併せて片付ける。`docs/User.md` の設定表と例、
+  `src/ytsched/ytsched.py` の説明文も直す
+- **datadir に `conf.json` が無ければ、既定値を書いたものを作る。**
+  キー名が変わっても手本が手元にあるようにする。中身は画面から
+  自動保存されるキーも含めた全キー。書き出しは `ConfFile`
+  （`src/ytsched/conf.py`）の役目
 
 ---
 
