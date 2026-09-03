@@ -2108,3 +2108,66 @@ def test_gauge_tap_moves_to_the_tapped_week(page, server):
         timeout=5000,
     )
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+
+
+def test_gauge_drag_needle_does_not_jump_back_on_release(page, server):
+    """スライダーから指を離したとき、針が前の週へ戻らない（TODO-179）。
+
+    離したあとの `left` の変化をすべて拾い、今週の位置（50%）を
+    経由していないことを見る。針は既にドラッグの終端の位置に
+    いるので、変化が 1 件も無いのが正しい姿。"""
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    end_days = 28  # +4w まで動かす
+    end_x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", end_days
+    )
+
+    box = page.locator(".my-gauge-bar").bounding_box()
+    assert box is not None
+    start_x = box["x"] + box["width"] / 2  # 今週（中央）から始める
+    end_x = box["x"] + box["width"] * (50 + end_x_percent) / 100
+    drag_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(start_x, drag_y)
+    page.mouse.down()
+    page.mouse.move(end_x, drag_y)
+    page.wait_for_timeout(200)
+
+    # 離したあとの針の位置の変化だけを拾う
+    page.evaluate(
+        """() => {
+            window.gauge_lefts = [];
+            const el = document.getElementById('gauge_r');
+            new MutationObserver(() => {
+                window.gauge_lefts.push(el.style.left);
+            }).observe(el, {attributes: true, attributeFilter: ['style']});
+        }"""
+    )
+
+    page.mouse.up()
+
+    expected = monday + datetime.timedelta(days=end_days)
+    page.wait_for_function(
+        """(monday) => {
+            const cur = document.querySelector('.my-week-cur');
+            return cur && cur.dataset.monday === monday;
+        }""",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=5000,
+    )
+
+    lefts = page.evaluate("() => window.gauge_lefts")
+    for left in lefts:
+        percent = float(left.rstrip("%"))
+        assert abs(percent - 50.0) > 0.5, (
+            f"針が今週の位置へ戻っている: {lefts}"
+        )
+
+    # 最後は、離した位置（＝移り先の週）に居る
+    left_after = page.evaluate(
+        "() => document.getElementById('gauge_r').style.left"
+    )
+    assert abs(float(left_after.rstrip("%")) - (50 + end_x_percent)) < 0.5

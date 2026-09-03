@@ -268,6 +268,9 @@
    * 合わせること自体は続ける (``getGaugeMonday()``/``setGaugeMonday()``
    * が例外を握りつぶす)。
    *
+   * これはページを読み直した直後だけの処置なので、針が既に位置
+   * (``style.left``) を持っているときはやらない (TODO-179)。
+   *
    * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
    */
   window.ytsched.dispGauge = (date_str) => {
@@ -289,6 +292,15 @@
 
     // ドラッグ中は針に触らない (TODO-178)
     if (gaugeBarDragStart) {
+      return;
+    }
+
+    // 針が既に位置を持っていれば、そこから目的地へ動かす (TODO-179)。
+    // ドラッグで指の位置まで来ている針を前の週へ置き直すと、いったん
+    // そこへ戻ってから動くので、今週を見ていたときは中央 (±0) を
+    // 一瞬経由して見える
+    if (ytsched.ytState.elGaugeR0.style.left) {
+      setGaugePosition(monday_str);
       return;
     }
 
