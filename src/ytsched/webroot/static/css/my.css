@@ -647,7 +647,7 @@ textarea {
    接していた) */
 .my-gauge-bar {
     position: relative;
-    height: 50px;
+    height: 60px;
     margin: 0 16px;
     cursor: pointer;
     /* ドラッグを pointer イベントで拾うので、ブラウザの縦スクロールに
