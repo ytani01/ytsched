@@ -1,21 +1,32 @@
 #
 # (c) 2026 ytani01
 #
-"""予定の ``sde_id`` を UUID へ振り直す (TODO-170)
+"""予定の ``sde_id`` を ``{UUID}-{版}`` の形へ振り直す (TODO-171)
 
-旧形式から移ってきた ``sde_id`` は独自の形（13〜18 文字）のままで、
-新しく作る予定の UUID と混在している。全データを走査して、UUID で
-ない ``sde_id`` だけを ``uuid.uuid4()`` へ差し替える。
+版が付く前の ``sde_id`` が UUID のもの・旧形式のものが混在している。
+全データを走査して、新しい形式でない ``sde_id`` を差し替える。
 
-対象は ``{年}/{月}/{日}.jsonl`` と ``ToDo.jsonl`` のみ。``trash.jsonl``・
-``.cgi``・``.bak`` は対象外（``trash.jsonl`` を外す理由は
-``docs/data-format.md`` ではなく ``TODO.md`` の TODO-170 を参照）。
+対象は ``{年}/{月}/{日}.jsonl``・``ToDo.jsonl``・``trash.jsonl`` の 3 つ
+（``trash.jsonl`` は TODO-170 では対象外にしていたが、TODO-171 から
+対象に加えた）。``.cgi``・``.bak`` は対象外のまま。
 
-1 行ずつ JSON として読み、``sde_id`` だけを差し替えて書き戻す。
-**他のキーは値も並び順も変えない**（``json.loads`` の結果は挿入順を
-保つので、``sde_id`` だけ代入して ``json.dumps(..., ensure_ascii=False)``
-で書き直せばよい）。JSON として読めない行、``sde_id`` キーが無い行、
-``sde_id`` が文字列でない行は、そのまま書き戻して数える
+1 行ずつ JSON として読み、``sde_id`` を次のとおり判定して差し替える。
+
+- 既に ``{UUID}-{版}`` の形（``SchedDataEnt.split_id()`` が通る）
+  → そのまま
+- UUID の形（``is_uuid()``）→ UUID は保って ``-1`` を付ける
+- それ以外 → 新しい UUID の ``-1``
+
+``trash.jsonl`` の行も 1 行ずつ独立に振り直す。旧形式だった予定は、
+ゴミ箱の行と現在の予定が繋がらなくなる。既に UUID が一致していた行も、
+両方が ``-1`` になって版では区別できなくなる。ここは割り切る
+（``docs/data-format.md`` ではなく ``TODO.md`` の TODO-171 を参照）。
+
+他のキーは値も並び順も変えない（``json.loads`` の結果は挿入順を保つ
+ので、``sde_id`` だけ代入して ``json.dumps(..., ensure_ascii=False)``
+で書き直せばよい）。``trash.jsonl`` は ``trashed_at`` が先頭にあるが、
+同じやり方でキーの並びは保たれる。JSON として読めない行、``sde_id``
+キーが無い行、``sde_id`` が文字列でない行は、そのまま書き戻して数える
 （``SchedDataFile.load()`` が読めない行を ``skipped_lines`` に残すのと
 同じ考え方。行は捨てない）。空行はそのまま書き戻し、「読めなかった行」
 には数えない（``SchedDataFile.load()`` も空行は警告もカウントもしない）。
@@ -33,7 +44,7 @@ import os
 import pathlib
 import re
 import tempfile
-from typing import Any, ClassVar
+from typing import Any
 
 from .mylog import getLogger
 from .ytsched import SchedDataEnt, SchedDataFile
@@ -49,7 +60,7 @@ UUID_PATTERN = re.compile(
 
 
 def is_uuid(sde_id: str) -> bool:
-    """``sde_id`` が UUID の形かどうか。"""
+    """``sde_id`` が版の付いていない UUID の形かどうか。"""
     return bool(UUID_PATTERN.match(sde_id))
 
 
@@ -66,24 +77,17 @@ class FixIdStat:
     lines_changed: int = 0
     """書き換えた行数"""
 
-    lines_already_uuid: int = 0
-    """元から UUID だった行数"""
+    lines_already_ok: int = 0
+    """元から ``{UUID}-{版}`` の形だった行数"""
 
     lines_unreadable: int = 0
     """読めなかった(そのまま残した)行数"""
 
 
 class IdFixer:
-    """予定の ``sde_id`` を UUID へ振り直す"""
+    """予定の ``sde_id`` を ``{UUID}-{版}`` の形へ振り直す"""
 
     __log = getLogger(__qualname__)
-
-    #: ``{年}/{月}/{日}.jsonl`` だけに当てる
-    DAILY_GLOB: ClassVar[str] = (
-        "[0-9][0-9][0-9][0-9]/[0-9][0-9]/[0-9][0-9].jsonl"
-    )
-
-    TODO_FNAME = "ToDo.jsonl"
 
     def __init__(self, topdir: str, dry_run: bool = False):
         """Constructor
@@ -104,13 +108,12 @@ class IdFixer:
         self.stat = FixIdStat()
 
     def find_files(self) -> list[pathlib.Path]:
-        """対象になるファイルを探す。"""
-        files = sorted(self.topdir.glob(self.DAILY_GLOB))
+        """対象になるファイルを探す。
 
-        todo_file = self.topdir / self.TODO_FNAME
-        if todo_file.is_file():
-            files.append(todo_file)
-
+        列挙そのものは ``SchedDataFile.list_all_files()`` に持たせて
+        ある（``SchedData.max_version()`` と共用するため。TODO-171）。
+        """
+        files = SchedDataFile.list_all_files(self.topdir)
         self.__log.debug(f"files={len(files)}")
         return files
 
@@ -140,11 +143,18 @@ class IdFixer:
             self.stat.lines_unreadable += 1
             return raw_line, False
 
-        if is_uuid(data["sde_id"]):
-            self.stat.lines_already_uuid += 1
+        sde_id = data["sde_id"]
+
+        if SchedDataEnt.split_id(sde_id) is not None:
+            self.stat.lines_already_ok += 1
             return raw_line, False
 
-        data["sde_id"] = SchedDataEnt.new_id()
+        if is_uuid(sde_id):
+            new_sde_id = SchedDataEnt.format_id(sde_id, 1)
+        else:
+            new_sde_id = SchedDataEnt.new_id()
+
+        data["sde_id"] = new_sde_id
         self.stat.lines_changed += 1
         new_line = json.dumps(data, ensure_ascii=False)
         return new_line.encode(SchedDataFile.ENCODING), True
@@ -210,7 +220,7 @@ class IdFixer:
         print(f"走査したファイル: {self.stat.files_scanned}")
         print(f"書き換えたファイル: {self.stat.files_changed}")
         print(f"書き換えた行    : {self.stat.lines_changed}")
-        print(f"元から UUID の行: {self.stat.lines_already_uuid}")
+        print(f"元から新形式の行: {self.stat.lines_already_ok}")
         print(f"読めなかった行  : {self.stat.lines_unreadable}")
 
         return self.stat

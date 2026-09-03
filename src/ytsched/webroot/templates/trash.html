@@ -101,7 +101,7 @@
                  aria-label="{{ sde.title }}を選択">
         </div>
       </div>
-      <div class="my-fs-x-small">{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
+      <div class="my-fs-x-small">{% if entry.version %}版 {{ entry.version }} ・ {% end %}{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
     </article>
     {% end %}
   </section>

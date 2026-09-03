@@ -1421,8 +1421,43 @@ class TestUpdate(WebTestBase):
         )
 
         line = self.data_path(DATE1).read_text(encoding="utf-8").rstrip("\n")
-        assert json.loads(line)["sde_id"] == sde_id
+        # 編集で版が増える(TODO-171)。UUID 部分は引き継がれる
+        assert SchedDataEnt.id_uuid(
+            json.loads(line)["sde_id"]
+        ) == SchedDataEnt.id_uuid(sde_id)
+        assert SchedDataEnt.next_id(sde_id) == json.loads(line)["sde_id"]
         assert json.loads(line)["title"] == "変更後"
+
+    def test_update_increments_version_and_original_goes_to_trash(self):
+        """編集で版が増え、元の内容がゴミ箱へ元の ID のまま入る(TODO-171)。"""
+        sde_id = self.add_sde()
+
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="update",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+            time_start="09:05",
+            time_end="10:30",
+            sde_type="会議",
+            title="変更後",
+            place="会議室",
+            detail="詳細",
+        )
+
+        new_sde_id = json.loads(
+            self.data_path(DATE1).read_text(encoding="utf-8").rstrip("\n")
+        )["sde_id"]
+        assert new_sde_id == SchedDataEnt.next_id(sde_id)
+
+        trash_lines = (
+            (self.datadir / "trash.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
+        assert len(trash_lines) == 1
+        assert json.loads(trash_lines[0])["sde_id"] == sde_id
 
     def test_del(self):
         sde_id = self.add_sde()
@@ -2263,6 +2298,174 @@ class TestTrashHandler(WebTestBase):
             encoding="utf-8"
         ) == before
 
+    def test_get_shows_version_and_groups_by_uuid_part(self):
+        """版が違っても同じ UUID 部分でグループになり、版が表示される(TODO-171)。"""
+        uuid_a = "3f2a1b0c-4d5e-6f70-8192-a3b4c5d6e7f8"
+        entries = [
+            {
+                "trashed_at": "2026-08-30T14:23:05",
+                **json.loads(mk_dataline(sde_id=f"{uuid_a}-2")),
+            },
+            {
+                "trashed_at": "2026-08-29T09:10:00",
+                **json.loads(
+                    mk_dataline(sde_id=f"{uuid_a}-1", title="古い内容")
+                ),
+            },
+        ]
+        (self.datadir / "trash.jsonl").write_text(
+            "".join(
+                json.dumps(entry, ensure_ascii=False) + "\n"
+                for entry in entries
+            ),
+            encoding="utf-8",
+        )
+
+        body = self.get_body(URL_PREFIX + "/trash", sde_id=uuid_a)
+
+        assert "同じ予定の内容が 2 件" in body
+        assert "版 2 ・" in body
+        assert "版 1 ・" in body
+
+    def test_restore_keeps_uuid_and_increments_version(self):
+        """新しい形式の ID は、UUID を引き継いで版を増やして復活する(TODO-171)。"""
+        uuid_a = "3f2a1b0c-4d5e-6f70-8192-a3b4c5d6e7f8"
+        entries = [
+            {
+                "trashed_at": "2026-08-30T14:23:05",
+                **json.loads(mk_dataline(sde_id=f"{uuid_a}-2")),
+            },
+            {
+                "trashed_at": "2026-08-29T09:10:00",
+                **json.loads(
+                    mk_dataline(sde_id=f"{uuid_a}-1", title="古い内容")
+                ),
+            },
+        ]
+        (self.datadir / "trash.jsonl").write_text(
+            "".join(
+                json.dumps(entry, ensure_ascii=False) + "\n"
+                for entry in entries
+            ),
+            encoding="utf-8",
+        )
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                {
+                    "cmd": "restore",
+                    "sde_id": f"{uuid_a}-1",
+                    "trashed_at": "2026-08-29T09:10:00",
+                }
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+        assert res.code == 302
+        data = [
+            json.loads(line)
+            for line in self.data_path(DATE1)
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        restored = next(
+            entry for entry in data if entry["title"] == "(復活)古い内容"
+        )
+        # ゴミ箱の最大の版（2）+ 1
+        assert restored["sde_id"] == f"{uuid_a}-3"
+
+    def test_restore_after_date_change_does_not_collide_with_live_entry(self):
+        """日付を変える編集のあとに復活しても、生きている予定と
+        ``sde_id`` が衝突しない（reviewer 指摘。TODO-171）。
+
+        日付を変える編集をすると、生きている予定は別の日付のファイルへ
+        移る。復活する版の決め方が「ゴミ箱」と「復活先の日付のファイル」
+        の 2 か所しか見ていないと、移った先の生きている予定に気づかず、
+        復活した予定が同じ ``sde_id`` になってしまう
+        （`archives/agents/TODO-171/reviewer-report.md` の「1.」）。
+        """
+        # 1. 予定を作る
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            time_start="09:05",
+            time_end="10:30",
+            sde_type="会議",
+            title="予定A",
+            place="",
+            detail="",
+        )
+        lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 1
+        sde_id = json.loads(lines[0])["sde_id"]
+
+        # 2. 日付だけ変えて編集する（生きている予定が別の日付へ移る）
+        date2 = DATE1 + datetime.timedelta(days=1)
+        date2_str = date2.strftime("%Y-%m-%d")
+        self.post_body(
+            URL_PREFIX + "/",
+            cmd="update",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=date2_str,
+            time_start="09:05",
+            time_end="10:30",
+            sde_type="会議",
+            title="予定A",
+            place="",
+            detail="",
+        )
+        assert self.data_path(DATE1).read_text(encoding="utf-8") == ""
+        live_lines = (
+            self.data_path(date2).read_text(encoding="utf-8").splitlines()
+        )
+        assert len(live_lines) == 1
+        live_sde_id = json.loads(live_lines[0])["sde_id"]
+        assert live_sde_id == SchedDataEnt.next_id(sde_id)
+
+        trash_lines = (
+            (self.datadir / "trash.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
+        assert len(trash_lines) == 1
+        trash_entry = json.loads(trash_lines[0])
+        assert trash_entry["sde_id"] == sde_id
+
+        # 3. 元の版（``sde_id``、日付 2021-03-01 のまま）を復活させる
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                {
+                    "cmd": "restore",
+                    "sde_id": sde_id,
+                    "trashed_at": trash_entry["trashed_at"],
+                }
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+        assert res.code == 302
+
+        restored_lines = (
+            self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+        )
+        assert len(restored_lines) == 1
+        restored_sde_id = json.loads(restored_lines[0])["sde_id"]
+
+        # 復活した ID は、生きている予定とも、ゴミ箱の行とも重ならない
+        assert restored_sde_id != live_sde_id
+        assert restored_sde_id != sde_id
+        assert restored_sde_id == SchedDataEnt.next_id(live_sde_id)
+
     def test_delete_many_removes_entry_and_redirects_to_trash(self):
         self.write_trash()
 
@@ -2533,7 +2736,11 @@ class TestEditOrigDate(WebTestBase):
             .splitlines()
         )
         assert len(lines) == 1
-        assert json.loads(lines[0])["sde_id"] == "id-1"
+        # 元の ID (``"id-1"``) は旧形式なので、次の版ではなく
+        # 新しい UUID になる (TODO-171)
+        assert (
+            SchedDataEnt.split_id(json.loads(lines[0])["sde_id"]) is not None
+        )
 
 
 class TestRedirect(WebTestBase):
@@ -2609,7 +2816,8 @@ class TestRedirect(WebTestBase):
         assert res.code == 302
         location = res.headers["Location"]
         assert location.startswith(f"{URL_PREFIX}/edit/?")
-        assert f"sde_id={sde_id}" in location
+        # 編集で版が増えるので、飛び先は次の版の sde_id になる(TODO-171)
+        assert f"sde_id={SchedDataEnt.next_id(sde_id)}" in location
 
     def test_del_redirects_to_list(self):
         """削除したあとは一覧へ。"""

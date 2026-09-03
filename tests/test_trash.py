@@ -141,6 +141,133 @@ def test_entries_filters_sorts_and_limits(tmp_path):
     assert trash.get("a", "2026-08-30T10:00:00") is not None
 
 
+#
+# TrashFile: 版を除いた UUID 部分での絞り込み（TODO-171）
+#
+UUID_A = "3f2a1b0c-4d5e-6f70-8192-a3b4c5d6e7f8"
+UUID_B = "11111111-1111-1111-1111-111111111111"
+
+
+def test_entries_filters_by_uuid_part_ignoring_version(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id=f"{UUID_A}-1").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T11:00:00",
+                        **mk_sde(sde_id=f"{UUID_A}-2").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T12:00:00",
+                        **mk_sde(sde_id=f"{UUID_B}-1").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trash = TrashFile(tmp_path)
+
+    # 版付きの ID で問い合わせても、版を除いた UUID 部分が同じ行が出る
+    entries = trash.entries(f"{UUID_A}-1")
+    assert [entry.sde.sde_id for entry in entries] == [
+        f"{UUID_A}-2",
+        f"{UUID_A}-1",
+    ]
+
+    # UUID 部分だけで問い合わせても同じ
+    entries = trash.entries(UUID_A)
+    assert len(entries) == 2
+
+
+def test_get_requires_exact_id_match(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id=f"{UUID_A}-1").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T11:00:00",
+                        **mk_sde(sde_id=f"{UUID_A}-2").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trash = TrashFile(tmp_path)
+
+    # 版まで一致しないと取得できない
+    assert trash.get(UUID_A, "2026-08-30T10:00:00") is None
+    entry = trash.get(f"{UUID_A}-1", "2026-08-30T10:00:00")
+    assert entry is not None
+    assert entry.sde.sde_id == f"{UUID_A}-1"
+
+
+def test_max_version_no_matching_lines_is_zero(tmp_path):
+    trash = TrashFile(tmp_path)
+    assert trash.max_version(UUID_A) == 0
+
+
+def test_max_version_returns_highest_version(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T10:00:00",
+                        **mk_sde(sde_id=f"{UUID_A}-1").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T11:00:00",
+                        **mk_sde(sde_id=f"{UUID_A}-3").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "trashed_at": "2026-08-30T12:00:00",
+                        **mk_sde(sde_id=f"{UUID_B}-5").to_dict(),
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trash = TrashFile(tmp_path)
+
+    assert trash.max_version(UUID_A) == 3
+    assert trash.max_version(UUID_B) == 5
+
+
 def test_count_no_file_is_zero(tmp_path):
     trash = TrashFile(tmp_path)
 

@@ -124,13 +124,17 @@ class SchedUpdater:
         # だからで、途中で例外が出たときに変更の印を残したまま抜けると、
         # **次の関係の無いリクエストの保存に紛れ込む**。
         # 途中まで保存されるのは、保存を分ける前と同じ挙動
+        add_sde_id = sde_id
+        if cmd in ["fix", "update"] and sde_id:
+            add_sde_id = SchedDataEnt.next_id(sde_id)
+
         try:
             if cmd in ["del", "fix", "update"]:
                 self.cmd_del(orig_date, sde_id)
 
             if cmd in ["add", "fix", "update"]:
                 new_sde = self.cmd_add(
-                    sde_id,
+                    add_sde_id,
                     date,
                     time_start,
                     time_end,

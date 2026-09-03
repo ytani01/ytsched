@@ -124,8 +124,9 @@ uv run ytsched webapp --datadir ~/ytsched/data --port 10085
 uv run ytsched migrate --datadir ~/ytsched/data
 ```
 
-旧形式から移ってきた `sde_id`（UUID でない）を UUID へ振り直す
-（`ytsched fix-id`、TODO-170）。元に戻せないので、まず `--dry-run` で
+旧形式から移ってきた `sde_id`（`{UUID}-{版}` の形でない）をこの形へ
+振り直す（`ytsched fix-id`、TODO-171）。対象は日々のファイル・
+`ToDo.jsonl`・`trash.jsonl`。元に戻せないので、まず `--dry-run` で
 件数を確かめること:
 
 ```sh

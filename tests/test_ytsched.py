@@ -97,17 +97,89 @@ def test_new_id_is_unique():
     assert len(set(ids)) == len(ids)
 
 
-def test_new_id_is_uuid():
-    """``sde_id`` は uuid4。"""
+def test_new_id_is_uuid_with_version_1():
+    """``sde_id`` は ``{uuid4}-1``（TODO-171）。ゼロ埋めしない。"""
     sde_id = SchedDataEnt.new_id()
-    assert str(uuid.UUID(sde_id)) == sde_id
-    assert uuid.UUID(sde_id).version == 4
+    uuid_part = SchedDataEnt.id_uuid(sde_id)
+    assert str(uuid.UUID(uuid_part)) == uuid_part
+    assert uuid.UUID(uuid_part).version == 4
+    assert SchedDataEnt.id_version(sde_id) == "1"
 
 
 def test_new_id_has_no_tab_and_no_dot():
     sde_id = SchedDataEnt.new_id()
     assert "\t" not in sde_id
     assert "." not in sde_id
+
+
+#
+# SchedDataEnt.split_id() / id_uuid() / id_version() / next_id()
+#
+UUID_ENDING_IN_DIGITS = "3f2a1b0c-4d5e-6f70-8192-a3b4c5d6e7f8"
+
+
+def test_split_id_valid():
+    sde_id = f"{UUID_ENDING_IN_DIGITS}-1"
+    assert SchedDataEnt.split_id(sde_id) == (UUID_ENDING_IN_DIGITS, 1)
+
+
+def test_split_id_invalid_returns_none():
+    assert SchedDataEnt.split_id(UUID_ENDING_IN_DIGITS) is None
+    assert SchedDataEnt.split_id("abc123def456") is None
+    assert SchedDataEnt.split_id("") is None
+
+
+def test_split_id_does_not_accept_zero_padded_version():
+    """``-001`` のようなゼロ埋めは新しい形式と見なさない。"""
+    assert SchedDataEnt.split_id(f"{UUID_ENDING_IN_DIGITS}-001") is None
+    assert SchedDataEnt.split_id(f"{UUID_ENDING_IN_DIGITS}-0") is None
+
+
+def test_split_id_does_not_mistake_uuid_tail_for_version():
+    """UUID の最後の区切りが 12 桁の数字でも、版のない ID と誤認しない。"""
+    uuid_numeric_tail = "11111111-1111-1111-1111-123456789012"
+    assert SchedDataEnt.split_id(uuid_numeric_tail) is None
+    assert SchedDataEnt.id_uuid(uuid_numeric_tail) == uuid_numeric_tail
+    assert SchedDataEnt.id_version(uuid_numeric_tail) == ""
+
+
+def test_id_uuid_and_id_version():
+    sde_id = f"{UUID_ENDING_IN_DIGITS}-7"
+    assert SchedDataEnt.id_uuid(sde_id) == UUID_ENDING_IN_DIGITS
+    assert SchedDataEnt.id_version(sde_id) == "7"
+
+
+def test_id_uuid_and_id_version_invalid_format():
+    assert SchedDataEnt.id_uuid("abc123def456") == "abc123def456"
+    assert SchedDataEnt.id_version("abc123def456") == ""
+
+
+def test_format_id():
+    assert (
+        SchedDataEnt.format_id(UUID_ENDING_IN_DIGITS, 1)
+        == f"{UUID_ENDING_IN_DIGITS}-1"
+    )
+    assert (
+        SchedDataEnt.format_id(UUID_ENDING_IN_DIGITS, 1000)
+        == f"{UUID_ENDING_IN_DIGITS}-1000"
+    )
+
+
+def test_next_id_increments_version():
+    sde_id = f"{UUID_ENDING_IN_DIGITS}-1"
+    assert SchedDataEnt.next_id(sde_id) == f"{UUID_ENDING_IN_DIGITS}-2"
+
+
+def test_next_id_beyond_999():
+    sde_id = f"{UUID_ENDING_IN_DIGITS}-999"
+    assert SchedDataEnt.next_id(sde_id) == f"{UUID_ENDING_IN_DIGITS}-1000"
+
+
+def test_next_id_of_old_format_returns_new_id():
+    """旧形式の ID には ``new_id()`` を返す（中途半端な形を作らない）。"""
+    next_id = SchedDataEnt.next_id("abc123def456")
+    assert SchedDataEnt.split_id(next_id) is not None
+    assert SchedDataEnt.id_version(next_id) == "1"
 
 
 def test_sde_str():
@@ -1363,3 +1435,100 @@ def test_get_sdf_cache_miss_is_not_warning(tmp_path):
         sd.get_sdf(DATE1)
 
     log.warning.assert_not_called()
+
+
+#
+# SchedDataFile.list_all_files() (TODO-171)
+#
+def test_list_all_files_finds_daily_todo_and_trash(tmp_path):
+    write_data(tmp_path, DATE1, [DATALINE1])
+    (tmp_path / "ToDo.jsonl").write_text(DATALINE1 + "\n", encoding="utf-8")
+    (tmp_path / "trash.jsonl").write_text(DATALINE1 + "\n", encoding="utf-8")
+
+    files = SchedDataFile.list_all_files(tmp_path)
+
+    names = {str(f.relative_to(tmp_path)) for f in files}
+    assert names == {
+        f"{DATE1.strftime('%Y')}/{DATE1.strftime('%m')}/{DATE1.strftime('%d')}.jsonl",
+        "ToDo.jsonl",
+        "trash.jsonl",
+    }
+
+
+def test_list_all_files_excludes_trash_when_asked(tmp_path):
+    write_data(tmp_path, DATE1, [DATALINE1])
+    (tmp_path / "trash.jsonl").write_text(DATALINE1 + "\n", encoding="utf-8")
+
+    files = SchedDataFile.list_all_files(tmp_path, include_trash=False)
+
+    assert all(f.name != "trash.jsonl" for f in files)
+
+
+def test_list_all_files_missing_todo_and_trash_are_skipped(tmp_path):
+    write_data(tmp_path, DATE1, [DATALINE1])
+
+    files = SchedDataFile.list_all_files(tmp_path)
+
+    assert len(files) == 1
+
+
+#
+# SchedData.max_version() (TODO-171)
+#
+UUID_C = "3f2a1b0c-4d5e-6f70-8192-a3b4c5d6e7f8"
+UUID_D = "11111111-1111-1111-1111-111111111111"
+
+
+def test_sd_max_version_no_matching_lines_is_zero(tmp_path):
+    sd = SchedData(str(tmp_path))
+    assert sd.max_version(UUID_C) == 0
+
+
+def test_sd_max_version_scans_daily_and_todo_files(tmp_path):
+    """日々のファイルと ``ToDo.jsonl`` に散らばった同じ UUID から拾う。"""
+    date2 = DATE1 + datetime.timedelta(days=1)
+    write_data(tmp_path, DATE1, [mk_dataline(sde_id=f"{UUID_C}-1")])
+    write_data(tmp_path, date2, [mk_dataline(sde_id=f"{UUID_C}-4")])
+    (tmp_path / "ToDo.jsonl").write_text(
+        mk_dataline(sde_id=f"{UUID_C}-2") + "\n", encoding="utf-8"
+    )
+
+    sd = SchedData(str(tmp_path))
+
+    assert sd.max_version(UUID_C) == 4
+
+
+def test_sd_max_version_does_not_pick_up_other_uuid(tmp_path):
+    write_data(
+        tmp_path,
+        DATE1,
+        [
+            mk_dataline(sde_id=f"{UUID_C}-1"),
+            mk_dataline(sde_id=f"{UUID_D}-9"),
+        ],
+    )
+
+    sd = SchedData(str(tmp_path))
+
+    assert sd.max_version(UUID_C) == 1
+    assert sd.max_version(UUID_D) == 9
+
+
+def test_sd_max_version_ignores_trash_file(tmp_path):
+    """``trash.jsonl`` は見ない（``TrashFile.max_version()`` が扱う）。"""
+    write_data(tmp_path, DATE1, [mk_dataline(sde_id=f"{UUID_C}-1")])
+    (tmp_path / "trash.jsonl").write_text(
+        json.dumps(
+            {
+                "trashed_at": "2026-08-30T10:00:00",
+                **json.loads(mk_dataline(sde_id=f"{UUID_C}-9")),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    sd = SchedData(str(tmp_path))
+
+    assert sd.max_version(UUID_C) == 1

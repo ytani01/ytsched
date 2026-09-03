@@ -31,6 +31,13 @@ class TrashEntry:
     trashed_at: str
     sde: SchedDataEnt
 
+    @property
+    def version(self) -> str:
+        """版（``"1"``）。ID が新しい形式でなければ ``""``。"""
+        from .ytsched import SchedDataEnt as _SchedDataEnt
+
+        return _SchedDataEnt.id_version(self.sde.sde_id)
+
 
 class TrashFile:
     """削除・編集で消える予定を ``trash.jsonl`` へ追記するクラス。
@@ -95,6 +102,14 @@ class TrashFile:
         if max_entries <= 0 or not self.pathname.exists():
             return []
 
+        from .ytsched import SchedDataEnt
+
+        # 版を除いた UUID 部分で絞り込む（TODO-171）。版が変わっても
+        # 古い行が出るようにするため
+        uuid_part = (
+            SchedDataEnt.id_uuid(sde_id) if sde_id is not None else None
+        )
+
         entries: list[TrashEntry] = []
         with self.pathname.open(encoding=self.ENCODING) as f:
             for lineno, line in enumerate(f, start=1):
@@ -103,9 +118,12 @@ class TrashFile:
                     trashed_at = data["trashed_at"]
                     if not isinstance(trashed_at, str):
                         raise TypeError("trashed_at is not a string")
-                    if sde_id is not None and data.get("sde_id") != sde_id:
+                    entry_id = data.get("sde_id")
+                    if uuid_part is not None and (
+                        not isinstance(entry_id, str)
+                        or SchedDataEnt.id_uuid(entry_id) != uuid_part
+                    ):
                         continue
-                    from .ytsched import SchedDataEnt
 
                     entries.append(
                         TrashEntry(trashed_at, SchedDataEnt.from_dict(data))
@@ -150,11 +168,31 @@ class TrashFile:
         return count
 
     def get(self, sde_id: str, trashed_at: str) -> TrashEntry | None:
-        """``sde_id`` と ``trashed_at`` が一致する 1 行を返す。"""
+        """``sde_id`` と ``trashed_at`` が一致する 1 行を返す。
+
+        ``entries()`` の絞り込みは版を除いた UUID 部分の一致まで緩めて
+        あるため（TODO-171）、ここで ``sde_id`` の完全一致を見る。
+        """
         for entry in self.entries(sde_id, max_entries=2**31 - 1):
-            if entry.trashed_at == trashed_at:
+            if entry.trashed_at == trashed_at and entry.sde.sde_id == sde_id:
                 return entry
         return None
+
+    def max_version(self, uuid_part: str) -> int:
+        """``uuid_part`` と同じ UUID を持つ行の最大の版を返す。
+
+        同じ UUID の行が無ければ ``0``。壊れた行は ``entries()`` と
+        同じ考え方で飛ばす。
+        """
+        from .ytsched import SchedDataEnt
+
+        max_version = 0
+        for entry in self.entries(uuid_part, max_entries=2**31 - 1):
+            split = SchedDataEnt.split_id(entry.sde.sde_id)
+            if split is None:
+                continue
+            max_version = max(max_version, split[1])
+        return max_version
 
     def delete_many(self, entries: set[tuple[str, str]]) -> int:
         """指定された ``(sde_id, trashed_at)`` の行を取り除いて消す。

@@ -1,11 +1,10 @@
 #
 # (c) 2026 ytani01
 #
-"""``sde_id`` を UUID へ振り直すツールのテスト (TODO-170)"""
+"""``sde_id`` を ``{UUID}-{版}`` の形へ振り直すツールのテスト (TODO-171)"""
 
 import datetime
 import json
-import re
 import time
 
 import click.testing
@@ -13,14 +12,11 @@ import pytest
 
 from ytsched.__main__ import cli
 from ytsched.fix_id import UUID_PATTERN, IdFixer, is_uuid
-from ytsched.ytsched import SchedDataFile
-
-UUID_RE = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-)
+from ytsched.ytsched import SchedDataEnt, SchedDataFile
 
 OLD_ID = "abc123def456"
 OLD_UUID = "11111111-1111-1111-1111-111111111111"
+NEW_ID = f"{OLD_UUID}-1"
 
 
 def write_jsonl(path, lines):
@@ -44,18 +40,23 @@ def mk_daily(datadir, y="2026", m="01", d="02"):
     return datadir / y / m / f"{d}.jsonl"
 
 
+def mk_trash(datadir):
+    return datadir / "trash.jsonl"
+
+
 def test_is_uuid():
     assert is_uuid(OLD_UUID)
     assert not is_uuid(OLD_ID)
     assert not is_uuid("{11111111-1111-1111-1111-111111111111}")
     assert not is_uuid("11111111111111111111111111111111")
+    assert not is_uuid(NEW_ID)
 
 
 def test_uuid_pattern_matches_helper():
     assert UUID_PATTERN.match(OLD_UUID)
 
 
-def test_fix_replaces_non_uuid_id(datadir):
+def test_fix_replaces_non_uuid_id_with_new_uuid_and_version(datadir):
     path = mk_daily(datadir)
     write_jsonl(
         path,
@@ -77,17 +78,18 @@ def test_fix_replaces_non_uuid_id(datadir):
     assert stat.files_scanned == 1
     assert stat.files_changed == 1
     assert stat.lines_changed == 1
-    assert stat.lines_already_uuid == 0
+    assert stat.lines_already_ok == 0
     assert stat.lines_unreadable == 0
 
     lines = read_lines(path)
     assert len(lines) == 1
     data = json.loads(lines[0])
     assert data["sde_id"] != OLD_ID
-    assert UUID_RE.match(data["sde_id"])
+    assert SchedDataEnt.split_id(data["sde_id"]) is not None
+    assert SchedDataEnt.id_version(data["sde_id"]) == "1"
 
 
-def test_already_uuid_line_unchanged(datadir):
+def test_uuid_id_keeps_uuid_and_gets_version(datadir):
     path = mk_daily(datadir)
     original = json.dumps(
         {"sde_id": OLD_UUID, "date": "2026-01-02", "title": "a"},
@@ -97,12 +99,58 @@ def test_already_uuid_line_unchanged(datadir):
 
     stat = IdFixer(str(datadir)).main()
 
+    assert stat.files_changed == 1
+    assert stat.lines_changed == 1
+    assert stat.lines_already_ok == 0
+
+    lines = read_lines(path)
+    data = json.loads(lines[0])
+    assert data["sde_id"] == NEW_ID
+
+
+def test_already_new_format_line_unchanged(datadir):
+    path = mk_daily(datadir)
+    original = json.dumps(
+        {"sde_id": NEW_ID, "date": "2026-01-02", "title": "a"},
+        ensure_ascii=False,
+    )
+    write_jsonl(path, [original])
+
+    stat = IdFixer(str(datadir)).main()
+
     assert stat.files_changed == 0
     assert stat.lines_changed == 0
-    assert stat.lines_already_uuid == 1
+    assert stat.lines_already_ok == 1
 
     lines = read_lines(path)
     assert lines[0].decode("utf-8") == original
+
+
+def test_zero_padded_version_is_not_already_ok(datadir):
+    """``-001`` のようなゼロ埋めは新しい形式と見なさず、振り直す。"""
+    path = mk_daily(datadir)
+    zero_padded = f"{OLD_UUID}-001"
+    write_jsonl(
+        path,
+        [
+            json.dumps(
+                {"sde_id": zero_padded, "date": "2026-01-02", "title": "a"},
+                ensure_ascii=False,
+            )
+        ],
+    )
+
+    stat = IdFixer(str(datadir)).main()
+
+    assert stat.lines_already_ok == 0
+    assert stat.lines_changed == 1
+
+    lines = read_lines(path)
+    data = json.loads(lines[0])
+    # 元が UUID の形ではない(``-001`` まで含めると UUID_PATTERN に
+    # 合わない)ので、新しい UUID が振られる
+    assert data["sde_id"] != zero_padded
+    assert SchedDataEnt.split_id(data["sde_id"]) is not None
 
 
 def test_other_keys_values_and_order_unchanged(datadir):
@@ -150,7 +198,7 @@ def test_other_keys_values_and_order_unchanged(datadir):
     assert data["detail"] == "詳細"
 
 
-def test_duplicate_old_ids_become_distinct_uuids(datadir):
+def test_duplicate_old_ids_become_distinct_new_ids(datadir):
     path = mk_daily(datadir)
     write_jsonl(
         path,
@@ -173,7 +221,7 @@ def test_duplicate_old_ids_become_distinct_uuids(datadir):
     ids = [json.loads(line)["sde_id"] for line in lines]
     assert len(set(ids)) == 2
     for sde_id in ids:
-        assert UUID_RE.match(sde_id)
+        assert SchedDataEnt.split_id(sde_id) is not None
 
 
 def test_unreadable_lines_are_kept(datadir):
@@ -217,7 +265,7 @@ def test_missing_trailing_newline_is_added(datadir):
     lines = read_lines(path)
     assert len(lines) == 1
     data = json.loads(lines[0])
-    assert UUID_RE.match(data["sde_id"])
+    assert SchedDataEnt.split_id(data["sde_id"]) is not None
 
 
 def test_empty_file(datadir):
@@ -244,7 +292,7 @@ def test_blank_line_in_body_not_counted_as_unreadable(datadir):
             ),
             "",
             json.dumps(
-                {"sde_id": OLD_UUID, "date": "2026-01-02", "title": "b"},
+                {"sde_id": NEW_ID, "date": "2026-01-02", "title": "b"},
                 ensure_ascii=False,
             ),
         ],
@@ -254,7 +302,7 @@ def test_blank_line_in_body_not_counted_as_unreadable(datadir):
 
     assert stat.lines_unreadable == 0
     assert stat.lines_changed == 1
-    assert stat.lines_already_uuid == 1
+    assert stat.lines_already_ok == 1
 
     lines = read_lines(path)
     assert len(lines) == 3
@@ -282,26 +330,38 @@ def test_only_last_line_unreadable(datadir):
     lines = read_lines(path)
     assert len(lines) == 2
     data = json.loads(lines[0])
-    assert UUID_RE.match(data["sde_id"])
+    assert SchedDataEnt.split_id(data["sde_id"]) is not None
     assert lines[1] == b"not json at all"
 
 
-def test_trash_file_not_touched(datadir):
-    trash_path = datadir / "trash.jsonl"
+def test_trash_file_is_target(datadir):
+    trash_path = mk_trash(datadir)
     write_jsonl(
         trash_path,
         [
             json.dumps(
-                {"sde_id": OLD_ID, "date": "2026-01-02", "title": "a"},
+                {
+                    "trashed_at": "2026-01-02T10:00:00.000000",
+                    "sde_id": OLD_ID,
+                    "date": "2026-01-02",
+                    "title": "a",
+                },
                 ensure_ascii=False,
             )
         ],
     )
-    original = trash_path.read_bytes()
 
-    IdFixer(str(datadir)).main()
+    stat = IdFixer(str(datadir)).main()
 
-    assert trash_path.read_bytes() == original
+    assert stat.files_changed == 1
+    assert stat.lines_changed == 1
+
+    lines = read_lines(trash_path)
+    data = json.loads(lines[0])
+    keys = list(data.keys())
+    assert keys == ["trashed_at", "sde_id", "date", "title"]
+    assert data["trashed_at"] == "2026-01-02T10:00:00.000000"
+    assert SchedDataEnt.split_id(data["sde_id"]) is not None
 
 
 def test_dry_run_does_not_write(datadir):
@@ -326,7 +386,7 @@ def test_dry_run_does_not_write(datadir):
 def test_unchanged_file_mtime_not_touched(datadir):
     path = mk_daily(datadir)
     original = json.dumps(
-        {"sde_id": OLD_UUID, "date": "2026-01-02", "title": "a"},
+        {"sde_id": NEW_ID, "date": "2026-01-02", "title": "a"},
         ensure_ascii=False,
     )
     write_jsonl(path, [original])
@@ -363,7 +423,7 @@ def test_fixed_file_readable_by_scheddatafile(datadir):
 
     sdf = SchedDataFile(date=datetime.date(2026, 3, 4), topdir=str(datadir))
     assert len(sdf.sde) == 1
-    assert UUID_RE.match(sdf.sde[0].sde_id)
+    assert SchedDataEnt.split_id(sdf.sde[0].sde_id) is not None
     assert not sdf.skipped_lines
 
 
@@ -408,4 +468,4 @@ def test_cli_fix_id_writes(datadir):
     assert result.exit_code == 0
     lines = read_lines(path)
     data = json.loads(lines[0])
-    assert UUID_RE.match(data["sde_id"])
+    assert SchedDataEnt.split_id(data["sde_id"]) is not None

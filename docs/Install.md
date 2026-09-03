@@ -137,9 +137,10 @@ ytsched migrate --datadir ~/ytsched/data --dry-run
 
 ## 8. `sde_id` を UUID に揃える
 
-旧形式から移行したデータは `sde_id` が独自の形のまま残っていて、UUID
-とは限らない。`ytsched fix-id` で、UUID でない `sde_id` だけを UUID へ
-振り直せる。
+旧形式から移行したデータは `sde_id` が独自の形のまま残っていて、
+`{UUID}-{版}` の形とは限らない。`ytsched fix-id` で、この形でない
+`sde_id` をこの形へ振り直せる。対象は日々のファイル・`ToDo.jsonl`・
+`trash.jsonl`。
 
 ```sh
 ytsched fix-id --datadir ~/ytsched/data --dry-run   # 書き出さずに件数だけ見る

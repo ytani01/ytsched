@@ -37,7 +37,9 @@ class TrashHandler(HandlerBase):
         groups: list[list[TrashEntry]] = []
         by_id: dict[str, list[TrashEntry]] = {}
         for entry in entries:
-            by_id.setdefault(entry.sde.sde_id, []).append(entry)
+            by_id.setdefault(
+                SchedDataEnt.id_uuid(entry.sde.sde_id), []
+            ).append(entry)
         groups = list(by_id.values())
         self.render(
             self.HTML_TRASH,
@@ -60,6 +62,35 @@ class TrashHandler(HandlerBase):
         else:
             raise tornado.web.HTTPError(400, "unknown command")
 
+    def _restore_id(self, sde: SchedDataEnt) -> str | None:
+        """復活させる予定の ``sde_id`` を決める（TODO-171）。
+
+        元の ID が新しい形式（``{UUID}-{版}``）なら、元の UUID を
+        引き継いで版を増やす。
+
+        版は、データディレクトリ全体（ゴミ箱と、日々のファイル・
+        ``ToDo.jsonl``）を走査して、同じ UUID を持つ行の最大の版 + 1
+        にする。**「復活先の日付のファイル」だけを見ると、日付を変える
+        編集で生きている予定が別の日付へ移ったときに見落とす**
+        （reviewer 指摘。TODO-171）。復活は滅多に使わない操作なので、
+        全走査の費用を払ってよい。
+
+        元の ID が新しい形式でなければ ``None``（呼び出し元で新しい
+        UUID が発行される）。
+        """
+        split = SchedDataEnt.split_id(sde.sde_id)
+        if split is None:
+            return None
+        uuid_part, version = split
+
+        max_version = max(
+            self._trash().max_version(uuid_part),
+            self._sd.max_version(uuid_part),
+            version,
+        )
+
+        return SchedDataEnt.format_id(uuid_part, max_version + 1)
+
     def _restore(self) -> None:
         sde_id = self.get_argument("sde_id")
         trashed_at = self.get_argument("trashed_at")
@@ -68,8 +99,9 @@ class TrashHandler(HandlerBase):
             raise tornado.web.HTTPError(404, "trash entry not found")
 
         sde = entry.sde
+        restored_id = self._restore_id(sde)
         restored = SchedDataEnt(
-            None,
+            restored_id,
             sde.date,
             sde.time_start,
             sde.time_end,

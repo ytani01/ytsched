@@ -12,6 +12,7 @@ import collections
 import datetime
 import json
 import os
+import re
 import shutil
 import uuid
 from pathlib import Path
@@ -46,6 +47,14 @@ class SchedDataEnt:
     """
 
     __log = getLogger(__qualname__)
+
+    #: ``sde_id`` の形式（TODO-171）。``{UUID}-{版}``。
+    #: 版は 1 から始まる 10 進の整数で、ゼロ埋めしない（先頭のゼロは
+    #: 通さない）
+    SDE_ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
+        r"^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
+        r"-([1-9][0-9]*)$"
+    )
 
     TIME_NULL = ":-:"
     TITLE_NULL = ""
@@ -239,9 +248,68 @@ class SchedDataEnt:
 
     @classmethod
     def new_id(cls):
-        sde_id = str(uuid.uuid4())
+        sde_id = cls.format_id(str(uuid.uuid4()), 1)
         cls.__log.debug(f"sde_id={sde_id}")
         return sde_id
+
+    @classmethod
+    def split_id(cls, sde_id: str) -> tuple[str, int] | None:
+        """``sde_id`` を UUID 部分と版に分ける。
+
+        Parameters
+        ----------
+        sde_id: str
+
+        Returns
+        -------
+        (uuid_part, version): tuple[str, int] | None
+            形式が違えば ``None``
+
+        """
+        m = cls.SDE_ID_PATTERN.match(sde_id)
+        if not m:
+            return None
+        return m.group(1), int(m.group(2))
+
+    @classmethod
+    def id_uuid(cls, sde_id: str) -> str:
+        """``sde_id`` から版を除いた UUID 部分を返す。
+
+        形式が違えば ``sde_id`` をそのまま返す。
+        """
+        split = cls.split_id(sde_id)
+        if split is None:
+            return sde_id
+        return split[0]
+
+    @classmethod
+    def id_version(cls, sde_id: str) -> str:
+        """``sde_id`` の版の文字列（``"1"``）を返す。
+
+        形式が違えば ``""``。
+        """
+        split = cls.split_id(sde_id)
+        if split is None:
+            return ""
+        return str(split[1])
+
+    @classmethod
+    def format_id(cls, uuid_part: str, version: int) -> str:
+        """UUID 部分と版から ``sde_id`` を組み立てる。"""
+        return f"{uuid_part}-{version}"
+
+    @classmethod
+    def next_id(cls, sde_id: str) -> str:
+        """次の版の ``sde_id`` を返す。
+
+        形式が違えば、旧形式の ID として扱わず ``new_id()`` を返す
+        （中途半端な形を作らない。旧形式は ``fix-id`` で振り直す前提）。
+        """
+        split = cls.split_id(sde_id)
+        if split is None:
+            return cls.new_id()
+        uuid_part, version = split
+        return cls.format_id(uuid_part, version + 1)
 
     @classmethod
     def type_is_todo(cls, sde_type: str | None) -> bool:
@@ -384,6 +452,13 @@ class SchedDataFile:
     BACKUP_EXT = ".bak"
     ENCODING = "utf-8"
 
+    TODO_FNAME = "ToDo.jsonl"
+
+    #: ``{年}/{月}/{日}.jsonl`` だけに当てる（TODO-171）
+    DAILY_GLOB: ClassVar[str] = (
+        "[0-9][0-9][0-9][0-9]/[0-9][0-9]/[0-9][0-9].jsonl"
+    )
+
     def __init__(
         self,
         date: datetime.date | None = None,
@@ -457,9 +532,36 @@ class SchedDataFile:
                 / f"{date.strftime('%d')}.jsonl"
             )
         else:
-            pathname = topdir / "ToDo.jsonl"
+            pathname = topdir / cls.TODO_FNAME
 
         return pathname
+
+    @classmethod
+    def list_all_files(
+        cls, topdir: str | Path, include_trash: bool = True
+    ) -> list[Path]:
+        """対象になる全ファイルを列挙する（TODO-171）。
+
+        ``{年}/{月}/{日}.jsonl``・``ToDo.jsonl``・``trash.jsonl``
+        （``include_trash=False`` なら ``trash.jsonl`` を除く）。
+        ``.cgi``・``.bak`` は対象外。
+
+        ``fix_id.IdFixer.find_files()`` と ``SchedData.max_version()``
+        の両方がここを使う。ファイルの列挙を 2 か所に書かないため。
+        """
+        topdir = Path(topdir).expanduser()
+        files = sorted(topdir.glob(cls.DAILY_GLOB))
+
+        todo_file = topdir / cls.TODO_FNAME
+        if todo_file.is_file():
+            files.append(todo_file)
+
+        if include_trash:
+            trash_file = topdir / TrashFile.FILENAME
+            if trash_file.is_file():
+                files.append(trash_file)
+
+        return files
 
     def load(self) -> list[SchedDataEnt]:
         """
@@ -1017,3 +1119,47 @@ class SchedData:
             sdf.save()
 
         self._dirty_sdf = {}
+
+    def max_version(self, uuid_part: str) -> int:
+        """``uuid_part`` と同じ UUID を持つ ``sde_id`` の最大の版を返す。
+
+        ゴミ箱からの復活（TODO-171）で ID が重ならないようにするため、
+        データディレクトリ全体（日々のファイル・``ToDo.jsonl``）を
+        走査する。復活は滅多に使わない操作なので、全走査の費用を
+        払ってよい。``trash.jsonl`` はここでは見ない
+        （``TrashFile.max_version()`` が扱う）。
+
+        同じ UUID の行が無ければ ``0``。壊れて読めない行・ファイルは
+        飛ばす。
+        """
+        uuid_bytes = uuid_part.encode(SchedDataFile.ENCODING)
+        max_version = 0
+
+        for path in SchedDataFile.list_all_files(
+            self._topdir, include_trash=False
+        ):
+            try:
+                raw_data = path.read_bytes()
+            except OSError:
+                continue
+
+            for raw_line in SchedDataFile.split_lines(raw_data):
+                # 13000 行規模になりうるので、UUID の文字列が
+                # 含まれない行は JSON として解析せずに飛ばす
+                if uuid_bytes not in raw_line:
+                    continue
+                try:
+                    data = json.loads(raw_line.decode(SchedDataFile.ENCODING))
+                except UnicodeDecodeError, json.JSONDecodeError:
+                    continue
+                if not isinstance(data, dict):
+                    continue
+                sde_id = data.get("sde_id")
+                if not isinstance(sde_id, str):
+                    continue
+                split = SchedDataEnt.split_id(sde_id)
+                if split is None or split[0] != uuid_part:
+                    continue
+                max_version = max(max_version, split[1])
+
+        return max_version

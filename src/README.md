@@ -22,7 +22,7 @@ src/ytsched/
   edit_handler.py  # EditHandler（編集画面）
   webapp.py        # WebServer（tornado.web.Application の組み立て、CLI から呼ばれる）
   migrate.py       # 旧形式（タブ区切り .cgi）から JSON Lines への移行と、設定ファイルの JSON 化（`ytsched migrate`）
-  fix_id.py        # 旧形式から移った sde_id（UUID でない）を UUID へ振り直す（`ytsched fix-id`、TODO-170）
+  fix_id.py        # 旧形式から移った sde_id を `{UUID}-{版}` の形へ振り直す（`ytsched fix-id`、TODO-170・TODO-171）
   trash.py         # TrashFile（trash.jsonl への追記・削除・全消去とゴミ箱画面用の読み出し）
   trash_handler.py # TrashHandler（ゴミ箱の表示・復活・削除・空にする）
   mylog.py         # loguru ラッパ
@@ -95,7 +95,8 @@ classDiagram
     EditHandler ..> SchedData : 経由してアクセス
 ```
 
-- **`SchedDataEnt`** が予定・ToDo 1 件を表す。`sde_id`（UUID）、`date`、
+- **`SchedDataEnt`** が予定・ToDo 1 件を表す。`sde_id`（`{UUID}-{版}`。
+  編集のたびに版が増える。TODO-171）、`date`、
   `time_start`/`time_end`、`type`、`title`、`place`、`detail` を持つ。
   `detail` は常に素のテキスト（改行・タブもそのまま持てる）で、保存・
   読み込みで文字列を変換しない。**画面の改行表示は CSS の
