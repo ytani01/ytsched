@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目: TODO-154・TODO-168。** これまでに 166 件を決着させた。
+**残っている項目: TODO-154。** これまでに 167 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-169` から**。
 
@@ -36,31 +36,12 @@ TODO-153 は 1 日 1 回まとめて出すだけで、個々の予定の「N 分
 
 ---
 
-## TODO-168. `ruff` が `archives/` を見ないようにする
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort medium | main + verifier |
-
-- [ ] `pyproject.toml` の `[tool.ruff]` に `extend-exclude = ["archives"]` を足す
-
-`ruff format` は Markdown の中の ```` ```python ```` ブロックも整形する。
-TODO-167 で implementer が対象パスを指定せず `uv run ruff format` を
-叩いたところ、`archives/` 以下の報告ファイル 9 件と
-`archives/agents/TODO-060/probe.py` が書き換わった（管理者が戻した）。
-`archives/` は決着した項目の記録で、整形の対象ではない。
-
-`mise run fmt` は `src tests tools` に絞ってあるので、そのタスク経由では
-起きない。効くのは `pyproject.toml` 側で、そこに書けば対象を指定せずに
-叩いたときも `ruff check` も `archives/` を見なくなる。
-
----
-
 ## 完了済み
 
  1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-168.** `ruff` が `archives/` を見ないようにする](archives/todo/TODO-168.%20ruff%20が%20archives%20を見ないようにする.md)
 - [**TODO-167.** 設定項目 `LoadMonths` を `LoadWeekPages` にして、週単位で指定する](archives/todo/TODO-167.%20設定項目%20LoadMonths%20を%20LoadWeekPages%20にして、週単位で指定する.md)
 - [**TODO-166.** 月間表示の先読み画面数を `LoadMonthPages` で変えられるようにする](archives/todo/TODO-166.%20月間表示の先読み画面数を%20LoadMonthPages%20で変えられるようにする.md)
 - [**TODO-165.** ホームボタンのダブルタップで、どの画面からもトップ画面へ戻す](archives/todo/TODO-165.%20ホームボタンのダブルタップで、どの画面からもトップ画面へ戻す.md)

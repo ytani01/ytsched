@@ -39,6 +39,9 @@ packages = ["src/ytsched"]
 
 [tool.ruff]
 line-length = 78
+# archives/ は決着した項目の記録。ruff format は Markdown 中の python
+# ブロックも整形するので、対象から外す (TODO-168)。
+extend-exclude = ["archives"]
 
 [tool.ruff.lint]
 # 手帳代わりのソフトで、日付はすべて手元のローカル時刻。
