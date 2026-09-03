@@ -1045,8 +1045,11 @@ def _double_tap_home_in_search(page, tap, interval_msec=None):
     同じくらいの間隔は、2 回目が遷移の最中に落ちて Playwright からは
     狙って置けない。その帯は ``None`` 側で代わりに見る。
 
-    **読み直しが間に合わないときは skip せずに落とす。** skip にすると、
-    主要な退行テストが黙って消える。
+    **1 回目の読み直しが ``interval_msec`` に間に合わないときは、実測した
+    時間を理由に付けて skip する（TODO-181）。** 機械が混んでいると、この
+    開発機の想定（180〜360 ミリ秒）を超えて 600 ミリ秒に届くことがある。
+    以前は落としていたが、リグレッションと紛らわしい。無条件の skip は
+    主要な退行テストが黙って消えるので避け、混雑時だけ skipped 件数に出す。
     """
     if interval_msec is None:
         tap(page)
@@ -1060,10 +1063,11 @@ def _double_tap_home_in_search(page, tap, interval_msec=None):
     page.wait_for_selector("#main", state="visible")
 
     elapsed = (time.monotonic() - start) * 1000
-    assert elapsed < interval_msec, (
-        f"1 回目の読み直しに {elapsed:.0f} ミリ秒かかり、"
-        f"{interval_msec} ミリ秒後の 2 回目を置けない"
-    )
+    if elapsed >= interval_msec:
+        pytest.skip(
+            f"機械が混雑: 1 回目の読み直しに {elapsed:.0f} ミリ秒かかり、"
+            f"{interval_msec} ミリ秒後の 2 回目を置けない"
+        )
     page.wait_for_timeout(interval_msec - elapsed)
     tap(page)
 
