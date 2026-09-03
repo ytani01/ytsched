@@ -21,16 +21,17 @@
   出した `SchedLoader`（`sched_load.py`）・`SchedUpdater`
   （`sched_update.py`）のテスト（TODO-087・TODO-088）。月間表示の
   `MonthBlock`（`MainViewBuilder._mk_month_blocks()`。先頭月が 1 月/7 月に
-  なること・前後を含めて 3 ブロック並ぶこと・`base_date` の決め方・
-  年をまたぐこと）もここで見る（TODO-137）
+  なること・`load_month_pages` に応じてブロック数が変わること
+  （既定では前後を含めて 5 ブロック）・`base_date` の決め方・
+  年をまたぐこと）もここで見る（TODO-137・TODO-166）
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /
   `EditHandler` へ実際にリクエストを送るテスト。`conf.json` の
   `AutoTurnMsec`（既定値・範囲の外・数字でない値が既定値へ落ちること・
   `conf.json` が書き換わらないこと）もここで見る（TODO-084）。
-  月間表示（`view=month`）が 3 ブロックぶんの `my-month-panel` と
-  期待する 6 ヶ月ぶんの caption を出すこと・検索中は `view=month` でも
-  週間表示になること・`view` に不正な値を渡しても週間表示になることも
-  ここで見る（TODO-137）
+  月間表示（`view=month`）が既定で 5 ブロックぶんの `my-month-panel` と
+  期待する 6 ヶ月ぶんの caption を出すこと・`LoadMonthPages` でブロック数が
+  変わること・検索中は `view=month` でも週間表示になること・`view` に
+  不正な値を渡しても週間表示になることもここで見る（TODO-137・TODO-166）
 - `test_webapp.py` — `WebServer` の組み立てそのもののテスト
 - `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
   移行のテスト

@@ -191,9 +191,9 @@ classDiagram
   `get_conf()`/`set_conf()` は `ConfFile`（`conf.py`）へ委譲するだけ。
   `ConfFile` は `WebServer` が 1 つだけ作って全ハンドラで共有する
   （`SchedData` と同じ持ち方）。JSON のオブジェクト 1 つで、値は
-  すべて文字列（TODO-032）。**`LoadMonths` と `AutoTurnMsec` を除いて**、
-  人が手で編集するファイルではない（この 2 つについては `MainHandler`
-  の項を参照）。
+  すべて文字列（TODO-032）。**`LoadMonths`・`LoadMonthPages`・
+  `AutoTurnMsec` を除いて**、人が手で編集するファイルではない
+  （この 3 つについては `MainHandler` の項を参照）。
   読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
   でないキー）は、警告を 1 行出して無視する。
   外部からの書き換えの検出・読み直しは `SchedDataFile.is_stale()` と
@@ -221,9 +221,10 @@ classDiagram
   `conf.json` の `LoadMonths` で変えられる（既定 1、範囲 0〜24）。
   フッターの ◀▶ をダブルタップしたときの自動ページ送りの間隔（msec）は
   `conf.json` の `AutoTurnMsec` で変えられる（既定 700、範囲
-  300〜10000。TODO-084）。**この 2 つは利用者が手で書く設定**で、
+  300〜10000。TODO-084）。**この 2 つと、月間表示の `LoadMonthPages`
+  （後述）は利用者が手で書く設定**で、
   画面から変える UI は無く、アプリは読むだけなので手で書いた値は消えない。
-  どちらも `MainBinder` の共通処理で読み、
+  いずれも `MainBinder` の共通処理で読み、
   `get_conf_int(key, default, min_value,
   max_value)` にまとめてある。検索モードでは週の区切りに合わないので
   1 週だけ。
@@ -236,8 +237,10 @@ classDiagram
   （`view == "month" and not search_mode`。検索モードが優先）を
   `MainViewBuilder.build()` が見て分岐し、月間表示では
   `load_todo()`/`load_week()` を呼ばずに `SchedLoader.load_month_cal()`
-  だけで `MonthBlock`（`sched_load.py`。前後を先読みして 3 ブロック
-  ＝ 18 ヶ月ぶん）を組み立てる。テンプレートは `main.html` が
+  だけで `MonthBlock`（`sched_load.py`。前後を先読みして
+  `conf.json` の `LoadMonthPages` ぶんのブロックを組み立てる。
+  既定 2、範囲 0〜10 で、既定では前後 2 つずつ ＝ 5 ブロック
+  ＝ 30 ヶ月ぶん。TODO-166）。テンプレートは `main.html` が
   `view` で分岐し、週間表示は `main.html` の中にそのまま、月間表示は
   `month.html` に置く。
   どちらもミニカレンダー 1 か月分の描画を `mini_cal.html`

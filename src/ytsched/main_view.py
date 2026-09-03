@@ -55,7 +55,7 @@ class MainViewBuilder:
         if args.month_mode:
             # 月間表示では load_todo()/load_week() を使わない
             # (TODO-137)。load_month_cal() は _month_cal_cache が効くので
-            # 18 ヶ月ぶんでも月ごとに 1 回で済む
+            # 何ヶ月ぶんでも月ごとに 1 回で済む
             return {
                 **common,
                 "date_from": args.date,
@@ -139,18 +139,21 @@ class MainViewBuilder:
         return weeks
 
     def _mk_month_blocks(self, args: DisplayArgs) -> list[MonthBlock]:
-        """月間表示のブロックを 3 つ（前後を先読み。TODO-137）組み立てる。
+        """月間表示のブロックを組み立てる（前後を先読み。TODO-137）。
 
-        ブロックの区切りは 1〜6月・7〜12月の 2 つだけ。年をまたいでも
-        ``block_index`` (0 始まりの通し月数を 6 で割ったもの) で
-        扱えば、月の繰り上がり・繰り下がりを個別に気にしなくてよい。
+        ブロック数は ``load_month_pages``（``n``）で決まり、前後 ``n``
+        個ずつ ＝ ``2n + 1`` 個（TODO-166）。ブロックの区切りは
+        1〜6月・7〜12月の 2 つだけ。年をまたいでも ``block_index``
+        (0 始まりの通し月数を 6 で割ったもの) で扱えば、月の繰り上がり・
+        繰り下がりを個別に気にしなくてよい。
         """
         date = args.date
         block_index = (
             date.year * 12 + (date.month - 1)
         ) // self.MONTHS_PER_BLOCK
         blocks = []
-        for offset in (-1, 0, 1):
+        n = args.load_month_pages
+        for offset in range(-n, n + 1):
             start_index = (block_index + offset) * self.MONTHS_PER_BLOCK
             year = start_index // 12
             start_month = start_index % 12 + 1

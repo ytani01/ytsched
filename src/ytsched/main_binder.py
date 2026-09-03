@@ -52,6 +52,7 @@ class DisplayArgs:
     search_re: re.Pattern[str] | None
     search_error: bool
     load_months: int
+    load_month_pages: int
     auto_turn_msec: int
 
     @property
@@ -75,6 +76,7 @@ class MainBinder:
 
     DEF_SEARCH_N = 5
     CONF_KEY_LOAD_MONTHS = "LoadMonths"
+    CONF_KEY_LOAD_MONTH_PAGES = "LoadMonthPages"
     CONF_KEY_TODO_DAYS = "ToDo_Days"
     CONF_KEY_FILTER_STR = "FilterStr"
     CONF_KEY_SEARCH_N = "SearchN"
@@ -97,6 +99,9 @@ class MainBinder:
     DEF_LOAD_MONTHS = 1
     LOAD_MONTHS_MIN = 0
     LOAD_MONTHS_MAX = 24
+    DEF_LOAD_MONTH_PAGES = 2
+    LOAD_MONTH_PAGES_MIN = 0
+    LOAD_MONTH_PAGES_MAX = 10
     DEF_AUTO_TURN_MSEC = 700
     AUTO_TURN_MSEC_MIN = 300
     AUTO_TURN_MSEC_MAX = 10000
@@ -165,6 +170,12 @@ class MainBinder:
                 self.DEF_LOAD_MONTHS,
                 self.LOAD_MONTHS_MIN,
                 self.LOAD_MONTHS_MAX,
+            ),
+            load_month_pages=self._get_conf_int(
+                self.CONF_KEY_LOAD_MONTH_PAGES,
+                self.DEF_LOAD_MONTH_PAGES,
+                self.LOAD_MONTH_PAGES_MIN,
+                self.LOAD_MONTH_PAGES_MAX,
             ),
             auto_turn_msec=self._get_conf_int(
                 self.CONF_KEY_AUTO_TURN_MSEC,

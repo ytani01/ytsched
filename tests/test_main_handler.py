@@ -1333,11 +1333,13 @@ class TestMonthBlocks(WebTestBase):
             cur = next(b for b in blocks if b.offset == 0)
             assert cur.start_month == expected_start_month, date_str
 
-    def test_three_blocks_of_six_months(self):
-        """前後を含めて 3 ブロック並び、それぞれ 6 ヶ月ぶん。"""
+    def test_five_blocks_of_six_months(self):
+        """既定の ``LoadMonthPages``（2）で前後を含めて 5 ブロック並び、
+        それぞれ 6 ヶ月ぶん（TODO-166）。
+        """
         blocks = self.month_blocks("2021-03-15")
 
-        assert sorted(b.offset for b in blocks) == [-1, 0, 1]
+        assert sorted(b.offset for b in blocks) == [-2, -1, 0, 1, 2]
         for b in blocks:
             assert len(b.month_cals) == 6
 

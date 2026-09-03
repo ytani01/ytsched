@@ -839,11 +839,13 @@ def cur_month_panel(body):
 class TestMonthView(WebTestBase):
     """月間表示モード（``view=month``。TODO-137）"""
 
-    def test_view_month_shows_three_blocks(self):
-        """3 ブロック（前後を先読み）並ぶ。"""
+    def test_view_month_shows_five_blocks(self):
+        """既定の ``LoadMonthPages``（2）で 5 ブロック（前後を先読み）
+        並ぶ（TODO-166）。
+        """
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, view="month")
 
-        assert body.count('data-block="') == 3
+        assert body.count('data-block="') == 5
         assert 'data-view="month"' in body
 
     def test_view_month_shows_six_months_in_the_current_block(self):
@@ -879,6 +881,36 @@ class TestMonthView(WebTestBase):
 
         assert "my-month-panel" not in body
         assert 'data-view="week"' in body
+
+    #
+    # LoadMonthPages (TODO-166)
+    #
+    def test_load_month_pages_zero_leaves_only_the_current_block(self):
+        """``0`` なら今のブロックだけ。"""
+        write_conf(self.datadir, {"LoadMonthPages": "0"})
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, view="month")
+
+        assert body.count('data-block="') == 1
+
+    def test_load_month_pages_widens_the_range(self):
+        """大きくすると、その分だけブロックが増える。"""
+        write_conf(self.datadir, {"LoadMonthPages": "3"})
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR, view="month")
+
+        assert body.count('data-block="') == 3 * 2 + 1
+
+    def test_broken_load_month_pages_falls_back_to_the_default(self):
+        """数字にならない値も、範囲の外も既定値へ落とす。"""
+        for value in ("abc", "-1", "99"):
+            write_conf(self.datadir, {"LoadMonthPages": value})
+
+            body = self.get_body(
+                URL_PREFIX + "/", date=DATE1_STR, view="month"
+            )
+
+            assert body.count('data-block="') == 5, value
 
 
 class TestManifestAndIcons(WebTestBase):
