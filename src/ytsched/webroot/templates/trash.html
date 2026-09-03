@@ -38,9 +38,11 @@
   <div class="my-fs-small my-trash-empty">ゴミ箱は空です</div>
   {% end %}
   {% for group_index, group in enumerate(groups) %}
-  <section class="my-trash-group">
+  {# 同じ予定の古い内容が並ぶグループは、左の縦線でどこまでかを見せる
+     (TODO-172) #}
+  <section class="my-trash-group{% if len(group) > 1 %} my-trash-group-multi{% end %}">
     {% if len(group) > 1 %}
-    <div class="my-fs-small">同じ予定の内容が {{ len(group) }} 件</div>
+    <div class="my-fs-small my-trash-group-title">同じ予定の内容が {{ len(group) }} 件</div>
     {% end %}
     {% for entry_index, entry in enumerate(group) %}
     {% set sde = entry.sde %}
@@ -100,8 +102,11 @@
                  data-trashed-at="{{ entry.trashed_at }}"
                  aria-label="{{ sde.title }}を選択">
         </div>
+        {# 削除日時は枠の外に置くと、上下どちらの予定のものか紛らわしい。
+           ``.my-date-block`` の 12 列グリッドの 2 行目に入れて、1 件の
+           まとまりを枠で囲む (TODO-172) #}
+        <div class="my-fs-x-small my-trash-trashed-at">{% if entry.version %}版 {{ entry.version }} ・ {% end %}{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
       </div>
-      <div class="my-fs-x-small">{% if entry.version %}版 {{ entry.version }} ・ {% end %}{{ entry.trashed_at.split('.')[0].replace('T', ' ') }} に削除</div>
     </article>
     {% end %}
   </section>

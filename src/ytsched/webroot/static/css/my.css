@@ -1081,11 +1081,32 @@ textarea {
 }
 
 .my-trash-group {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+/* 同じ予定の古い内容が 2 件以上並ぶグループ。左の縦線と背景で、
+   どこまでが同じ予定かを見せる (TODO-172)。1 件だけのグループには
+   付けない (線を引く意味が無く、かえって密になる) */
+.my-trash-group-multi {
+    background-color: #CCC;
+    border-left: 4px solid #888;
+    border-radius: 0px 8px 8px 0px;
+    /* 縦線とパディングのぶん、予定の幅は他より狭くなる。412px で長い
+       タイトルが折り返すことはあるが、まとまりが見えるほうを取る */
+    padding: 0.25rem 0.25rem 0.25rem 0.5rem;
+}
+
+.my-trash-group-title {
+    padding-bottom: 0.125rem;
 }
 
 .my-trash-entry {
     margin-top: 0.25rem;
+}
+
+/* グループの中の 1 件目は、見出しとの間隔だけで足りる */
+.my-trash-entry:first-child {
+    margin-top: 0;
 }
 
 .my-trash-title {
@@ -1100,11 +1121,24 @@ textarea {
     grid-column: span 2;
     min-width: 0;
     padding: 0;
-    text-align: right;
+    text-align: center;
     display: flex;
-    justify-content: flex-end;
+    /* 幅の広い画面で右端まで離れないよう、列の中で中央へ寄せる
+       (TODO-172) */
+    justify-content: center;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+}
+
+/* 削除日時の行。``.my-date-block`` の 12 列グリッドの 2 行目
+   (1 行目で 12 列を使い切っているので、指定しなくても次の行へ回る)。
+   枠の中に入れて、上下どちらの予定のものかを分かるようにする
+   (TODO-172) */
+.my-trash-trashed-at {
+    grid-column: span 12;
+    padding: 1px 0.5rem 2px;
+    text-align: right;
+    color: #555;
 }
 
 .my-trash-restore,
@@ -1125,8 +1159,11 @@ textarea {
     color: #999;
 }
 
+/* 800px でも押しやすいよう、既定より大きくする (TODO-172) */
 .my-trash-select {
     accent-color: #C33;
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 /* 背景色。編集画面 (``.my-edit-form-body``) とゴミ箱 (``.my-trash-main``)
