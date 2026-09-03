@@ -341,6 +341,11 @@
 
     if (body_h < win_h) {
       console.log(`body_h=${body_h} < win_h=${win_h}`);
+      // 中身が画面より短いときは、#main を画面の高さまで伸ばして、
+      // フッターとの間に body の地 (白) が残らないようにする (TODO-176)。
+      // #main の地の色は my.css の #main で指定してある
+      const fill_h = ytsched.ytState.elMain.offsetHeight + win_h - body_h;
+      ytsched.ytState.elMain.style.minHeight = `${fill_h}px`;
       // ゲージの都合で画面が出ないのはおかしいので、dispGauge() より
       // 先に visible にする (TODO-049 reviewer 指摘 1)
       ytsched.ytState.elMain.style.visibility = "visible";

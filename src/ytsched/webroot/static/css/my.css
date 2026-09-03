@@ -50,6 +50,16 @@
      * パディングに使っている。
      */
     --my-gutter-x: 1.5rem;
+
+    /*
+     * カレンダー系の画面の地の色 (TODO-176)。白いカレンダーの表や、
+     * ``.my-date-block`` (#EEE) の予定ブロックを浮かせるため、これらの
+     * 外側をこの薄いグレーで塗る。使う先は、ミニカレンダーの外側
+     * (``.my-mini-cal-row`` ``.my-month-panel``)、週間/月間表示の土台
+     * (``#main``)、ゴミ箱 (``.my-trash-main``)。予定ブロックの #EEE より
+     * 濃くして、ブロックがカードに見えるようにしてある。
+     */
+    --my-cal-ground: #D8D8D8;
 }
 
 /* ===================================================================
@@ -165,6 +175,17 @@ textarea {
     border: 1px solid #f1aeb5;
     border-radius: .375rem;
     text-align: center;
+}
+
+/* 週間/月間表示の土台 (TODO-176)。地の色を敷いて、白いカレンダーの表や
+   日付ブロックを浮かせる。``body`` は編集画面・ゴミ箱画面にも効くので、
+   ここは一覧だけが使う ``#main`` に持たせる (編集は ``#edit_main``)。
+   中身が画面より短いときにフッターとの間へ白が残らないよう、
+   main-page.js の onloadHdr() が ``#main`` を画面の高さまで伸ばす。
+   ``visibility: hidden`` はインラインで指定してあり、読み込みが済むと
+   main-page.js が visible にする */
+#main {
+    background-color: var(--my-cal-ground);
 }
 
 /* 一覧のメインコンテンツ (知らせ・検索バー・週間/月間表示) の入れ物 */
@@ -1069,10 +1090,14 @@ textarea {
     padding-bottom: 45px;
 }
 
-/* ゴミ箱 */
+/* ゴミ箱。地の色は一覧の週間/月間表示と揃える (TODO-176)。ゴミ箱の
+   予定は ``.my-date-block`` (#EEE) なので、地を少し濃くしてカードとして
+   浮かせる。以前は編集画面と共用の ``.my-edit-body`` (#EEE) を重ねて
+   いたが、TODO-176 でゴミ箱だけ地の色を分けたので外した */
 .my-trash-main {
     min-height: 100vh;
     padding: 55px 0.5rem 0.5rem;
+    background-color: var(--my-cal-ground);
 }
 
 /* ゴミ箱が空のときの知らせ (旧 ``text-center``) */
@@ -1166,8 +1191,9 @@ textarea {
     height: 1.25rem;
 }
 
-/* 背景色。編集画面 (``.my-edit-form-body``) とゴミ箱 (``.my-trash-main``)
-   の両方に付く共通の役割クラス */
+/* 編集画面のフォームの入れ物の背景色 (``.my-edit-form-body`` に重ねる)。
+   以前はゴミ箱 (``.my-trash-main``) とも共用していたが、TODO-176 で
+   ゴミ箱の地の色を分けたので、いまは編集画面だけに付く */
 .my-edit-body {
     background-color: #EEE;
 }
@@ -1346,6 +1372,9 @@ textarea {
  * 月間ミニカレンダー (TODO-103)。日曜日の下に、2 ヶ月分を横に並べる。
  */
 .my-mini-cal-row {
+    background-color: var(--my-cal-ground);
+    padding: 8px 6px;
+    border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: flex-start; /* 上端揃え */
@@ -1375,6 +1404,8 @@ textarea {
 }
 
 .my-mini-cal {
+    background-color: #FFF;
+    border-radius: 0 0 6px 6px;
     border-collapse: collapse;
     font-size: small;
     /* 日セルを固定幅にすると 2 ヶ月ぶんが端末の幅からはみ出すので、
@@ -1386,6 +1417,8 @@ textarea {
 }
 
 .my-mini-cal-caption {
+    background-color: #FFF;
+    border-radius: 6px 6px 0 0;
     caption-side: top;
     font-size: medium;
     font-weight: bold;
@@ -1528,6 +1561,11 @@ textarea {
  * ``.my-week-panel`` (週間表示と共通) の中に ``.my-month-title`` と
  * ``.my-month-grid`` を積む。
  */
+.my-month-panel {
+    background-color: var(--my-cal-ground);
+    padding-bottom: 8px;
+}
+
 .my-month-title {
     text-align: center;
     font-weight: bold;
