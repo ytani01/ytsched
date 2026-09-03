@@ -14,9 +14,12 @@
 #}
 <table class="my-mini-cal">
   {% if mini_cal_caption_action %}
-  <caption class="my-mini-cal-caption my-btn" data-action="{{ mini_cal_caption_action }}"
-    data-date="{{ '%d-%02d-01' % (mc.year, mc.month) }}">
-    {{ '%d/%02d' % (mc.year, mc.month) }}
+  {# 押せるときは、枠を付けた span をボタンにする (TODO-174)。caption
+     要素に直接枠を付けると表の幅いっぱいに広がってしまう。 #}
+  <caption class="my-mini-cal-caption">
+    <span class="my-mini-cal-caption-btn my-btn"
+      data-action="{{ mini_cal_caption_action }}"
+      data-date="{{ '%d-%02d-01' % (mc.year, mc.month) }}">{{ '%d/%02d' % (mc.year, mc.month) }}</span>
   </caption>
   {% else %}
   <caption class="my-mini-cal-caption">

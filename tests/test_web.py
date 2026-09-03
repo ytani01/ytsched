@@ -717,9 +717,16 @@ class TestMonthMiniCal(WebTestBase):
         body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
         panel = week_panel(body)
 
-        captions = re.findall(
-            r"my-mini-cal-caption[^>]*>\s*([^<]+?)\s*<", panel
-        )
+        # caption の中身は、押せるときだけ span で包まれる（TODO-174）
+        # ので、タグを剥がしてから比べる
+        captions = [
+            re.sub(r"<[^>]*>", "", inner).strip()
+            for inner in re.findall(
+                r"my-mini-cal-caption[^>]*>(.*?)</caption>",
+                panel,
+                re.DOTALL,
+            )
+        ]
         assert captions == ["2021/03", "2021/04"]
 
     def test_day_with_sched_has_dot(self):

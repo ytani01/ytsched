@@ -1389,6 +1389,21 @@ textarea {
     caption-side: top;
     font-size: medium;
     font-weight: bold;
+    text-align: center;
+}
+
+/*
+ * 押すとその月の月間表示へ移る見出し (TODO-174)。押せることが分かる
+ * よう枠を付ける。caption 要素に直接付けると表の幅いっぱいに広がる
+ * ので、中の span を inline-block にしてそちらに付ける。押したときの
+ * 黄色は ``.my-btn:active``。
+ */
+.my-mini-cal-caption-btn {
+    display: inline-block;
+    padding: 1px 8px;
+    border: 1px solid #AAA;
+    border-radius: 4px;
+    background-color: #EEE;
 }
 
 .my-mini-cal-wday {
