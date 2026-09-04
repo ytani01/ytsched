@@ -215,7 +215,9 @@ class TestMainHandler(WebTestBase):
         body = self.get_body(URL_PREFIX + "/")
 
         assert re.search(
-            r'trash">.*?my-fs-medium[^>]*>\s*2\s*<', body, re.DOTALL
+            r'data-action="trash".*?my-fs-medium[^>]*>\s*2\s*<',
+            body,
+            re.DOTALL,
         )
 
     def test_get_root_and_no_slash(self):
@@ -2269,6 +2271,26 @@ class TestTrashHandler(WebTestBase):
         assert 'data-sde-id="id-1"' in main
         assert 'name="cmd" value="delete_many"' not in main
 
+    def test_back_button_has_date_when_date_given(self):
+        """``date`` を渡すと、戻るボタンがその週へ戻る（TODO-183）。"""
+        self.write_trash()
+
+        body = self.get_body(URL_PREFIX + "/trash", date="2021-03-01")
+
+        assert f'href="{URL_PREFIX}/?date=2021-03-01"' in body
+        assert 'name="date" value="2021-03-01"' in body
+
+    def test_back_button_has_no_date_when_date_missing_or_invalid(self):
+        """``date`` が無い・不正なら、戻るボタンは今までどおり（TODO-183）。"""
+        self.write_trash()
+
+        body_missing = self.get_body(URL_PREFIX + "/trash")
+        body_invalid = self.get_body(URL_PREFIX + "/trash", date="2026-99-99")
+
+        for body in (body_missing, body_invalid):
+            assert f'href="{URL_PREFIX}/"' in body
+            assert 'name="date"' not in body
+
     def test_restore_adds_new_entry_and_keeps_trash(self):
         self.write_trash()
         self.write_data(DATE1, [DATALINE2])
@@ -2497,6 +2519,31 @@ class TestTrashHandler(WebTestBase):
         assert "古い内容" not in remaining
         assert "2026-08-30T14:23:05" in remaining
 
+    def test_delete_many_with_date_redirects_to_trash_with_date(self):
+        """``date`` を渡すと、Location にも付く（TODO-183）。"""
+        self.write_trash()
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                [
+                    ("cmd", "delete_many"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-29T09:10:00"),
+                    ("date", "2021-03-01"),
+                ]
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+        assert res.code == 302
+        assert (
+            res.headers["Location"] == f"{URL_PREFIX}/trash?date=2021-03-01"
+        )
+
     def test_delete_many_invalid_or_unknown_entries_do_not_change_trash(self):
         self.write_trash()
         before = (self.datadir / "trash.jsonl").read_bytes()
@@ -2550,6 +2597,33 @@ class TestTrashHandler(WebTestBase):
         assert (self.datadir / "trash.jsonl").read_text(
             encoding="utf-8"
         ) == ""
+
+    def test_delete_many_all_entries_with_date_redirects_to_week_with_date(
+        self,
+    ):
+        """``date`` を渡すと、空になったときも Location に付く（TODO-183）。"""
+        self.write_trash()
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                [
+                    ("cmd", "delete_many"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-30T14:23:05"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-29T09:10:00"),
+                    ("date", "2021-03-01"),
+                ]
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+        assert res.code == 302
+        assert res.headers["Location"] == f"{URL_PREFIX}/?date=2021-03-01"
 
     def test_delete_many_keeps_entries_hidden_by_trash_max(self):
         self.write_trash()

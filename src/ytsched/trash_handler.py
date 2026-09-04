@@ -7,6 +7,7 @@ import datetime
 
 import tornado.web
 
+from . import handler_util
 from .handler import HandlerBase
 from .trash import TrashEntry, TrashFile
 from .ytsched import SchedDataEnt
@@ -31,6 +32,24 @@ class TrashHandler(HandlerBase):
     def _trash(self) -> TrashFile:
         return TrashFile(self._app_info.datadir)
 
+    def _back_date(self) -> datetime.date | None:
+        """戻り先の週の日付 (TODO-183)。
+
+        フッターのゴミ箱ボタンが、表示中の週の月曜を ``date`` で渡す。
+        無指定や、日付として読めない値なら ``None``（今日を含む週へ
+        戻る。TODO-183 より前と同じ）。
+        """
+        date_str = self.get_argument("date", None)
+        if not date_str:
+            return None
+        return handler_util.convert_value(
+            "date", date_str, handler_util.str2date
+        )
+
+    def _back_query(self) -> str:
+        date = self._back_date()
+        return f"?date={date}" if date else ""
+
     def get(self) -> None:
         sde_id = self.get_argument("sde_id", None)
         entries = self._trash().entries(sde_id, self._max_entries())
@@ -51,6 +70,7 @@ class TrashHandler(HandlerBase):
             entry_count=len(entries),
             sde_id=sde_id,
             today=datetime.date.today(),
+            date=self._back_date(),
         )
 
     def post(self) -> None:
@@ -135,7 +155,8 @@ class TrashHandler(HandlerBase):
         trash = self._trash()
         if not trash.delete_many(set(zip(sde_ids, trashed_ats, strict=True))):
             raise tornado.web.HTTPError(404, "trash entry not found")
+        query = self._back_query()
         if trash.entries(max_entries=1):
-            self.redirect(f"{self._app_info.url_prefix}trash")
+            self.redirect(f"{self._app_info.url_prefix}trash{query}")
         else:
-            self.redirect(self._app_info.url_prefix)
+            self.redirect(f"{self._app_info.url_prefix}{query}")

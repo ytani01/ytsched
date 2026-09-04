@@ -383,7 +383,7 @@
 
       <div class="my-footer-trash-col">
         <a class="my-btn{% if not trash_count %} my-btn-disabled{% end %}"
-          {% if trash_count %}href="{{ url_prefix }}trash"{% end %}>
+          {% if trash_count %}data-action="trash"{% end %}>
           <svg class="my-icon my-icon-xl my-align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#trash"></use>
           </svg>

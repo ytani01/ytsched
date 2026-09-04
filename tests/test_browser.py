@@ -572,6 +572,24 @@ def _write_trash(tmp_path):
     )
 
 
+def test_footer_trash_goes_to_trash_and_back_returns_to_same_week(
+    page, server, tmp_path
+):
+    """フッターのゴミ箱で移り、戻るとその週へ戻る（TODO-183）。"""
+    _write_trash(tmp_path)
+    page.goto(f"{server}?date=2026-08-17", wait_until="load")
+
+    # フッターはハンバーガーメニューの中にある
+    page.locator('label[for="menu-sw"]').click()
+    with page.expect_navigation(wait_until="load"):
+        page.locator(".my-footer-trash-col a").click()
+    assert page.url == f"{server}trash?date=2026-08-17"
+
+    with page.expect_navigation(wait_until="load"):
+        page.locator(".my-trash-back-col a").click()
+    assert page.url == f"{server}?date=2026-08-17"
+
+
 def test_trash_select_confirm_and_delete(page, server, tmp_path):
     """確認を経て、選んだ項目だけを削除する（TODO-141）。"""
     _write_trash(tmp_path)

@@ -234,6 +234,13 @@
           view: "month",
         });
         break;
+      case "trash":
+        // フッターのゴミ箱。表示中の週の月曜を渡して、ゴミ箱の戻る
+        // ボタンでその週へ返せるようにする (TODO-183)
+        ytsched.doGet(`${ytsched.url_prefix}trash`, {
+          date: ytsched.ytState.activeMonday,
+        });
+        break;
       case "edit-sde":
         ytsched.doGet(`${ytsched.url_prefix}edit/`, {
           date: el.dataset.date,

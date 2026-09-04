@@ -11,7 +11,8 @@
 <header class="my-trash-header">
   <div class="my-trash-header-row my-row-middle">
     <div class="my-trash-back-col">
-      <a href="{{ url_prefix }}" class="my-btn" aria-label="一覧へ戻る">
+      <a href="{{ url_prefix }}{% if date %}?date={{ date }}{% end %}"
+         class="my-btn" aria-label="一覧へ戻る">
         <svg class="my-icon my-icon-2x"><use href="{{ static_url('icons/icons.svg') }}#reply"></use></svg>
       </a>
     </div>
@@ -26,6 +27,7 @@
     <div class="my-trash-delete-col my-row-end">
       <form id="trash-delete-form" action="{{ url_prefix }}trash" method="POST">
         <input type="hidden" name="cmd" value="delete_many">
+        {% if date %}<input type="hidden" name="date" value="{{ date }}">{% end %}
         <button class="my-btn my-trash-delete" type="submit" aria-label="選択した項目を完全に削除" disabled>
           <svg class="my-icon my-icon-2x"><use href="{{ static_url('icons/icons.svg') }}#trash"></use></svg>
         </button>
