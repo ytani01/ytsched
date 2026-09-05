@@ -24,7 +24,7 @@
 //     gauge_follow_msec (main.html の <script>)
 //   url_prefix (base.html の <script>)
 //   ytState (state.js)  -- elLoadingSpinner・elMain・elWeekWrap・
-//                          activeWeekOffset・activeMonday・elGaugeR0
+//                          activeWeekOffset・activeMonday・elGaugeRs
 //   loadingSpinner() (spinner.js)             -- onloadHdr
 //   doGet() / doPost() / scrollToDate() (nav.js)
 //   getLocaltimeDateString() (nav.js)         -- homeButtonHdr
@@ -355,6 +355,16 @@
     const menu_bar_height = elMenuBar.offsetHeight;
     document.body.style.paddingBottom = `${menu_bar_height}px`;
 
+    // フッターの直上のゲージ (TODO-187) を、メニューバーの真上へ置く。
+    // 閉じたメニューバーの高さは変わらないので、位置合わせは読み込み時に
+    // 一度だけでよい。body の下の余白も、そのぶん足しておく。
+    // 検索モードではゲージが無いので、そのときは何もしない
+    const elFooterGaugeBar = document.getElementById("footer_gauge_bar");
+    if (elFooterGaugeBar) {
+      elFooterGaugeBar.style.bottom = `${menu_bar_height}px`;
+      document.body.style.paddingBottom = `${menu_bar_height + elFooterGaugeBar.offsetHeight}px`;
+    }
+
     // 週バーは position: fixed なので、その高さぶんを空ける
     // (TODO-055)。body_h を測るより先に入れること。
     // 検索モードでは週バーが無いので、そのときは 0 のまま
@@ -366,7 +376,11 @@
     const body_h = document.body.clientHeight;
     const win_h = document.documentElement.clientHeight;
 
-    ytsched.ytState.elGaugeR0 = document.getElementById("gauge_r"); // declared in state.js
+    // ゲージはヘッダーとフッターの直上に 1 つずつある (TODO-187)。
+    // 検索モードではどちらも出ないので、空の配列になる
+    ytsched.ytState.elGaugeRs = Array.from(
+      document.querySelectorAll(".my-gauge-r"),
+    ); // declared in state.js
     // 目盛りの位置は日付によらないので、ここで一度だけ描く (TODO-078)
     ytsched.dispGaugeMarks();
 

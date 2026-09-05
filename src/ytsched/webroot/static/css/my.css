@@ -165,6 +165,33 @@ textarea {
     background-color: #48C;
 }
 
+/* フッターの直上のゲージ (TODO-187)。``.my-week-bar`` と同じ役割の
+   入れ物で、置く先が上か下かだけが違う。``bottom`` はメニューバーの
+   高さに合わせて main-page.js の onloadHdr() が入れる。
+   z-index は、メニュー (``.my-bar-content``、z-index: 100) と
+   メニューバー (``.my-menu-bar``、z-index: 200) より下にして、
+   メニューを開いたら隠れるようにする */
+.my-footer-gauge-bar {
+    width: 100%;
+    padding: .25rem;
+    margin-right: auto;
+    margin-left: auto;
+    position: fixed;
+    /* 実際の値は main-page.js の onloadHdr() が、メニューバーの高さを
+       実測して入れる (インラインの指定なのでこちらより勝つ)。
+       ここの 42px は、その load を待つ間の見た目を合わせるためのもので、
+       閉じたメニューバーの高さ (``#menu-sw:checked ~ .my-bar-content``
+       の bottom と同じ値) にそろえてある。0 にしておくと、読み込みが
+       遅いときにメニューバーの裏へ潜り込んだゲージが一瞬見えて、
+       そのあと飛ぶ (TODO-187) */
+    bottom: 42px;
+    right: 0;
+    left: 0;
+    z-index: 50;
+    color: white;
+    background-color: #48C;
+}
+
 /* 知らせの枠 (不正な正規表現の知らせで使っている) */
 .my-error-box {
     position: relative;

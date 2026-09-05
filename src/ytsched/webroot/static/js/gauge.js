@@ -16,7 +16,8 @@
 //   gaugeBarPointerCancelHdr -- main-page.js が window の pointerdown / pointermove /
 //                              pointerup / pointercancel に登録する (TODO-178)
 //   ほかの定数・関数 (DAYS_* / days2xPercent / xPercent2days / GAUGE_MARKS /
-//     gaugeDiffLabel / setGaugePosition / GAUGE_START_KEY / get・setGaugeStart /
+//     gaugeDiffLabel / setGaugeNeedles / setGaugeNoTransition /
+//     setGaugePosition / GAUGE_START_KEY / get・setGaugeStart /
 //     placeGaugeWithoutTransition) はこのファイル内だけで使う
 // 外から使うもの (nav.js は base.html でこのあとに読み込まれるが、
 //   呼ぶのは実行時なので前方参照でよい):
@@ -26,7 +27,7 @@
 //   scrollToDate() (nav.js)          -- gaugeBarPointerUpHdr
 //   weekOffsetOfDate() (week.js)      -- gaugeBarPointerMoveHdr (一定時間後の追従判定)
 //   gauge_follow_msec (main.html の <script>) -- startGaugeBarFollowTimer
-//   ytState (state.js)               -- ytState.elGaugeR0
+//   ytState (state.js)               -- ytState.elGaugeRs
 //   hasBlockOfDate() (month.js)       -- gaugeBarPointerMoveHdr (月間表示での追従判定)
 (() => {
   const ytsched = window.ytsched;
@@ -105,21 +106,19 @@
    * (TODO-078)。読み込み時に一度だけ呼べばよい (目盛りの位置は日付に
    * よらない)。
    *
-   * 検索モードでは週バーごと ``.my-gauge-bar`` が無いので、そのときは
-   * 何もしない。
+   * 帯はヘッダーとフッターの直上に 1 つずつあるので、見つかった帯すべてに
+   * 描く (TODO-187)。検索モードでは ``.my-gauge-bar`` が無いので、
+   * そのときは何もしない。
    */
   window.ytsched.dispGaugeMarks = () => {
-    const elGaugeBar = document.querySelector(".my-gauge-bar");
-    if (!elGaugeBar) {
-      return;
-    }
-
-    for (const mark of GAUGE_MARKS) {
-      const elMark = document.createElement("div");
-      elMark.className = "my-gauge-label";
-      elMark.style.left = `${(50 + ytsched.days2xPercent(mark.days)).toFixed(2)}%`;
-      elMark.textContent = mark.label;
-      elGaugeBar.appendChild(elMark);
+    for (const elGaugeBar of document.querySelectorAll(".my-gauge-bar")) {
+      for (const mark of GAUGE_MARKS) {
+        const elMark = document.createElement("div");
+        elMark.className = "my-gauge-label";
+        elMark.style.left = `${(50 + ytsched.days2xPercent(mark.days)).toFixed(2)}%`;
+        elMark.textContent = mark.label;
+        elGaugeBar.appendChild(elMark);
+      }
     }
   };
 
@@ -172,9 +171,43 @@
   };
 
   /**
+   * 針をすべてのゲージへ同じ位置・同じラベルで置く (TODO-187)。
+   * ゲージはヘッダーとフッターの直上に 1 つずつあり、上下が必ず同じ
+   * 見た目になるように、まとめてここで書き換える。
+   *
+   * @param {number} rel_days   今週の月曜からの日数
+   */
+  const setGaugeNeedles = (rel_days) => {
+    const left = `${50 + ytsched.days2xPercent(rel_days)}%`;
+    // どちらも月曜なので、7 で割り切れる
+    const label = ytsched.gaugeDiffLabel(Math.round(rel_days / 7) * 7);
+
+    for (const elGaugeR of ytsched.ytState.elGaugeRs) {
+      elGaugeR.style.left = left;
+
+      const elLabel = elGaugeR.querySelector(".my-gauge-r-label");
+      if (elLabel) {
+        elLabel.textContent = label;
+      }
+    }
+  };
+
+  /**
+   * ``.my-gauge-r-no-transition`` を、すべての針に付ける・外す
+   * (TODO-187)。
+   *
+   * @param {boolean} flag   true なら付ける、false なら外す
+   */
+  const setGaugeNoTransition = (flag) => {
+    for (const elGaugeR of ytsched.ytState.elGaugeRs) {
+      elGaugeR.classList.toggle("my-gauge-r-no-transition", flag);
+    }
+  };
+
+  /**
    * 針の位置 (``left``) を計算してセットする。``transition`` は
    * 掛けたまま (TODO-049)。針の上のラベル (今週からの差) も、
-   * ここで書き換える。位置は入れ物 (``#gauge_r``) が持っているので、
+   * ここで書き換える。位置は入れ物 (``.my-gauge-r``) が持っているので、
    * ラベルは黙って一緒に動く (TODO-066)。
    *
    * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい。
@@ -185,17 +218,8 @@
     const this_monday = ytsched.mondayOf(
       ytsched.getLocaltimeDateString(new Date()),
     );
-    const top_rel_days = ytsched.calcDays(this_monday, monday);
 
-    ytsched.ytState.elGaugeR0.style.left = `${50 + ytsched.days2xPercent(top_rel_days)}%`;
-
-    // どちらも月曜なので、7 で割り切れる
-    const elLabel = document.getElementById("gauge_r_label");
-    if (elLabel) {
-      elLabel.textContent = ytsched.gaugeDiffLabel(
-        Math.round(top_rel_days / 7) * 7,
-      );
-    }
+    setGaugeNeedles(ytsched.calcDays(this_monday, monday));
   };
 
   // 次にページを読み込んだとき、針を置き始める位置 (週の月曜)。
@@ -247,17 +271,22 @@
    * レイアウトを確定させるのに ``getBoundingClientRect()`` を使う
    * (TODO-060)。確定しないまま ``transition`` が戻ると、CSS の初期値
    * (``left: 50%``、つまり中央) から補間が始まってしまう。
-   * ``#gauge_r`` が ``<svg>`` だったころは ``offsetHeight`` が
-   * ``undefined`` を返してレイアウトが確定せず、これで踏んだ
-   * (いまは針とラベルをまとめた ``<div>``。TODO-066)。
+   * 針が ``<svg>`` だったころは ``offsetHeight`` が ``undefined`` を
+   * 返してレイアウトが確定せず、これで踏んだ (いまは針とラベルを
+   * まとめた ``<div>``。TODO-066)。
+   *
+   * 針は上下に 1 つずつあるので、レイアウトの確定もそれぞれに対して
+   * 行う (TODO-187)。
    *
    * @param {String} date_str   'YYYY-mm-dd'
    */
   const placeGaugeWithoutTransition = (date_str) => {
-    ytsched.ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
+    setGaugeNoTransition(true);
     setGaugePosition(date_str);
-    ytsched.ytState.elGaugeR0.getBoundingClientRect(); // 強制的にレイアウトを確定させる
-    ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+    for (const elGaugeR of ytsched.ytState.elGaugeRs) {
+      elGaugeR.getBoundingClientRect(); // 強制的にレイアウトを確定させる
+    }
+    setGaugeNoTransition(false);
   };
 
   // ページを読み込んでから、一度でも針を置いたか (TODO-180)。
@@ -289,13 +318,15 @@
    * @param {String} date_str   'YYYY-mm-dd' (週の中の何日でもよい)
    */
   window.ytsched.dispGauge = (date_str) => {
-    // 検索モードでは週バーごと帯が出ないので、gauge_r が無い (TODO-058)
-    if (!ytsched.ytState.elGaugeR0) {
+    // 検索モードでは帯が出ないので、針が 1 つも無い (TODO-058・TODO-187)
+    if (ytsched.ytState.elGaugeRs.length === 0) {
       return;
     }
 
     if (!date_str) {
-      ytsched.ytState.elGaugeR0.style.display = "none";
+      for (const elGaugeR of ytsched.ytState.elGaugeRs) {
+        elGaugeR.style.display = "none";
+      }
       return;
     }
 
@@ -335,7 +366,7 @@
   };
 
   // ドラッグの状態 (TODO-178)
-  let gaugeBarDragStart = null; // { clientX, t, pointerId } または null
+  let gaugeBarDragStart = null; // { clientX, t, pointerId, elBar } または null
   let gaugeBarDragMonday = null; // ドラッグ中の現在の週の月曜 ('YYYY-mm-dd')
   let gaugeBarFollowTimeoutId = null; // 一定時間止まったあとの追従タイマー
   let gaugeBarHistoryPushed = false; // ドラッグ中に履歴を積んだか
@@ -344,11 +375,15 @@
    * 帯の clientX からその位置の週の月曜を計算する (TODO-178)。
    * down / move / up で使い回す。
    *
+   * 帯はヘッダーとフッターの直上に 1 つずつあるので、矩形は
+   * pointerdown で触れた帯のものを使う (TODO-187)。上の帯で決め打ちに
+   * すると、下の帯をドラッグしたときに位置が合わない。
+   *
    * @param {number} clientX
+   * @param {Element} el_bar   触れた帯 (``.my-gauge-bar``)
    * @return {String | null}   週の月曜 ('YYYY-mm-dd')、帯が無ければ null
    */
-  const mondayFromClientX = (clientX) => {
-    const el_bar = document.querySelector(".my-gauge-bar");
+  const mondayFromClientX = (clientX, el_bar) => {
     if (!el_bar) {
       return null;
     }
@@ -450,12 +485,15 @@
       clientX: event.clientX,
       t: Date.now(),
       pointerId: event.pointerId,
+      // 触れた帯。pointermove / pointerup でも同じ帯の矩形を使う
+      // (TODO-187)
+      elBar: el,
     };
-    gaugeBarDragMonday = mondayFromClientX(event.clientX);
+    gaugeBarDragMonday = mondayFromClientX(event.clientX, el);
     gaugeBarHistoryPushed = false; // ドラッグ開始時に履歴フラグをリセット
 
     // transition を外す (ドラッグ中は指に追従するため)
-    ytsched.ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
+    setGaugeNoTransition(true);
 
     // 一定時間止まったら追従
     startGaugeBarFollowTimer();
@@ -482,13 +520,16 @@
       gaugeBarDragMonday = null;
       gaugeBarHistoryPushed = false;
       clearTimeout(gaugeBarFollowTimeoutId);
-      ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+      setGaugeNoTransition(false);
       ytsched.dispGauge(ytsched.ytState.activeMonday);
       return;
     }
 
     const prev_monday = gaugeBarDragMonday;
-    gaugeBarDragMonday = mondayFromClientX(event.clientX);
+    gaugeBarDragMonday = mondayFromClientX(
+      event.clientX,
+      gaugeBarDragStart.elBar,
+    );
     if (!gaugeBarDragMonday) {
       return;
     }
@@ -500,14 +541,7 @@
     const target_monday = ytsched.mondayOf(gaugeBarDragMonday);
     const rel_days = ytsched.calcDays(this_monday, target_monday);
 
-    ytsched.ytState.elGaugeR0.style.left = `${50 + ytsched.days2xPercent(rel_days)}%`;
-
-    const elLabel = document.getElementById("gauge_r_label");
-    if (elLabel) {
-      elLabel.textContent = ytsched.gaugeDiffLabel(
-        Math.round(rel_days / 7) * 7,
-      );
-    }
+    setGaugeNeedles(rel_days);
 
     // 一定時間止まったら追従 (TODO-178)。
     // 張り直すのは移動先の週が変わったときだけ (TODO-186)。指を押さえた
@@ -537,15 +571,7 @@
     gaugeBarFollowTimeoutId = null;
 
     // transition を戻す
-    ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
-
-    const el_bar = document.querySelector(".my-gauge-bar");
-    if (!el_bar) {
-      gaugeBarDragStart = null;
-      gaugeBarDragMonday = null;
-      gaugeBarHistoryPushed = false;
-      return;
-    }
+    setGaugeNoTransition(false);
 
     gaugeBarDragStart = null;
 
@@ -596,7 +622,7 @@
     gaugeBarFollowTimeoutId = null;
 
     // transition を戻す
-    ytsched.ytState.elGaugeR0.classList.remove("my-gauge-r-no-transition");
+    setGaugeNoTransition(false);
 
     gaugeBarDragStart = null;
     gaugeBarDragMonday = null;

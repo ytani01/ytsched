@@ -850,10 +850,13 @@ def _in_search_mode(page):
 
 
 def _assert_search_screen(page):
-    """検索画面の見た目になっていること（週パネル 1 枚・週バー無し）。"""
+    """検索画面の見た目になっていること（週パネル 1 枚・ゲージ無し）。"""
     assert _in_search_mode(page), "検索モードになっていない"
     assert page.locator(".my-week-panel").count() == 1
     assert page.locator("#week_bar").count() == 0
+    # フッターの直上のゲージも出ない（TODO-187）
+    assert page.locator("#footer_gauge_bar").count() == 0
+    assert page.locator(".my-gauge-bar").count() == 0
 
 
 def _assert_top_screen(page):
@@ -1667,10 +1670,10 @@ def test_home_button_in_month_view_moves_the_gauge_needle(page, server):
     page.wait_for_selector("#main", state="visible")
     assert page.locator("#main[data-view='month']").count() == 1
 
-    label = page.locator("#gauge_r_label")
+    label = page.locator(".my-gauge-r-label").first
     label.wait_for(state="visible", timeout=10000)
     page.wait_for_function(
-        "() => document.getElementById('gauge_r_label').textContent.trim()"
+        "() => document.querySelector('.my-gauge-r-label').textContent.trim()"
         " !== ''",
         timeout=10000,
     )
@@ -1679,7 +1682,7 @@ def test_home_button_in_month_view_moves_the_gauge_needle(page, server):
     _tap(page, page.locator("#home_button"))
 
     page.wait_for_function(
-        "() => document.getElementById('gauge_r_label').textContent.trim()"
+        "() => document.querySelector('.my-gauge-r-label').textContent.trim()"
         " === '\u00b10'",
         timeout=10000,
     )
@@ -1725,8 +1728,12 @@ def test_touch_swipe_in_mini_cal_from_non_monday_moves_by_a_month(
 
 
 def _center_x(page, selector):
-    """要素の左右の中心（px）。"""
-    box = page.locator(selector).bounding_box()
+    """要素の左右の中心（px）。
+
+    ゲージは上下に 1 つずつあるので、``.first``（＝ヘッダー側）を見る
+    （TODO-187）。
+    """
+    box = page.locator(selector).first.bounding_box()
     assert box is not None
     return box["x"] + box["width"] / 2
 
@@ -1742,23 +1749,23 @@ def test_gauge_label_moves_with_the_needle(page, server):
 
     _open(page, server, far.strftime("%Y-%m-%d"))
 
-    label = page.locator("#gauge_r_label")
+    label = page.locator(".my-gauge-r-label").first
     label.wait_for(state="visible", timeout=10000)
 
     # 針が動き終わるのを待つ（transition は 0.3s）
     page.wait_for_function(
-        "() => document.getElementById('gauge_r_label').textContent.trim() === '+3w'",
+        "() => document.querySelector('.my-gauge-r-label').textContent.trim() === '+3w'",
         timeout=10000,
     )
     page.wait_for_timeout(500)
 
     # 針より右にいる（今週は中央）
-    assert _center_x(page, "#gauge_r") > page.viewport_size["width"] / 2
+    assert _center_x(page, ".my-gauge-r") > page.viewport_size["width"] / 2
 
     # ラベルの中心が、針の中心とそろっている
     assert (
         abs(
-            _center_x(page, "#gauge_r_label")
+            _center_x(page, ".my-gauge-r-label")
             - _center_x(page, ".my-gauge-r-needle")
         )
         < 2
@@ -1772,7 +1779,7 @@ def test_gauge_label_is_plus_minus_zero_in_this_week(page, server):
     _open(page, server, today.strftime("%Y-%m-%d"))
 
     page.wait_for_function(
-        "() => document.getElementById('gauge_r_label').textContent.trim()"
+        "() => document.querySelector('.my-gauge-r-label').textContent.trim()"
         " === '\\u00b10'",
         timeout=10000,
     )
@@ -1905,7 +1912,10 @@ def test_gauge_marks_are_drawn_at_the_same_position(page, server):
     """
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
-    assert page.locator(".my-gauge-label").count() == 14
+    # ゲージは上下に 1 つずつあるので、それぞれ 14 個ずつ描かれる
+    # （TODO-187）。合計で数えると、片方にしか描かなくなっても気づけない
+    assert page.locator("#week_bar .my-gauge-label").count() == 14
+    assert page.locator("#footer_gauge_bar .my-gauge-label").count() == 14
     assert _gauge_mark_left(page, "-1w") == pytest.approx(46.21, abs=0.01)
     assert _gauge_mark_left(page, "+1w") == pytest.approx(53.79, abs=0.01)
 
@@ -1921,7 +1931,7 @@ def test_gauge_marks_sit_below_the_top_of_the_bar(page, server):
     """
     _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
 
-    bar = page.locator(".my-gauge-bar").bounding_box()
+    bar = page.locator(".my-gauge-bar").first.bounding_box()
     label = page.locator(".my-gauge-label").first.bounding_box()
     assert bar is not None
     assert label is not None
@@ -1964,7 +1974,7 @@ def test_gauge_bar_click_moves_to_the_tapped_week(page, server):
         "(d) => window.ytsched.days2xPercent(d)", target_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     click_x = box["x"] + box["width"] * (50 + x_percent) / 100
     click_y = box["y"] + box["height"] / 2
@@ -1977,6 +1987,106 @@ def test_gauge_bar_click_moves_to_the_tapped_week(page, server):
     page.wait_for_function(
         "(monday) => document.querySelector('.my-week-cur')"
         ".dataset.monday === monday",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+    assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
+
+
+def test_gauges_are_in_the_header_and_above_the_footer(page, server):
+    """ゲージが上下に 1 つずつ出て、下はメニューバーの直上にある
+    （TODO-187）。"""
+    _open(page, server, datetime.date.today().strftime("%Y-%m-%d"))
+
+    assert page.locator(".my-gauge-bar").count() == 2
+
+    footer_gauge = page.locator("#footer_gauge_bar").bounding_box()
+    menu_bar = page.locator("#menu_bar").bounding_box()
+    assert footer_gauge is not None
+    assert menu_bar is not None
+
+    # 下のゲージの下端が、メニューバーの上端に接している
+    assert (
+        abs((footer_gauge["y"] + footer_gauge["height"]) - menu_bar["y"]) < 2
+    )
+
+
+def test_both_gauge_needles_are_at_the_same_position(page, server):
+    """上下のゲージの針が、同じ位置に出る（TODO-187）。"""
+    today = datetime.date.today()
+    far = _monday_of(today) + datetime.timedelta(days=3 * 7)
+
+    _open(page, server, far.strftime("%Y-%m-%d"))
+
+    page.wait_for_function(
+        "() => document.querySelector('.my-gauge-r-label')"
+        ".textContent.trim() === '+3w'",
+        timeout=10000,
+    )
+
+    lefts = page.evaluate(
+        "() => Array.from(document.querySelectorAll('.my-gauge-r'))"
+        ".map((el) => el.style.left)"
+    )
+    assert len(lefts) == 2
+    assert lefts[0] == lefts[1], f"上下で針の位置が違う: {lefts}"
+
+
+def test_both_gauge_labels_are_the_same_text(page, server):
+    """上下のゲージのラベルが、同じ文字になる（TODO-187）。"""
+    today = datetime.date.today()
+    far = _monday_of(today) + datetime.timedelta(days=3 * 7)
+
+    _open(page, server, far.strftime("%Y-%m-%d"))
+
+    page.wait_for_function(
+        "() => document.querySelector('.my-gauge-r-label')"
+        ".textContent.trim() === '+3w'",
+        timeout=10000,
+    )
+
+    labels = page.evaluate(
+        "() => Array.from(document.querySelectorAll('.my-gauge-r-label'))"
+        ".map((el) => el.textContent.trim())"
+    )
+    assert labels == ["+3w", "+3w"]
+
+
+def test_footer_gauge_drag_moves_to_the_released_week(page, server):
+    """下のゲージをドラッグして離しても、その週へ移る（TODO-187）。
+
+    上のゲージと同じように、``pointerdown`` から ``pointerup`` までを
+    下の帯の上で行う。帯の幅は上下で同じなので、``mondayFromClientX()``
+    がどちらの矩形を見ていても結果は変わらないが、下の帯でも
+    ``gaugeBarPointerDownHdr()`` が拾えていることは、これで分かる。
+    """
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    end_days = 14
+    end_x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", end_days
+    )
+
+    box = page.locator(".my-gauge-bar").last.bounding_box()
+    assert box is not None
+    start_x = box["x"] + box["width"] / 2  # 今週（中央）から始める
+    end_x = box["x"] + box["width"] * (50 + end_x_percent) / 100
+    drag_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(start_x, drag_y)
+    page.mouse.down()
+    page.mouse.move(end_x, drag_y)
+    page.wait_for_timeout(200)
+    page.mouse.up()
+
+    expected = monday + datetime.timedelta(days=end_days)
+    page.wait_for_function(
+        """(monday) => {
+            const cur = document.querySelector('.my-week-cur');
+            return cur && cur.dataset.monday === monday;
+        }""",
         arg=expected.strftime("%Y-%m-%d"),
         timeout=10000,
     )
@@ -2006,14 +2116,14 @@ def test_gauge_drag_does_not_move_screen_while_dragging(
         "(d) => window.ytsched.days2xPercent(d)", end_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     start_x = box["x"] + box["width"] * (50 + start_x_percent) / 100
     end_x = box["x"] + box["width"] * (50 + end_x_percent) / 100
     drag_y = box["y"] + box["height"] / 2
 
     # 初期状態の針の文字
-    initial_label = page.locator("#gauge_r_label").inner_text()
+    initial_label = page.locator(".my-gauge-r-label").first.inner_text()
 
     # ドラッグ中: 画面が動かず、針とラベルだけが動く
     page.mouse.move(start_x, drag_y)
@@ -2025,7 +2135,7 @@ def test_gauge_drag_does_not_move_screen_while_dragging(
     # URL は変わっていない（追従していない）
     assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
     # 針とラベルは動いている
-    moved_label = page.locator("#gauge_r_label").inner_text()
+    moved_label = page.locator(".my-gauge-r-label").first.inner_text()
     assert moved_label != initial_label, "ドラッグ中にラベルが動いているはず"
 
     page.mouse.up()
@@ -2055,7 +2165,7 @@ def test_gauge_drag_follows_after_stopping(page, server):
         "(d) => window.ytsched.days2xPercent(d)", target_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     drag_x = box["x"] + box["width"] * (50 + x_percent) / 100
     drag_y = box["y"] + box["height"] / 2
@@ -2093,7 +2203,7 @@ def test_gauge_drag_follows_while_jittering(page, server):
         "(d) => window.ytsched.days2xPercent(d)", target_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     drag_x = box["x"] + box["width"] * (50 + x_percent) / 100
     drag_y = box["y"] + box["height"] / 2
@@ -2136,7 +2246,7 @@ def test_gauge_drag_pushes_history_only_once(page, server):
         "(d) => window.ytsched.days2xPercent(d)", target_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     drag_x = box["x"] + box["width"] * (50 + x_percent) / 100
     drag_y = box["y"] + box["height"] / 2
@@ -2183,7 +2293,7 @@ def test_gauge_tap_moves_to_the_tapped_week(page, server):
         "(d) => window.ytsched.days2xPercent(d)", target_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     tap_x = box["x"] + box["width"] * (50 + x_percent) / 100
     tap_y = box["y"] + box["height"] / 2
@@ -2227,7 +2337,7 @@ def test_gauge_drag_needle_does_not_jump_back_on_release(
         "(d) => window.ytsched.days2xPercent(d)", end_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     start_x = box["x"] + box["width"] / 2  # 今週（中央）から始める
     end_x = box["x"] + box["width"] * (50 + end_x_percent) / 100
@@ -2242,7 +2352,7 @@ def test_gauge_drag_needle_does_not_jump_back_on_release(
     page.evaluate(
         """() => {
             window.gauge_lefts = [];
-            const el = document.getElementById('gauge_r');
+            const el = document.querySelector('.my-gauge-r');
             new MutationObserver(() => {
                 window.gauge_lefts.push(el.style.left);
             }).observe(el, {attributes: true, attributeFilter: ['style']});
@@ -2270,7 +2380,7 @@ def test_gauge_drag_needle_does_not_jump_back_on_release(
 
     # 最後は、離した位置（＝移り先の週）に居る
     left_after = page.evaluate(
-        "() => document.getElementById('gauge_r').style.left"
+        "() => document.querySelector('.my-gauge-r').style.left"
     )
     assert abs(float(left_after.rstrip("%")) - (50 + end_x_percent)) < 0.5
 
@@ -2289,7 +2399,7 @@ GAUGE_LOG_SCRIPT = """
     sessionStorage.setItem(KEY, JSON.stringify(a));
   };
   document.addEventListener('DOMContentLoaded', () => {
-    const el = document.getElementById('gauge_r');
+    const el = document.querySelector('.my-gauge-r');
     if (!el) { return; }
     log('LOAD:' + el.style.left);
     new MutationObserver(() => log(el.style.left))
@@ -2317,7 +2427,7 @@ def _drag_gauge_and_release(page, end_days):
         "(d) => window.ytsched.days2xPercent(d)", end_days
     )
 
-    box = page.locator(".my-gauge-bar").bounding_box()
+    box = page.locator(".my-gauge-bar").first.bounding_box()
     assert box is not None
     start_x = box["x"] + box["width"] / 2  # 今週（中央）から始める
     end_x = box["x"] + box["width"] * (50 + end_x_percent) / 100
@@ -2346,7 +2456,7 @@ def _assert_needle_did_not_pass_this_week(page, target_percent):
         )
 
     left_after = page.evaluate(
-        "() => document.getElementById('gauge_r').style.left"
+        "() => document.querySelector('.my-gauge-r').style.left"
     )
     assert abs(float(left_after.rstrip("%")) - target_percent) < 0.5, (
         f"針が移り先の週に居ない: {left_after} != {target_percent}%"

@@ -345,7 +345,7 @@ sequenceDiagram
 |---|---|
 | `state.js` | ファイルをまたぐ状態（`ytState`） |
 | `spinner.js` | 読み込み中のスピナー |
-| `gauge.js` | ヘッダの横ゲージ（目盛り・針・タップ） |
+| `gauge.js` | 横ゲージ（目盛り・針・タップ）。ヘッダとフッターの直上に 1 つずつ |
 | `nav.js` | URL の組み立て、`doGet()` / `doPost()`、スクロール |
 | `week.js` | 週の差し替えとアニメーション（`moveToMonday()`） |
 | `month.js` | 月間表示のブロックの差し替え（`moveActiveBlock()`。TODO-137） |
@@ -371,7 +371,7 @@ sequenceDiagram
 月間表示のときの動きに分ける（TODO-137）。**
 
 **ファイルをまたぐ状態は `window.ytsched.ytState` にまとめてある**
-（`elLoadingSpinner` / `elMain` / `elGaugeR0` / `elWeekWrap` /
+（`elLoadingSpinner` / `elMain` / `elGaugeRs` / `elWeekWrap` /
 `activeWeekOffset`）。1 つのファイルの中で閉じている状態（`swipeStart`
 など）は、そのファイルのトップレベルに置いたまま。以前は `main.html` の
 `<script>` がグローバル変数へ直に代入していて、それがファイルを分け

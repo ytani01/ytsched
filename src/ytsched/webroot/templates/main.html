@@ -38,13 +38,15 @@
       <div class="my-gauge-base"></div>
       <!-- 針と、今週からの差 (TODO-066)。
            差は針の位置そのものを読む数字なので、針の上に置いて一緒に
-           動かす。位置は ``#gauge_r`` がまとめて持ち、文字は
+           動かす。位置は ``.my-gauge-r`` がまとめて持ち、文字は
            JavaScript の ``setGaugePosition()`` が書き換える。
            読み込み時に呼ばれる onloadHdr() の中で必ず一度は通るので、
            ここは空のままでよい (TODO-078)。
-           単位は週・月・年で切り替わる (TODO-072) -->
-      <div id="gauge_r" class="my-gauge-r">
-        <div id="gauge_r_label" class="my-gauge-r-label"></div>
+           単位は週・月・年で切り替わる (TODO-072)。
+           ゲージが上下 2 つになったので、id をやめてクラスで引く
+           (TODO-187) -->
+      <div class="my-gauge-r">
+        <div class="my-gauge-r-label"></div>
         <svg class="my-gauge-r-needle" viewBox="0 0 12 8">
           <polygon points="0,0 12,0 6,8" />
         </svg>
@@ -282,6 +284,27 @@
   </div><!-- my-main-content -->
 </main>
 <footer>
+  <!-- フッターの直上のゲージ (TODO-187)。中身はヘッダーの週バーと
+       全く同じで、目盛り・針・ラベルは JavaScript が両方へ同じものを
+       描く。指はフッターの側にあるので、下でも同じ操作ができる。
+       ``bottom`` はメニューバーの高さに合わせて onloadHdr() が入れる。
+       メニューを開くと ``.my-bar-content`` (z-index: 100) がせり上がって
+       このゲージを隠す -->
+  {% if not search_mode %}
+  <div id="footer_gauge_bar" class="my-footer-gauge-bar">
+    <div class="my-gauge-bar">
+      <div class="my-gauge-axis"></div>
+      <div class="my-gauge-base"></div>
+      <div class="my-gauge-r">
+        <div class="my-gauge-r-label"></div>
+        <svg class="my-gauge-r-needle" viewBox="0 0 12 8">
+          <polygon points="0,0 12,0 6,8" />
+        </svg>
+      </div>
+    </div>
+  </div><!-- my-footer-gauge-bar -->
+  {% end %}
+
   <!-- menu bar -->
   <div id="menu_bar"
     class="my-menu-bar my-follow-keyboard">

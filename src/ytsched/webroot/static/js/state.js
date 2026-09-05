@@ -14,7 +14,10 @@ ytsched.url_prefix = document.documentElement.dataset.urlPrefix;
 ytsched.ytState = {
   elLoadingSpinner: null,
   elMain: null,
-  elGaugeR0: null,
+  // ゲージの針 (``.my-gauge-r``) の一覧。ヘッダーとフッターの直上に
+  // 1 つずつあるので、配列で持つ (TODO-187)。検索モードではゲージが
+  // 出ないので空になる
+  elGaugeRs: [],
   elWeekWrap: null,
   // いま見ている週が、最初に描かれた週から何週ぶん離れているか
   // (TODO-069)。``.my-week-panel`` の ``data-offset`` と同じ数え方で、
