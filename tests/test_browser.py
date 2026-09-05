@@ -345,6 +345,270 @@ def test_tap_again_stops_auto_page_turn(page, server, tmp_path):
     )
 
 
+def _press_button(page, locator):
+    """ボタンを押したままにする（``pointerup`` は呼ばない。TODO-188）。
+
+    ボタンの中央へ動かしてから押す。呼んだ側が ``page.mouse.up()`` で
+    離すこと。
+    """
+    box = locator.bounding_box()
+    assert box is not None
+    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    page.mouse.down()
+
+
+def test_holding_the_button_starts_auto_page_turn(page, server, tmp_path):
+    """◀▶ を押しっぱなしにしている間、自動で週が送られる（TODO-188）。
+
+    ``AutoTurnMsec`` を下限（300）にして待つ時間を短くする。押しっぱなし
+    と見なすまでの 500msec は定数なので、ここでは変えられない。
+    """
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "300", "LoadWeekPages": "9"}
+    )
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    _press_button(page, page.locator("#forward_button"))
+    try:
+        # 押したままでも、500msec を過ぎたら 1 週送られ、そのあとは
+        # ``AutoTurnMsec`` ごとに進み続ける
+        expected = monday + datetime.timedelta(days=7 * 3)
+        page.wait_for_function(
+            "(monday) => document.querySelector('.my-week-cur')"
+            ".dataset.monday >= monday",
+            arg=expected.strftime("%Y-%m-%d"),
+            timeout=10000,
+        )
+    finally:
+        page.mouse.up()
+
+
+def test_releasing_the_button_stops_auto_page_turn(page, server, tmp_path):
+    """押しっぱなしで始めた自動送りは、指を離すと止まる（TODO-188）。"""
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "300", "LoadWeekPages": "9"}
+    )
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    _press_button(page, page.locator("#forward_button"))
+    try:
+        expected = monday + datetime.timedelta(days=7 * 3)
+        page.wait_for_function(
+            "(monday) => document.querySelector('.my-week-cur')"
+            ".dataset.monday >= monday",
+            arg=expected.strftime("%Y-%m-%d"),
+            timeout=10000,
+        )
+    finally:
+        page.mouse.up()
+
+    # 離したタイミングで動いていたインターバルによる最後の遷移が
+    # 直後に起きることがあるため少し待つ
+    page.wait_for_timeout(400)
+    stopped_at = page.locator(".my-week-cur").get_attribute("data-monday")
+
+    # 離したあと、``AutoTurnMsec`` の何倍か待っても週が変わらない
+    page.wait_for_timeout(1200)
+    assert (
+        page.locator(".my-week-cur").get_attribute("data-monday")
+        == stopped_at
+    )
+
+
+def test_short_tap_does_not_start_auto_page_turn(page, server, tmp_path):
+    """短く押しただけなら、これまでどおり 1 週送るだけ（TODO-188）。
+
+    押しっぱなしの判定タイマーを離したときに消さないと、指を離した
+    あとで発火して自動送りが始まってしまう。
+    """
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "300", "LoadWeekPages": "9"}
+    )
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    _tap(page, page.locator("#forward_button"))
+
+    expected = monday + datetime.timedelta(days=7)
+    page.wait_for_function(
+        "(monday) => document.querySelector('.my-week-cur')"
+        ".dataset.monday === monday",
+        arg=expected.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+
+    # 押しっぱなしの判定 (500) と ``AutoTurnMsec`` (300) の何倍か待っても、
+    # そこから先へは進まない
+    page.wait_for_timeout(1500)
+    assert page.locator(".my-week-cur").get_attribute(
+        "data-monday"
+    ) == expected.strftime("%Y-%m-%d")
+
+
+def test_holding_turns_the_first_week_immediately(page, server, tmp_path):
+    """押しっぱなしの 500msec が経った時点で、まず 1 週送る（TODO-188）。
+
+    ``startAutoPageTurn()`` は ``setInterval`` を張るだけなので、それだけ
+    だと最初の 1 週まで ``AutoTurnMsec`` ぶん待つことになる。間隔を上限
+    （10000）にして、その待ちが入っていないことを見る。
+    """
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "10000", "LoadWeekPages": "9"}
+    )
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    _press_button(page, page.locator("#forward_button"))
+    try:
+        expected = monday + datetime.timedelta(days=7)
+        page.wait_for_function(
+            "(monday) => document.querySelector('.my-week-cur')"
+            ".dataset.monday === monday",
+            arg=expected.strftime("%Y-%m-%d"),
+            timeout=5000,
+        )
+    finally:
+        page.mouse.up()
+
+
+def test_releasing_outside_the_button_stops_auto_page_turn(
+    page, server, tmp_path
+):
+    """押しっぱなしで始めた自動送りは、ボタンの外で離しても止まる
+    （TODO-188 reviewer 指摘 1）。
+
+    ``pointerup`` の ``event.target`` がボタンでなくなるので、「ボタンの
+    上で離したか」の分岐より先に止める必要がある。
+    """
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "300", "LoadWeekPages": "9"}
+    )
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    box = page.locator("#forward_button").bounding_box()
+    assert box is not None
+    _press_button(page, page.locator("#forward_button"))
+    try:
+        expected = monday + datetime.timedelta(days=7 * 3)
+        page.wait_for_function(
+            "(monday) => document.querySelector('.my-week-cur')"
+            ".dataset.monday >= monday",
+            arg=expected.strftime("%Y-%m-%d"),
+            timeout=10000,
+        )
+    finally:
+        # 押したままボタンの外へ動かしてから離す
+        page.mouse.move(box["x"] + box["width"] / 2, box["y"] - 200)
+        page.mouse.up()
+
+    page.wait_for_timeout(400)
+    stopped_at = page.locator(".my-week-cur").get_attribute("data-monday")
+
+    page.wait_for_timeout(1200)
+    assert (
+        page.locator(".my-week-cur").get_attribute("data-monday")
+        == stopped_at
+    )
+
+
+def test_holding_during_auto_page_turn_only_stops_it(page, server, tmp_path):
+    """自動送り中にゆっくり押しても、止まるだけで週は送らない
+    （TODO-188 reviewer 指摘 3）。
+
+    自動送り中に長押しタイマーを張ると、止めるつもりでゆっくり押した
+    ときに長押しが先に掛かり、1 週ぶん余計に進んでしまう。
+
+    ``AutoTurnMsec`` を 3000 にして、
+    (1) ダブルタップの 2 回（最大 +2 週）を超えて進むことで自動送りが
+    走っていることを確かめ、(2) そこから押して離すまでの間に、自動送り
+    そのものの間隔が来ないようにする。
+    """
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "3000", "LoadWeekPages": "9"}
+    )
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    forward = page.locator("#forward_button")
+    _tap(page, forward)
+    _tap(page, forward)  # ダブルタップで自動送りが始まる
+
+    # タップ 2 回では届かないところまで進んだら、自動送りが動いている
+    turned = monday + datetime.timedelta(days=7 * 3)
+    page.wait_for_function(
+        "(monday) => document.querySelector('.my-week-cur')"
+        ".dataset.monday >= monday",
+        arg=turned.strftime("%Y-%m-%d"),
+        timeout=10000,
+    )
+    before = page.locator(".my-week-cur").get_attribute("data-monday")
+
+    # 止めるつもりで、500msec を超えて押してから離す
+    _press_button(page, forward)
+    page.wait_for_timeout(800)
+    page.mouse.up()
+    page.wait_for_timeout(400)
+
+    # 止まっただけで、週は動いていない（``AutoTurnMsec`` は 3000 なので、
+    # ここまでに自動送りそのものの間隔は来ない）
+    assert page.locator(".my-week-cur").get_attribute("data-monday") == before
+
+
+def test_moving_off_the_button_cancels_the_hold(page, server, tmp_path):
+    """ボタンの上から始めた払いは、押しっぱなしとして拾わない（TODO-188）。
+
+    ``pageTurnPointerMoveHdr()`` が 30px 以上のずれで長押しタイマーを
+    消す。消さないと、払っている途中で自動送りが始まる。
+    """
+    write_conf(
+        tmp_path / "data", {"AutoTurnMsec": "300", "LoadWeekPages": "9"}
+    )
+    monday = _monday_of(datetime.date.today())
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    box = page.locator("#forward_button").bounding_box()
+    assert box is not None
+    _press_button(page, page.locator("#forward_button"))
+    # 押したまま、しきい値（30px）を超えて動かす
+    page.mouse.move(box["x"] + box["width"] / 2 + 100, box["y"] - 100)
+
+    # 押しっぱなしの判定（500）と ``AutoTurnMsec``（300）の何倍か待つ
+    page.wait_for_timeout(1500)
+    assert page.locator(".my-week-cur").get_attribute(
+        "data-monday"
+    ) == monday.strftime("%Y-%m-%d")
+    page.mouse.up()
+
+
+def test_holding_does_not_auto_turn_in_search_mode(page, server, tmp_path):
+    """検索画面では、押しっぱなしでも自動送りしない（TODO-188）。
+
+    送るたびにページを読み直すので、指を押さえたままの状態が読み直しで
+    途切れる。検索画面はこれまでどおりダブルタップだけ（TODO-123）。
+    """
+    today = datetime.date.today()
+    _open_search(page, server, tmp_path, today)
+
+    box = page.locator("#forward_button").bounding_box()
+    assert box is not None
+    _press_button(page, page.locator("#forward_button"))
+    try:
+        # 押しっぱなしの判定（500）を十分に超えて待っても、基準日は動かない
+        page.wait_for_timeout(1500)
+        assert page.locator("#main").get_attribute(
+            "data-search-date-to"
+        ) == today.strftime("%Y-%m-%d")
+    finally:
+        # ボタンの上で離すと 1 週送られ、検索モードではページを読み直す。
+        # その読み直しの途中でテストが終わると、``server`` の後始末が
+        # 終わらなくなるので、ボタンの外へ動かしてから離す
+        page.mouse.move(box["x"] + box["width"] / 2, box["y"] - 200)
+        page.mouse.up()
+
+
 def test_swipe_from_button_does_not_move_a_week(page, server):
     """ボタンの上から始めた横の払いは、週送りとして拾わない（TODO-084）。
 

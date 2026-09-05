@@ -17,7 +17,8 @@
 //     ハンドラと、gauge.js の gaugeBarPointer* ハンドラを、このファイル末尾で
 //     window のイベントに登録する (TODO-178)。
 //     ページ送り関連 (startAutoPageTurn / stopAutoPageTurn /
-//     pageTurnPointerDownHdr / pageTurnPointerUpHdr / pageTurnPointerCancelHdr)
+//     pageTurnPointerDownHdr / pageTurnPointerMoveHdr / pageTurnPointerUpHdr /
+//     pageTurnPointerCancelHdr)
 //     と homeTapPointerDownHdr (TODO-165) は、このファイル内だけで使う
 // 外から使うもの:
 //   search_str0 / search_date_to / today_str / auto_turn_msec /
@@ -474,6 +475,28 @@
   // 動いたと見なす最小の距離 (px)
   const PAGE_TURN_MOVE_PX = 30;
 
+  // 押しっぱなしと見なすまでの時間 (msec)。これを超えて押し続けたら、
+  // 自動ページ送りを始める (TODO-188)。ゲージの追従待ち
+  // (``GaugeFollowMsec`` の既定) と揃えてある。
+  //
+  // ``PAGE_TURN_DOUBLE_TAP_MSEC`` (350) は「タップとタップの間隔」で、
+  // こちらは「1 回の押下が続いた時間」なので、比べても意味は無い
+  // (reviewer 指摘 4)。ダブルタップの 2 回目をこれより長く押せば、
+  // 間隔が 350 以内でも長押しのほうが先に掛かる。どちらも同じ方向へ
+  // 送り始めるので実害は無いが、離した時点で止まる (ダブルタップの
+  // 「手を離しても続く」にはならない)
+  const PAGE_TURN_HOLD_MSEC = 500;
+
+  // 押しっぱなしの判定に使う setTimeout の id (押していなければ null)
+  let pageTurnHoldTimeoutId = null;
+
+  // いま走っている自動送りを、押しっぱなしで始めたか (TODO-188)。
+  // ダブルタップで始めた自動送りは「手を離しても続く」ので、指を
+  // 離したかどうかで止めてはいけない。押しっぱなしで始めたほうは
+  // ポインタに紐づくので、離した時点・割り込まれた時点で止める
+  // (reviewer 指摘 1・2)
+  let autoTurnFromHold = false;
+
   /**
    * 検索画面の自動送りの方向を読む。sessionStorage が使えないときは
    * 自動送りを引き継がないだけにする。
@@ -511,8 +534,26 @@
     }
   };
 
-  /** 走っていれば自動ページ送りを止める。走っていなければ何もしない。 */
+  /**
+   * 張ってあれば押しっぱなしの判定タイマーを消す (TODO-188)。
+   * 消し忘れると、指を離したあとで発火して自動送りが始まってしまう。
+   */
+  const clearPageTurnHoldTimer = () => {
+    if (pageTurnHoldTimeoutId !== null) {
+      clearTimeout(pageTurnHoldTimeoutId);
+      pageTurnHoldTimeoutId = null;
+    }
+  };
+
+  /**
+   * 走っていれば自動ページ送りを止める。走っていなければ何もしない。
+   *
+   * 押しっぱなしの判定タイマーも一緒に消す (TODO-188)。キーを押した
+   * ときや画面が隠れたときも、ここを通って両方止まる。
+   */
   const stopAutoPageTurn = () => {
+    clearPageTurnHoldTimer();
+    autoTurnFromHold = false;
     if (autoTurnTimerId !== null) {
       clearInterval(autoTurnTimerId);
       autoTurnTimerId = null;
@@ -560,12 +601,58 @@
     }
 
     pageTurnStart = { x: event.clientX, y: event.clientY, t: Date.now() };
+
+    // 押しっぱなしにしている間の自動ページ送り (TODO-188)。
+    // 検索画面では、1 回送るごとにページを読み直して指の状態が
+    // 途切れるので張らない (ダブルタップのほうは TODO-123 で
+    // 読み直しをまたげるようにしてある)
+    if (ytsched.search_date_to) {
+      return;
+    }
+
+    // 自動送りが走っているときは張らない (reviewer 指摘 3)。張ると、
+    // 止めるつもりでゆっくり押したときに長押しが先に掛かり、
+    // 「もう一度タップで止める (週は送らない)」が壊れて逆に進む
+    if (autoTurnTimerId !== null) {
+      return;
+    }
+
+    const direction = Number(el.dataset.pageTurn);
+    clearPageTurnHoldTimer();
+    pageTurnHoldTimeoutId = setTimeout(() => {
+      pageTurnHoldTimeoutId = null;
+      // 先に 1 週送ってから間隔を張る。startAutoPageTurn() は
+      // setInterval を張るだけなので、これが無いと押しっぱなしにして
+      // から最初の 1 週まで ``auto_turn_msec`` ぶん待つことになる
+      ytsched.moveActiveDate(direction, ytsched.url_prefix);
+      startAutoPageTurn(direction);
+      autoTurnFromHold = true; // startAutoPageTurn() より後に立てる
+    }, PAGE_TURN_HOLD_MSEC);
+  };
+
+  /**
+   * ボタンの上から指がずれたら、押しっぱなしの判定をやめる
+   * (TODO-188)。ボタンの上から始めた横の払いを、押しっぱなしとして
+   * 拾わないため (``pageTurnPointerUpHdr()`` が離したときに見ている
+   * 距離の判定と、同じ考え方・同じしきい値)。
+   */
+  const pageTurnPointerMoveHdr = (event) => {
+    if (pageTurnHoldTimeoutId === null || !pageTurnStart) {
+      return;
+    }
+
+    const dx = event.clientX - pageTurnStart.x;
+    const dy = event.clientY - pageTurnStart.y;
+    if (Math.hypot(dx, dy) >= PAGE_TURN_MOVE_PX) {
+      clearPageTurnHoldTimer();
+    }
   };
 
   /**
    * ページ送りボタンを離したときに決める。
    *
-   * - 自動ページ送りが走っていれば、止めるだけ (週は送らない)
+   * - 自動ページ送りが走っていれば、止めるだけ (週は送らない)。
+   *   押しっぱなしで始めた自動送り (TODO-188) も、ここで止まる
    * - 押した位置から ``PAGE_TURN_MOVE_PX`` 以上動いていれば、何もしない
    *   (ボタンの上から始めた横の払いを、週送りとして拾わないため)
    * - それ以外は 1 週送る。直前のタップが同じボタンで
@@ -575,6 +662,19 @@
   const pageTurnPointerUpHdr = (event) => {
     const start = pageTurnStart;
     pageTurnStart = null;
+    // 離した時点で、押しっぱなしの判定は要らない (TODO-188)。
+    // このあとの早い return より先に消しておかないと、ボタンの外で
+    // 離したときにタイマーだけが残って、あとから自動送りが始まる
+    clearPageTurnHoldTimer();
+
+    // 押しっぱなしで始めた自動送りは、ポインタに紐づく。ボタンの外へ
+    // 動かしてから離しても止める (reviewer 指摘 1)。このあとの
+    // 「ボタンの上で離したか」の分岐より先に見ること
+    if (autoTurnFromHold) {
+      stopAutoPageTurn();
+      return;
+    }
+
     if (!start) {
       return;
     }
@@ -650,6 +750,15 @@
   /** 途中で割り込まれたとき (念のため。swipe.js の touchCancelHdr と同じ考え方) */
   const pageTurnPointerCancelHdr = () => {
     pageTurnStart = null;
+    clearPageTurnHoldTimer(); // TODO-188
+
+    // ``pointercancel`` のあとに ``pointerup`` は来ないので、ここで
+    // 止めないと止める機会が無くなる (reviewer 指摘 2)。ダブルタップで
+    // 始めた自動送りは、無関係な指のキャンセルで止めてはいけないので、
+    // 押しっぱなしで始めたときだけ止める
+    if (autoTurnFromHold) {
+      stopAutoPageTurn();
+    }
   };
 
   window.addEventListener("load", onloadHdr);
@@ -692,11 +801,15 @@
   // 検索画面のホームボタンのダブルタップ (TODO-165)。ボタン以外を
   // 押したら記録を捨てる。こちらも capture で拾う
   window.addEventListener("pointerdown", homeTapPointerDownHdr, true);
+  // 押しっぱなしの判定を、指がずれたらやめる (TODO-188)
+  window.addEventListener("pointermove", pageTurnPointerMoveHdr);
   window.addEventListener("pointerup", pageTurnPointerUpHdr);
   window.addEventListener("pointercancel", pageTurnPointerCancelHdr);
   // 止まる条件: ボタンをもう一度タップ (pageTurnPointerUpHdr) / 画面の
   // 他の場所をタップ (pageTurnPointerDownHdr) / キーを押した / 画面が
-  // 隠れた
+  // 隠れた。押しっぱなしで始めた自動送りは、指を離した時点
+  // (pageTurnPointerUpHdr。ボタンの外で離しても止まる) と、割り込まれた
+  // 時点 (pageTurnPointerCancelHdr) で止まる (TODO-188)
   window.addEventListener("keydown", stopAutoPageTurn);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && !pageIsUnloading) {
