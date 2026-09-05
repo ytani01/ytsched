@@ -1178,6 +1178,53 @@ class TestInvalidArgs(WebTestBase):
         assert conf["AutoTurnMsec"] == "500"
         assert conf["ToDo_Days"] == "7"
 
+    #
+    # GaugeFollowMsec (TODO-185)
+    #
+    def test_gauge_follow_msec_default(self):
+        """既定値が、``main-page.js`` へ渡す定数に入る。"""
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert (
+            f'data-gauge-follow-msec="{MainHandler.DEF_GAUGE_FOLLOW_MSEC}"'
+            in body
+        )
+
+    def test_gauge_follow_msec_from_conf(self):
+        """``conf.json`` の値が、定数に入る。"""
+        write_conf(self.datadir, {"GaugeFollowMsec": "1000"})
+
+        body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert 'data-gauge-follow-msec="1000"' in body
+
+    def test_broken_gauge_follow_msec_falls_back_to_the_default(self):
+        """数字にならない値も、範囲の外も既定値へ落とす。"""
+        for value in ("abc", "50", "99999"):
+            write_conf(self.datadir, {"GaugeFollowMsec": value})
+
+            body = self.get_body(URL_PREFIX + "/", date=DATE1_STR)
+
+            assert (
+                f"data-gauge-follow-msec="
+                f'"{MainHandler.DEF_GAUGE_FOLLOW_MSEC}"' in body
+            ), value
+
+    def test_gauge_follow_msec_is_not_overwritten(self):
+        """手で書いた値は ``conf.json`` から消えない (``LoadWeekPages`` と同じ)。
+
+        画面から変える設定ではないので、アプリは読むだけで
+        ``set_conf()`` しない。他の設定を保存したときに巻き添えで
+        消えないことまで見る。
+        """
+        write_conf(self.datadir, {"GaugeFollowMsec": "1000"})
+
+        self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="7")
+
+        conf = read_conf(self.datadir)
+        assert conf["GaugeFollowMsec"] == "1000"
+        assert conf["ToDo_Days"] == "7"
+
     def test_search_mode_has_only_one_week(self):
         """検索モードでは週の区切りに合わないので 1 つだけ。"""
         body = self.get_body(

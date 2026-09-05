@@ -24,7 +24,8 @@
 //   getLocaltimeDateString() (nav.js) -- setGaugePosition・dispGauge・gaugeBarPointerUpHdr
 //   calcDays() (nav.js)              -- setGaugePosition
 //   scrollToDate() (nav.js)          -- gaugeBarPointerUpHdr
-//   weekOffsetOfDate() (week.js)      -- gaugeBarPointerMoveHdr (1 秒ごとの追従判定)
+//   weekOffsetOfDate() (week.js)      -- gaugeBarPointerMoveHdr (一定時間後の追従判定)
+//   gauge_follow_msec (main.html の <script>) -- startGaugeBarFollowTimer
 //   ytState (state.js)               -- ytState.elGaugeR0
 //   hasBlockOfDate() (month.js)       -- gaugeBarPointerMoveHdr (月間表示での追従判定)
 (() => {
@@ -336,7 +337,7 @@
   // ドラッグの状態 (TODO-178)
   let gaugeBarDragStart = null; // { clientX, t, pointerId } または null
   let gaugeBarDragMonday = null; // ドラッグ中の現在の週の月曜 ('YYYY-mm-dd')
-  let gaugeBarFollowTimeoutId = null; // 1 秒後の追従タイマー
+  let gaugeBarFollowTimeoutId = null; // 一定時間止まったあとの追従タイマー
   let gaugeBarHistoryPushed = false; // ドラッグ中に履歴を積んだか
 
   /**
@@ -387,13 +388,18 @@
     return ytsched.weekOffsetOfDate(gaugeBarDragMonday) !== null;
   };
 
+  const DEF_GAUGE_FOLLOW_MSEC = 500;
+
   /**
-   * 1 秒後の追従タイマーを張る (TODO-178)。
+   * 一定時間止まったあとの追従タイマーを張る (TODO-178)。
+   * 待ち時間は ``ytsched.gauge_follow_msec`` (main.html)。
    * pointerdown と pointermove の両方から呼ばれる。
    */
   const startGaugeBarFollowTimer = () => {
     clearTimeout(gaugeBarFollowTimeoutId);
     if (gaugeBarDragWeekIsLoaded()) {
+      const followMsec =
+        Number(ytsched.gauge_follow_msec) || DEF_GAUGE_FOLLOW_MSEC;
       gaugeBarFollowTimeoutId = setTimeout(() => {
         if (gaugeBarDragMonday && gaugeBarDragWeekIsLoaded()) {
           const push_flag = !gaugeBarHistoryPushed;
@@ -408,7 +414,7 @@
             push_flag,
           );
         }
-      }, 1000);
+      }, followMsec);
     }
   };
 
@@ -450,7 +456,7 @@
     // transition を外す (ドラッグ中は指に追従するため)
     ytsched.ytState.elGaugeR0.classList.add("my-gauge-r-no-transition");
 
-    // 1 秒後の追従タイマーを張る
+    // 一定時間止まったら追従
     startGaugeBarFollowTimer();
   };
 
@@ -501,7 +507,7 @@
       );
     }
 
-    // 1 秒止まったら追従 (TODO-178)
+    // 一定時間止まったら追従 (TODO-178)
     startGaugeBarFollowTimer();
   };
 

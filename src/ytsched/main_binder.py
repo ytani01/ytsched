@@ -54,6 +54,7 @@ class DisplayArgs:
     load_week_pages: int
     load_month_pages: int
     auto_turn_msec: int
+    gauge_follow_msec: int
 
     @property
     def search_mode(self) -> bool:
@@ -82,6 +83,7 @@ class MainBinder:
     CONF_KEY_SEARCH_N = "SearchN"
     CONF_KEY_MONTH_CAL = "MonthCal"
     CONF_KEY_AUTO_TURN_MSEC = "AutoTurnMsec"
+    CONF_KEY_GAUGE_FOLLOW_MSEC = "GaugeFollowMsec"
 
     TODO_DAYS: ClassVar[dict[str, int]] = {
         "off": -1,
@@ -105,6 +107,9 @@ class MainBinder:
     DEF_AUTO_TURN_MSEC = 700
     AUTO_TURN_MSEC_MIN = 300
     AUTO_TURN_MSEC_MAX = 10000
+    DEF_GAUGE_FOLLOW_MSEC = 500
+    GAUGE_FOLLOW_MSEC_MIN = 100
+    GAUGE_FOLLOW_MSEC_MAX = 3000
 
     def __init__(self, source: _ArgumentSource) -> None:
         self._source = source
@@ -182,6 +187,12 @@ class MainBinder:
                 self.DEF_AUTO_TURN_MSEC,
                 self.AUTO_TURN_MSEC_MIN,
                 self.AUTO_TURN_MSEC_MAX,
+            ),
+            gauge_follow_msec=self._get_conf_int(
+                self.CONF_KEY_GAUGE_FOLLOW_MSEC,
+                self.DEF_GAUGE_FOLLOW_MSEC,
+                self.GAUGE_FOLLOW_MSEC_MIN,
+                self.GAUGE_FOLLOW_MSEC_MAX,
             ),
         )
 

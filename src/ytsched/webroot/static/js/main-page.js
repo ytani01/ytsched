@@ -20,8 +20,8 @@
 //     pageTurnPointerDownHdr / pageTurnPointerUpHdr / pageTurnPointerCancelHdr)
 //     と homeTapPointerDownHdr (TODO-165) は、このファイル内だけで使う
 // 外から使うもの:
-//   search_str0 / search_date_to / today_str / auto_turn_msec
-//     (main.html の <script>)
+//   search_str0 / search_date_to / today_str / auto_turn_msec /
+//     gauge_follow_msec (main.html の <script>)
 //   url_prefix (base.html の <script>)
 //   ytState (state.js)  -- elLoadingSpinner・elMain・elWeekWrap・
 //                          activeWeekOffset・activeMonday・elGaugeR0
@@ -328,6 +328,9 @@
     ytsched.view_month = ytsched.ytState.elMain.dataset.view === "month";
     ytsched.auto_turn_msec = Number(
       ytsched.ytState.elMain.dataset.autoTurnMsec,
+    );
+    ytsched.gauge_follow_msec = Number(
+      ytsched.ytState.elMain.dataset.gaugeFollowMsec,
     );
     ytsched.ytState.elMain.addEventListener("mousedown", actionMouseDownHdr);
     ytsched.ytState.elMain.addEventListener("change", actionChangeHdr);

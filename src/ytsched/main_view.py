@@ -48,6 +48,7 @@ class MainViewBuilder:
             "search_n": args.conf.search_n,
             "sde_align": args.sde_align,
             "auto_turn_msec": args.auto_turn_msec,
+            "gauge_follow_msec": args.gauge_follow_msec,
             "month_cal": args.conf.month_cal,
         }
 

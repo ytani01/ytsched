@@ -36,6 +36,9 @@ class MainHandler(HandlerBase):
     DEF_AUTO_TURN_MSEC = MainBinder.DEF_AUTO_TURN_MSEC
     AUTO_TURN_MSEC_MIN = MainBinder.AUTO_TURN_MSEC_MIN
     AUTO_TURN_MSEC_MAX = MainBinder.AUTO_TURN_MSEC_MAX
+    DEF_GAUGE_FOLLOW_MSEC = MainBinder.DEF_GAUGE_FOLLOW_MSEC
+    GAUGE_FOLLOW_MSEC_MIN = MainBinder.GAUGE_FOLLOW_MSEC_MIN
+    GAUGE_FOLLOW_MSEC_MAX = MainBinder.GAUGE_FOLLOW_MSEC_MAX
 
     def initialize(
         self, sd: SchedData, app_info: AppInfo, conf: ConfFile

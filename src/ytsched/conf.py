@@ -47,6 +47,7 @@ class ConfFile:
     #: - ``LoadWeekPages``: ``MainBinder.DEF_LOAD_WEEK_PAGES`` (4)
     #: - ``LoadMonthPages``: ``MainBinder.DEF_LOAD_MONTH_PAGES`` (2)
     #: - ``AutoTurnMsec``: ``MainBinder.DEF_AUTO_TURN_MSEC`` (700)
+    #: - ``GaugeFollowMsec``: ``MainBinder.DEF_GAUGE_FOLLOW_MSEC`` (500)
     #: - ``TrashMax``: ``trash_handler.TrashHandler.DEF_TRASH_MAX`` (100)
     DEF_CONF: ClassVar[dict[str, str]] = {
         "SearchStr": "",
@@ -57,6 +58,7 @@ class ConfFile:
         "LoadWeekPages": "4",
         "LoadMonthPages": "2",
         "AutoTurnMsec": "700",
+        "GaugeFollowMsec": "500",
         "TrashMax": "100",
     }
 

@@ -194,8 +194,8 @@ classDiagram
   `ConfFile` は `WebServer` が 1 つだけ作って全ハンドラで共有する
   （`SchedData` と同じ持ち方）。JSON のオブジェクト 1 つで、値は
   すべて文字列（TODO-032）。**`LoadWeekPages`・`LoadMonthPages`・
-  `AutoTurnMsec` を除いて**、人が手で編集するファイルではない
-  （この 3 つについては `MainHandler` の項を参照）。
+  `AutoTurnMsec`・`GaugeFollowMsec` を除いて**、人が手で編集するファイルでは
+  ない（この 4 つについては `MainHandler` の項を参照）。
   ファイルが無ければ、既定値を書いたものを作る（`ConfFile._load()`。
   TODO-167）。
   読めない設定ファイル（壊れた JSON、オブジェクトでない、値が文字列
@@ -226,8 +226,10 @@ classDiagram
   0〜103。TODO-167）。
   フッターの ◀▶ をダブルタップしたときの自動ページ送りの間隔（msec）は
   `conf.json` の `AutoTurnMsec` で変えられる（既定 700、範囲
-  300〜10000。TODO-084）。**この 2 つと、月間表示の `LoadMonthPages`
-  （後述）は利用者が手で書く設定**で、
+  300〜10000。TODO-084）。ゲージのドラッグ中に指を止めてから、その週へ
+  移るまでの待ち時間（msec）は `conf.json` の `GaugeFollowMsec` で
+  変えられる（既定 500、範囲 100〜3000。TODO-185）。**この 3 つと、
+  月間表示の `LoadMonthPages`（後述）は利用者が手で書く設定**で、
   画面から変える UI は無く、アプリは読むだけなので手で書いた値は消えない。
   いずれも `MainBinder` の共通処理で読み、
   `get_conf_int(key, default, min_value,
@@ -374,9 +376,9 @@ sequenceDiagram
 など）は、そのファイルのトップレベルに置いたまま。以前は `main.html` の
 `<script>` がグローバル変数へ直に代入していて、それがファイルを分け
 にくくしていた（TODO-083）。テンプレートの値は `main.html` の
-`search_str0`・`today_str`・`auto_turn_msec` と、`base.html` の
-`url_prefix` を `window.ytsched` へ入れて渡す。ブラウザテストから直接
-使う `pushDateInUrl`、`gaugeDiffLabel`、`days2xPercent`、
+`search_str0`・`today_str`・`auto_turn_msec`・`gauge_follow_msec` と、
+`base.html` の `url_prefix` を `window.ytsched` へ入れて渡す。
+ブラウザテストから直接使う `pushDateInUrl`、`gaugeDiffLabel`、`days2xPercent`、
 `xPercent2days`、`DAYS_YEAR` も同じ場所に公開する。
 
 ## 週の移動（ブラウザ側）

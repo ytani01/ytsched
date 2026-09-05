@@ -342,6 +342,9 @@ def test_def_conf_matches_each_class_default():
     assert int(def_conf["LoadWeekPages"]) == MainBinder.DEF_LOAD_WEEK_PAGES
     assert int(def_conf["LoadMonthPages"]) == MainBinder.DEF_LOAD_MONTH_PAGES
     assert int(def_conf["AutoTurnMsec"]) == MainBinder.DEF_AUTO_TURN_MSEC
+    assert (
+        int(def_conf["GaugeFollowMsec"]) == MainBinder.DEF_GAUGE_FOLLOW_MSEC
+    )
     assert int(def_conf["TrashMax"]) == TrashHandler.DEF_TRASH_MAX
 
 

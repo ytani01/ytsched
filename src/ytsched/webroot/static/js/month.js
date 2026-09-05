@@ -59,7 +59,7 @@
 
   /**
    * ``date_str`` を含むブロックのパネルが DOM にあるかどうかを調べる
-   * (TODO-178)。ゲージドラッグの 1 秒後の追従判定に使う。
+   * (TODO-178)。ゲージドラッグの、止まってから一定時間後の追従判定に使う。
    *
    * @param {String} date_str   'YYYY-mm-dd'
    * @return {boolean}

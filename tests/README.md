@@ -26,8 +26,9 @@
   年をまたぐこと）もここで見る（TODO-137・TODO-166）
 - `test_web.py` — `tornado.testing` を使い、`MainHandler` /
   `EditHandler` へ実際にリクエストを送るテスト。`conf.json` の
-  `AutoTurnMsec`（既定値・範囲の外・数字でない値が既定値へ落ちること・
-  `conf.json` が書き換わらないこと）もここで見る（TODO-084）。
+  `AutoTurnMsec`・`GaugeFollowMsec`（既定値・範囲の外・数字でない値が
+  既定値へ落ちること・`conf.json` が書き換わらないこと）もここで見る
+  （TODO-084・TODO-185）。
   月間表示（`view=month`）が既定で 5 ブロックぶんの `my-month-panel` と
   期待する 6 ヶ月ぶんの caption を出すこと・`LoadMonthPages` でブロック数が
   変わること・検索中は `view=month` でも週間表示になること・`view` に

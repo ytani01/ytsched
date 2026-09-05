@@ -1983,8 +1983,16 @@ def test_gauge_bar_click_moves_to_the_tapped_week(page, server):
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
-def test_gauge_drag_does_not_move_screen_while_dragging(page, server):
-    """ゲージのドラッグ中は、画面が動かず、針とラベルだけが動く（TODO-178）。"""
+def test_gauge_drag_does_not_move_screen_while_dragging(
+    page, server, tmp_path
+):
+    """ゲージのドラッグ中は、画面が動かず、針とラベルだけが動く（TODO-178）。
+
+    ``GaugeFollowMsec`` を大きく（3000）固定し、待つ間に追従が
+    起きないための余裕を確保する（TODO-185。負荷が高いと assert の
+    前に追従が起きて落ちうるため。TODO-181 と同じ理由）。
+    """
+    write_conf(tmp_path / "data", {"GaugeFollowMsec": "3000"})
     today = datetime.date.today()
     monday = _monday_of(today)
     _open(page, server, monday.strftime("%Y-%m-%d"))
@@ -2035,9 +2043,9 @@ def test_gauge_drag_does_not_move_screen_while_dragging(page, server):
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
-def test_gauge_drag_follows_after_1_second_stop(page, server):
-    """ゲージドラッグで 1 秒止まると、先読み済みの週へ画面が移る（TODO-178）。
-    URL の `date` が変わり、ページの読み直しは起きない。"""
+def test_gauge_drag_follows_after_stopping(page, server):
+    """ゲージドラッグで一定時間止まると、先読み済みの週へ画面が移る
+    （TODO-178）。URL の `date` が変わり、ページの読み直しは起きない。"""
     today = datetime.date.today()
     monday = _monday_of(today)
     _open(page, server, monday.strftime("%Y-%m-%d"))
@@ -2055,7 +2063,7 @@ def test_gauge_drag_follows_after_1_second_stop(page, server):
     page.mouse.move(drag_x, drag_y)
     page.mouse.down()
 
-    # 1 秒以上止まったら、追従が起きる（スクロール位置が更新される）
+    # 一定時間止まったら、追従が起きる（スクロール位置が更新される）
     expected = monday + datetime.timedelta(days=target_days)
     page.wait_for_function(
         """(monday) => {
@@ -2063,7 +2071,7 @@ def test_gauge_drag_follows_after_1_second_stop(page, server):
             return cur && cur.dataset.monday === monday;
         }""",
         arg=expected.strftime("%Y-%m-%d"),
-        timeout=3000,  # 1 秒タイマー + スクロール処理の時間
+        timeout=3000,  # 追従タイマー + スクロール処理の時間
     )
 
     page.mouse.up()
@@ -2080,7 +2088,7 @@ def test_gauge_drag_pushes_history_only_once(page, server):
     monday = _monday_of(today)
     _open(page, server, monday.strftime("%Y-%m-%d"))
 
-    # ドラッグして 1 秒後の追従を起こす
+    # ドラッグして一定時間後の追従を起こす
     target_days = 7
     x_percent = page.evaluate(
         "(d) => window.ytsched.days2xPercent(d)", target_days
@@ -2155,12 +2163,19 @@ def test_gauge_tap_moves_to_the_tapped_week(page, server):
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
-def test_gauge_drag_needle_does_not_jump_back_on_release(page, server):
+def test_gauge_drag_needle_does_not_jump_back_on_release(
+    page, server, tmp_path
+):
     """スライダーから指を離したとき、針が前の週へ戻らない（TODO-179）。
 
     離したあとの `left` の変化をすべて拾い、今週の位置（50%）を
     経由していないことを見る。針は既にドラッグの終端の位置に
-    いるので、変化が 1 件も無いのが正しい姿。"""
+    いるので、変化が 1 件も無いのが正しい姿。
+
+    ``mouse.move`` から ``mouse.up()`` までの間に追従が起きると
+    挙動が不定になるので、``GaugeFollowMsec`` を大きく（3000）
+    固定しておく（TODO-185。TODO-181 と同じ理由）。"""
+    write_conf(tmp_path / "data", {"GaugeFollowMsec": "3000"})
     today = datetime.date.today()
     monday = _monday_of(today)
     _open(page, server, monday.strftime("%Y-%m-%d"))
