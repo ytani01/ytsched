@@ -10,6 +10,9 @@
 //   changeSearchN() -- main.html の #search_n_in の onchange (検索モード)
 //   window.ytsched.view_month -- onloadHdr() が #main の data-view から
 //     入れる。week.js・nav.js・swipe.js が読む (TODO-137)
+//   fillMainHeight() -- #main を画面の高さまで伸ばして、フッターとの間に
+//     body の地 (白) が残らないようにする (TODO-184)。onloadHdr()・
+//     week.js の setActiveWeek()・resize / orientationchange から呼ぶ
 //   onloadHdr()・keyHdr (keyboard.js)・popstateHdr (nav.js)・swipe.js の各
 //     ハンドラと、gauge.js の gaugeBarPointer* ハンドラを、このファイル末尾で
 //     window のイベントに登録する (TODO-178)。
@@ -278,6 +281,35 @@
     }
   };
 
+  /**
+   * #main を画面の高さまで伸ばして、フッターとの間に body の地 (白) が
+   * 残らないようにする (TODO-176・TODO-184)。#main の地の色は my.css の
+   * #main で指定してある。
+   *
+   * 測る前に minHeight を空へ戻す。前回の値が残っていると body_h を
+   * 正しく測れない。
+   *
+   * elMain が入るのは onloadHdr() なので、読み込みが済む前に
+   * orientationchange が飛んだときのために、無ければ何もしない
+   * (TODO-184 reviewer 指摘 2)。
+   */
+  ytsched.fillMainHeight = () => {
+    if (!ytsched.ytState.elMain) {
+      return;
+    }
+
+    ytsched.ytState.elMain.style.minHeight = "";
+
+    const body_h = document.body.clientHeight;
+    const win_h = document.documentElement.clientHeight;
+
+    if (body_h < win_h) {
+      console.log(`body_h=${body_h} < win_h=${win_h}`);
+      const fill_h = ytsched.ytState.elMain.offsetHeight + win_h - body_h;
+      ytsched.ytState.elMain.style.minHeight = `${fill_h}px`;
+    }
+  };
+
   const onloadHdr = (event) => {
     console.log(`onloadHdr(${event}`);
     ytsched.ytState.elLoadingSpinner =
@@ -345,12 +377,10 @@
     }
 
     if (body_h < win_h) {
-      console.log(`body_h=${body_h} < win_h=${win_h}`);
       // 中身が画面より短いときは、#main を画面の高さまで伸ばして、
       // フッターとの間に body の地 (白) が残らないようにする (TODO-176)。
       // #main の地の色は my.css の #main で指定してある
-      const fill_h = ytsched.ytState.elMain.offsetHeight + win_h - body_h;
-      ytsched.ytState.elMain.style.minHeight = `${fill_h}px`;
+      ytsched.fillMainHeight();
       // ゲージの都合で画面が出ないのはおかしいので、dispGauge() より
       // 先に visible にする (TODO-049 reviewer 指摘 1)
       ytsched.ytState.elMain.style.visibility = "visible";
@@ -663,4 +693,9 @@
       autoTurnTimerId = null;
     }
   });
+  // 画面の高さが変わったとき (回転、アドレスバーの出入り、
+  // interactive-widget=resizes-content によるキーボードの開閉) も
+  // #main の高さを合わせ直す (TODO-184)
+  window.addEventListener("resize", ytsched.fillMainHeight);
+  window.addEventListener("orientationchange", ytsched.fillMainHeight);
 })();

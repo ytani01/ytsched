@@ -25,6 +25,7 @@
 //   getLocaltimeDateString() / getLocaltimeString() / shiftDays() (nav.js)
 //     -- weekOffsetOfDate・moveToMonday・moveActiveDate・moveActiveMonth
 //   pushDateInUrl() / scrollToId() (nav.js) -- setActiveWeek
+//   fillMainHeight() (main-page.js) -- setActiveWeek (TODO-184)
 //   doGet() (nav.js)            -- moveToMonday・moveActiveDate
 //   scrollToDate() (nav.js)     -- moveActiveMonth (TODO-136)
 //   window.ytsched.search_date_to (main.html の <script>) -- moveActiveDate
@@ -180,6 +181,15 @@
     if (push_flag) {
       ytsched.pushDateInUrl(monday);
     }
+
+    // 週の高さは .my-week-panel の切り替えで変わるので、そのたびに
+    // #main の高さも合わせ直す (TODO-184)。scrollToId() より先に呼ぶ。
+    // scrollToId() は body_h <= win_h で「画面に収まっている」と見て
+    // スクロールせずに返すので、前の週の minHeight が残ったまま測ると
+    // 収まっている週でも収まっていないと判定され、要らないスクロールが
+    // 起きる。先に合わせておけば body_h はちょうど win_h になり、
+    // その判定はそのまま効く
+    ytsched.fillMainHeight();
 
     ytsched.dispGauge(monday);
     ytsched.scrollToId(`date-${monday}`, "top", "instant");
