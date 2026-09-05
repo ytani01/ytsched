@@ -2080,6 +2080,48 @@ def test_gauge_drag_follows_after_stopping(page, server):
     assert _date_in_url(page) == expected.strftime("%Y-%m-%d")
 
 
+def test_gauge_drag_follows_while_jittering(page, server):
+    """指を押さえたままの微細な揺れでは、追従タイマーが張り直されない
+    （TODO-186）。数 px の揺れでは移動先の週が変わらないので、
+    pointermove が出続けても一定時間後に追従する。"""
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    target_days = 7  # 1 週間先（先読み済み）
+    x_percent = page.evaluate(
+        "(d) => window.ytsched.days2xPercent(d)", target_days
+    )
+
+    box = page.locator(".my-gauge-bar").bounding_box()
+    assert box is not None
+    drag_x = box["x"] + box["width"] * (50 + x_percent) / 100
+    drag_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(drag_x, drag_y)
+    page.mouse.down()
+
+    # 指を止めたつもりでも出続ける、1px 未満の揺れを与え続ける
+    expected = monday + datetime.timedelta(days=target_days)
+    followed = False
+    for i in range(60):
+        page.mouse.move(drag_x + (0.6 if i % 2 else -0.6), drag_y)
+        followed = page.evaluate(
+            """(monday) => {
+                const cur = document.querySelector('.my-week-cur');
+                return !!cur && cur.dataset.monday === monday;
+            }""",
+            expected.strftime("%Y-%m-%d"),
+        )
+        if followed:
+            break
+        page.wait_for_timeout(50)
+
+    page.mouse.up()
+
+    assert followed, "揺れ続けても追従しなかった"
+
+
 def test_gauge_drag_pushes_history_only_once(page, server):
     """ゲージドラッグで履歴は 1 回だけ増える（TODO-178）。
     最初の追従で push、その後と指を離したときは replace なので、

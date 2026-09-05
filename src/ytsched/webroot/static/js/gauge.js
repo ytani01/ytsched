@@ -393,7 +393,8 @@
   /**
    * 一定時間止まったあとの追従タイマーを張る (TODO-178)。
    * 待ち時間は ``ytsched.gauge_follow_msec`` (main.html)。
-   * pointerdown と pointermove の両方から呼ばれる。
+   * pointerdown と、pointermove で移動先の週が変わったときに呼ばれる
+   * (TODO-186)。
    */
   const startGaugeBarFollowTimer = () => {
     clearTimeout(gaugeBarFollowTimeoutId);
@@ -486,6 +487,7 @@
       return;
     }
 
+    const prev_monday = gaugeBarDragMonday;
     gaugeBarDragMonday = mondayFromClientX(event.clientX);
     if (!gaugeBarDragMonday) {
       return;
@@ -507,8 +509,13 @@
       );
     }
 
-    // 一定時間止まったら追従 (TODO-178)
-    startGaugeBarFollowTimer();
+    // 一定時間止まったら追従 (TODO-178)。
+    // 張り直すのは移動先の週が変わったときだけ (TODO-186)。指を押さえた
+    // ままでも微細な揺れで pointermove が出続けるので、毎回張り直すと
+    // タイマーが発火しない
+    if (gaugeBarDragMonday !== prev_monday) {
+      startGaugeBarFollowTimer();
+    }
   };
 
   /**
