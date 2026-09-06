@@ -100,3 +100,7 @@ flycheck_*
 # ytsched migrate --error-file の既定（TODO-020）。変換できない行があった
 # ときだけ、実行したディレクトリに作られる
 migrate-errors.txt
+
+# codegraph のインデックス（TODO-189）。codegraph init / sync が作り直す
+# 生成物なので追跡しない
+.codegraph/
