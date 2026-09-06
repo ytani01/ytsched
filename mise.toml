@@ -83,7 +83,7 @@ alias = "web"
 description = "token usage of a TODO item (TODO-035)"
 # `mise run tokens -- TODO-034` のように TODO 番号を渡す
 # （mise が引数を行の末尾へ足す）。`-- --list` で一覧。
-run = "uv run python tools/token-usage.py"
+run = "~/.claude/bin/token-usage.py"
 
 [tasks.shot]
 description = "screenshot of the webapp (TODO-046)"

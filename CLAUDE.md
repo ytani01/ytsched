@@ -66,16 +66,20 @@
 
 ### トークン消費量の記録
 
-`~/.claude/CLAUDE.md` の `消費:` 行に書く数字は、`tools/token-usage.py`
-で集計する（TODO-035）。Claude Code の transcript
-（`~/.claude/projects/-home-ytani-work-ytsched/`）を読み、親セッションと
-サブエージェントの両方を合わせて数える。
+`~/.claude/CLAUDE.md` の `消費:` 行に書く数字は
+`~/.claude/bin/token-usage.py` で集計する（TODO-035、admin の TODO-010）。
+Claude Code の transcript（`~/.claude/projects/-home-ytani-work-ytsched/`）を
+読み、親セッションとサブエージェントの両方を合わせて数える。
 
 ```
 mise run tokens -- TODO-034
 mise run tokens -- TODO-034 --since '2026-08-23 14:00:00'
 mise run tokens -- --list
 ```
+
+**実体は `~/.claude/bin/token-usage.py` に 1 つだけ置いてある。**
+以前は `tools/token-usage.py` にコピーがあったが、`~/dot.files/` にも
+同名のものがあって食い違ったので、admin の TODO-010 でまとめた。
 
 範囲は git のコミット時刻で切る。始点は `docs(todo): … を TODO-NNN と
 して立てる`、終点は `feat/fix(...): …（TODO-NNN）`。**どちらもコミット
