@@ -77,21 +77,12 @@ mise run tokens -- TODO-034 --since '2026-08-23 14:00:00'
 mise run tokens -- --list
 ```
 
-**実体は `~/.claude/bin/token-usage.py` に 1 つだけ置いてある。**
-以前は `tools/token-usage.py` にコピーがあったが、`~/dot.files/` にも
-同名のものがあって食い違ったので、admin の TODO-010 でまとめた。
-
-範囲は git のコミット時刻で切る。始点は `docs(todo): … を TODO-NNN と
-して立てる`、終点は `feat/fix(...): …（TODO-NNN）`。**どちらもコミット
-メッセージの 1 行目だけを見る**（本文まで見ると、別の項目に触れている
-コミットを拾ってしまう）。
-
 - **立ててから着手まで空いた項目は、`--since` で始点を指定する。**
   そうしないと、間に挟まった他の項目の作業まで数に入る。TODO-029 は
   `--since` の有無で cache_creation が 1,042,774 と 301,888 に分かれた
 - 出力の 2 行目（`（参考: cache_read …）`）は archives に貼らない。
   画面で見るためのもの
-- **概算料金の単価は `tools/token-usage.py` の `PRICING` に持たせてある**
+- **概算料金の単価は `~/.claude/bin/token-usage.py` の `PRICING` に持たせてある**
   （TODO-044）。**Sonnet 5 の $2/$10 は 2026-08-31 までの導入価格**なので、
   そのあとは $3/$15 に書き換える
 - **過去の項目は遡れない。** transcript が 2026-08-22 以降しか残っていない
