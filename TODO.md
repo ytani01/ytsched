@@ -1,39 +1,36 @@
 # TODO
 
-**残っている項目: TODO-192〜195。** これまでに 191 件を決着させた。
+**残っている項目: TODO-192〜196。** これまでに 191 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-196` から**。
+**番号は `TODO-197` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
 
 ---
 
-## TODO-192. Bash のコマンドを PreToolUse フックで止める
+## TODO-192. ytsched 固有のコマンドを PreToolUse フックで止める
 
 |      | main | 担当 |
 |------|------|------|
-| 見込み | Opus 5 / effort high | main + verifier + reviewer |
+| 見込み | Sonnet 5 / effort medium | main + verifier |
 
-- [ ] `.claude/hooks/guard-bash.py` を書く（stdin の JSON から `tool_input.command` を読み、当たったら exit 2）
+- [ ] `.claude/hooks/guard-bash.sh` を書く（stdin の JSON から `tool_input.command` を読み、当たったら exit 2）
 - [ ] `.claude/settings.json` の `hooks.PreToolUse` に `Bash` で登録する
 - [ ] 正しい書き方が素通りすることを確かめる（誤爆すると作業が止まる）
-
-`CLAUDE.md` に文章で書いてある禁止事項が、機械的には守られていない。
-`.claude/settings.json` は `{"hooks": {}}` のままで、フックが 1 つも無い。
 
 | 止めるもの | 根拠 |
 |---|---|
 | `~/ytsched/data` を書き換えるコマンド | 起動確認では `--datadir` に一時ディレクトリを渡す |
 | `mise run upgradeproject` / `uppj` | 担当には走らせない（TODO-022） |
-| `git push` | push は利用者が行う（2026-09-03 に決めた） |
-| 先頭が裸の `cp` / `mv` / `rm` | `-i` エイリアスで確認プロンプトが出て、応答できずタイムアウトまで固まる |
 
-最後の 1 つは実害が出ている。防ぐ手段が「毎回思い出す」しか無い。
+裸の `cp` / `mv` / `rm` と `git push` は、`~/.claude/hooks/guard-bash.sh` で
+既に止まる（2026-09-07 に確認）。どのプロジェクトでも要るものなので、
+ユーザー全体側に置いたままにする。ここで作るのは、このプロジェクトでしか
+意味の無い 2 つだけ。
 
-**決めること**: 置き場所を、このプロジェクトの `.claude/settings.json` に
-するか、`~/.claude/settings.json`（利用者全体）にするか。裸の `rm` と
-`git push` はこのプロジェクトに限らない話なので、分ける余地がある。
-**着手するときに聞く。**
+`~/.claude/settings.json` と `.claude/settings.json` の両方に
+`PreToolUse: Bash` を登録すると、フックは両方とも走る。ユーザー全体側の
+判定を写さないこと。
 
 ---
 
@@ -82,6 +79,10 @@
 **決めること**: 立てる側（`/todo-open`）も作るか。まずは決着側だけ作り、
 使ってみてから決める。
 
+**TODO-196 が済むまで着手しない。** 決着処理の手順は `todo-workflow` skill に
+あるはずだが、その skill が見つからない（2026-09-07 に確認）。土台が
+決まらないうちにスキルを書くと、書式が二重になる。
+
 ---
 
 ## TODO-195. サブエージェントの定義を 6 個から絞る
@@ -106,6 +107,36 @@ reviewer / runner / verifier / wording / writer の 6 個ある。
 
 **決めること**: `wording` も稼働は稀だが、「利用者が明示したときだけ使う」と
 決めてあるので残す前提でよいか。
+
+---
+
+## TODO-196. `todo-workflow` skill の実体が無い
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5 / effort high | main のみ |
+
+- [ ] `todo-workflow` skill が本当に無いか、`~/.claude` 側で確かめる
+- [ ] 無ければ、消えた記述を `~/.claude` の git 履歴から取り出す
+- [ ] skill として書き直すか、`CLAUDE.md` へ戻すかを決める
+
+`~/.claude/CLAUDE.md` は 2 か所で「仕様は `todo-workflow` skill」と
+参照しているが、`~/.claude/skills/` というディレクトリ自体が無く、
+plugins の下にも見当たらない。
+
+消えたのは `~/.claude` の `daf4954`（2026-09-07）で、`CLAUDE.md` から
+169 行が削られ 8 行に置き換わっている。失われたのは `TODO.md` の骨格、
+`archives/todo/` のファイルの形、見込みと実施の表、消費トークンの表と
+`token-usage.py` での集計、分担の振り返りの書き方、
+サブエージェント定義（`.claude/agents/*.md`）の仕様。
+
+このプロジェクトの `TODO.md` と `archives/todo/` の書式が拠り所を失って
+いるので、ここで扱う。**直す先は `~/.claude`**（`dotfiles-claude`）で、
+あちらには `TODO.md` が無い。
+
+**決めること**: 書式の置き場所を skill に戻すか、`CLAUDE.md` に戻すか。
+`daf4954` は「`CLAUDE.md` には進め方の規則だけを残す」意図だったので、
+skill として作り直すのが筋に見えるが、利用者に確かめる。
 
 ---
 
