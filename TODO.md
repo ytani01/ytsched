@@ -1,29 +1,10 @@
 # TODO
 
-**残っている項目: TODO-193。** これまでに 195 件を決着させた。
+**残っている項目: 無し。** これまでに 196 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-197` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
-
----
-
-## TODO-193. 編集したファイルだけを整形する PostToolUse フック
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | main + verifier |
-
-- [ ] `.claude/hooks/fmt-one.sh` を書く（`.py` は `ruff format` と `ruff check --fix`、`.js` は `prettier --write` と `eslint --fix`）
-- [ ] `.claude/settings.json` の `hooks.PostToolUse` に `Edit|Write` で登録する
-- [ ] 対象外のファイル（`.md`、`archives/` の下）では走らないことを確かめる
-- [ ] 整形でファイルが変わったあと、続きの編集が壊れないことを確かめる
-
-`mise run fmt` は src / tests / tools 全体を舐めるので、編集のたびには重い。
-触った 1 ファイルだけなら即座に終わり、`mise run lint` まで指摘を溜めずに済む。
-
-`archives/` は `ruff` の対象から外してある（TODO-168）ので、フック側でも
-同じように外す。
 
 ---
 
@@ -32,6 +13,7 @@
  1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-193.** 編集したファイルだけを整形する PostToolUse フック](archives/todo/TODO-193.%20編集したファイルだけを整形する%20PostToolUse%20フック.md)
 - [**TODO-192.** ytsched 固有のコマンドを PreToolUse フックで止める](archives/todo/TODO-192.%20ytsched%20固有のコマンドを%20PreToolUse%20フックで止める.md)
 - [**TODO-194.** 項目の決着処理を `/todo-close` スキルにまとめる](archives/todo/TODO-194.%20項目の決着処理を%20todo-close%20スキルにまとめる.md)
 - [**TODO-195.** サブエージェントの定義を 6 個から絞る（絞らないと決めた）](archives/todo/TODO-195.%20サブエージェントの定義を%206%20個から絞る.md)
