@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目: TODO-192〜196。** これまでに 191 件を決着させた。
+**残っている項目: TODO-192〜195。** これまでに 192 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-197` から**。
 
@@ -79,9 +79,9 @@
 **決めること**: 立てる側（`/todo-open`）も作るか。まずは決着側だけ作り、
 使ってみてから決める。
 
-**TODO-196 が済むまで着手しない。** 決着処理の手順は `todo-workflow` skill に
-あるはずだが、その skill が見つからない（2026-09-07 に確認）。土台が
-決まらないうちにスキルを書くと、書式が二重になる。
+**土台は TODO-196 で揃った。** 決着処理の書式は
+`~/.claude/skills/todo-workflow/SKILL.md` にある。スキルには手順だけを
+持たせ、書式はそちらを読ませる（二重に書かない）。
 
 ---
 
@@ -110,41 +110,12 @@ reviewer / runner / verifier / wording / writer の 6 個ある。
 
 ---
 
-## TODO-196. `todo-workflow` skill の実体が無い
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5 / effort high | main のみ |
-
-- [ ] `todo-workflow` skill が本当に無いか、`~/.claude` 側で確かめる
-- [ ] 無ければ、消えた記述を `~/.claude` の git 履歴から取り出す
-- [ ] skill として書き直すか、`CLAUDE.md` へ戻すかを決める
-
-`~/.claude/CLAUDE.md` は 2 か所で「仕様は `todo-workflow` skill」と
-参照しているが、`~/.claude/skills/` というディレクトリ自体が無く、
-plugins の下にも見当たらない。
-
-消えたのは `~/.claude` の `daf4954`（2026-09-07）で、`CLAUDE.md` から
-169 行が削られ 8 行に置き換わっている。失われたのは `TODO.md` の骨格、
-`archives/todo/` のファイルの形、見込みと実施の表、消費トークンの表と
-`token-usage.py` での集計、分担の振り返りの書き方、
-サブエージェント定義（`.claude/agents/*.md`）の仕様。
-
-このプロジェクトの `TODO.md` と `archives/todo/` の書式が拠り所を失って
-いるので、ここで扱う。**直す先は `~/.claude`**（`dotfiles-claude`）で、
-あちらには `TODO.md` が無い。
-
-**決めること**: 書式の置き場所を skill に戻すか、`CLAUDE.md` に戻すか。
-`daf4954` は「`CLAUDE.md` には進め方の規則だけを残す」意図だったので、
-skill として作り直すのが筋に見えるが、利用者に確かめる。
-
----
-
 ## 完了済み
 
  1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-196.** `todo-workflow` skill の実体が無い](archives/todo/TODO-196.%20todo-workflow%20skill%20の実体が無い.md)
 - [**TODO-191.** CodeGraph が実際にトークンを減らすのか測る](archives/todo/TODO-191.%20CodeGraph%20が実際にトークンを減らすのか測る.md)
 - [**TODO-190.** `token-usage.py` の Sonnet 5 の単価を、導入価格から戻す（値上げは行われなかった）](archives/todo/TODO-190.%20token-usage.py%20の%20Sonnet%205%20の単価を、導入価格から戻す（値上げは行われなかった）.md)
 - [**TODO-189.** `.codegraph` を git の追跡対象から外す](archives/todo/TODO-189.%20.codegraph%20を%20git%20の追跡対象から外す.md)
