@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-192。** これまでに 191 件を決着させた。
+**残っている項目: TODO-192〜193。** これまでに 191 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-193` から**。
+**番号は `TODO-194` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
 
@@ -34,6 +34,25 @@
 するか、`~/.claude/settings.json`（利用者全体）にするか。裸の `rm` と
 `git push` はこのプロジェクトに限らない話なので、分ける余地がある。
 **着手するときに聞く。**
+
+---
+
+## TODO-193. 編集したファイルだけを整形する PostToolUse フック
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Sonnet 5 / effort medium | main + verifier |
+
+- [ ] `.claude/hooks/fmt-one.sh` を書く（`.py` は `ruff format` と `ruff check --fix`、`.js` は `prettier --write` と `eslint --fix`）
+- [ ] `.claude/settings.json` の `hooks.PostToolUse` に `Edit|Write` で登録する
+- [ ] 対象外のファイル（`.md`、`archives/` の下）では走らないことを確かめる
+- [ ] 整形でファイルが変わったあと、続きの編集が壊れないことを確かめる
+
+`mise run fmt` は src / tests / tools 全体を舐めるので、編集のたびには重い。
+触った 1 ファイルだけなら即座に終わり、`mise run lint` まで指摘を溜めずに済む。
+
+`archives/` は `ruff` の対象から外してある（TODO-168）ので、フック側でも
+同じように外す。
 
 ---
 
