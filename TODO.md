@@ -1,36 +1,10 @@
 # TODO
 
-**残っている項目: TODO-192・193。** これまでに 194 件を決着させた。
+**残っている項目: TODO-193。** これまでに 195 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-197` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
-
----
-
-## TODO-192. ytsched 固有のコマンドを PreToolUse フックで止める
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Sonnet 5 / effort medium | main + verifier |
-
-- [ ] `.claude/hooks/guard-bash.sh` を書く（stdin の JSON から `tool_input.command` を読み、当たったら exit 2）
-- [ ] `.claude/settings.json` の `hooks.PreToolUse` に `Bash` で登録する
-- [ ] 正しい書き方が素通りすることを確かめる（誤爆すると作業が止まる）
-
-| 止めるもの | 根拠 |
-|---|---|
-| `~/ytsched/data` を書き換えるコマンド | 起動確認では `--datadir` に一時ディレクトリを渡す |
-| `mise run upgradeproject` / `uppj` | 担当には走らせない（TODO-022） |
-
-裸の `cp` / `mv` / `rm` と `git push` は、`~/.claude/hooks/guard-bash.sh` で
-既に止まる（2026-09-07 に確認）。どのプロジェクトでも要るものなので、
-ユーザー全体側に置いたままにする。ここで作るのは、このプロジェクトでしか
-意味の無い 2 つだけ。
-
-`~/.claude/settings.json` と `.claude/settings.json` の両方に
-`PreToolUse: Bash` を登録すると、フックは両方とも走る。ユーザー全体側の
-判定を写さないこと。
 
 ---
 
@@ -58,6 +32,7 @@
  1 項目 1 ファイル。`archives/todo/` にある（新しい順）。
 **やらないと決めたものの理由もそこにある。** 蒸し返す前に読むこと。
 
+- [**TODO-192.** ytsched 固有のコマンドを PreToolUse フックで止める](archives/todo/TODO-192.%20ytsched%20固有のコマンドを%20PreToolUse%20フックで止める.md)
 - [**TODO-194.** 項目の決着処理を `/todo-close` スキルにまとめる](archives/todo/TODO-194.%20項目の決着処理を%20todo-close%20スキルにまとめる.md)
 - [**TODO-195.** サブエージェントの定義を 6 個から絞る（絞らないと決めた）](archives/todo/TODO-195.%20サブエージェントの定義を%206%20個から絞る.md)
 - [**TODO-196.** `todo-workflow` skill の実体が無い](archives/todo/TODO-196.%20todo-workflow%20skill%20の実体が無い.md)
