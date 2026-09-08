@@ -62,46 +62,17 @@
 
 ## サブエージェントの分担
 
-基準そのものは `~/.claude/CLAUDE.md` にある。ここには、TODO-001〜016 を
-見直して基準を決めたときの材料を残す（TODO-017）。
-
-- **reviewer を入れたのは TODO-003・005・006 の 3 件だけで、3 件とも
-  実質的な指摘を出した。** TODO-005 の「`save()` が空でも書くように
-  なり、`.bak` が空で上書きされる経路が増えた」は、テストが通ることを
-  見ても出てこない種類の指摘。TODO-006 の指摘 1-1 / 2-2 は、そのまま
-  TODO-016 になった
-- 一方、TODO-007 以降は一度も入れていない。TODO-012（`search_mode` の
-  判定条件そのものを変えた）は入れる余地があった。**挙動や分岐が
-  変わる項目には入れる**と決めたのは、この差から
-- **verifier は 12 件すべてで立てたが、発見がゼロだった項目がある。**
-  TODO-014 は定義ファイル 4 つを grep して形式を見るだけだった。逆に
-  TODO-009 の「README の手順を実際に再現する」（`uv tool uninstall` →
-  再インストール → curl）は明らかに効いた。**書式の確認だけなら main、
-  試せる手順があるなら分ける**と決めたのは、この差から
-
-### 文書の確認（wording）
-
-`wording` は、**利用者が明示して依頼した場合だけ**立てる。`.md` が入る
-コミットでも自動では立てず、コミット時の促しも出さない。
+基準そのものは `~/.claude/CLAUDE.md` にある。TODO-001〜016 を見直して
+その基準を決めたときの材料は `archives/todo/TODO-017` にある。
 
 ### トークン消費量の記録
 
-`~/.claude/CLAUDE.md` の `消費:` 行に書く数字は
-`~/.claude/bin/token-usage.py` で集計する（TODO-035、admin の TODO-010）。
-Claude Code の transcript（`~/.claude/projects/-home-ytani-work-ytsched/`）を
-読み、親セッションとサブエージェントの両方を合わせて数える。
+集計の手順（`token-usage.py` の使い方、`--since` の渡し方）は
+`todo-close` / `todo-workflow` skill にある。ここには ytsched 固有の
+ことだけを残す。
 
-```
-mise run tokens -- TODO-034
-mise run tokens -- TODO-034 --since '2026-08-23 14:00:00'
-mise run tokens -- --list
-```
-
-- **立ててから着手まで空いた項目は、`--since` で始点を指定する。**
-  そうしないと、間に挟まった他の項目の作業まで数に入る。TODO-029 は
-  `--since` の有無で cache_creation が 1,042,774 と 301,888 に分かれた
-- 出力の 2 行目（`（参考: cache_read …）`）は archives に貼らない。
-  画面で見るためのもの
+- **`mise run tokens -- TODO-NNN` で呼べる。** 中身は
+  `~/.claude/bin/token-usage.py`（TODO-035、admin の TODO-010）
 - **概算料金の単価は `~/.claude/bin/token-usage.py` の `PRICING` に持たせてある**
   （TODO-044）。**Sonnet 5 は $2/$10。** 導入価格として告知されたが、
   2026-09-01 に予定されていた $3/$15 への値上げは行われず、そのまま正規の
