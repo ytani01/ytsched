@@ -1,4 +1,29 @@
 {
   "description": "ytsched repository hooks imported from Claude Code.",
-  "hooks": {}
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/guard-bash-ytsched.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/fmt-patch.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
 }
