@@ -2,7 +2,9 @@
 
 `archives/todo/` の一覧（新しい順）。`~/.claude/bin/todo-index.py` で
 作り直すので、手で直さない。やらないと決めたものは（対応しない）が付いている。
+進行中の項目は [TODO.md](../TODO.md) にある。
 
+- [TODO-198. runner・verifier の定義の古い記述を直す](todo/TODO-198.%20runner%E3%83%BBverifier%20%E3%81%AE%E5%AE%9A%E7%BE%A9%E3%81%AE%E5%8F%A4%E3%81%84%E8%A8%98%E8%BF%B0%E3%82%92%E7%9B%B4%E3%81%99.md)
 - [TODO-197. Codex の設定を Claude に合わせる](todo/TODO-197.%20Codex%20%E3%81%AE%E8%A8%AD%E5%AE%9A%E3%82%92%20Claude%20%E3%81%AB%E5%90%88%E3%82%8F%E3%81%9B%E3%82%8B.md)
 - [TODO-196. todo-workflow skill の実体が無い](todo/TODO-196.%20todo-workflow%20skill%20%E3%81%AE%E5%AE%9F%E4%BD%93%E3%81%8C%E7%84%A1%E3%81%84.md)
 - [TODO-195. サブエージェントの定義を 6 個から絞る](todo/TODO-195.%20%E3%82%B5%E3%83%96%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E3%81%AE%E5%AE%9A%E7%BE%A9%E3%82%92%206%20%E5%80%8B%E3%81%8B%E3%82%89%E7%B5%9E%E3%82%8B.md)

@@ -16,10 +16,10 @@ Codex から役割を見つけるための入口であり、役割の正本は C
 
 以下の順に 1 つずつ実行する：
 ```sh
-uv run ruff format --line-length 78 src tests
-uv run ruff check --fix --extend-select I src tests
-uv run basedpyright src tests
-uv run mypy src tests
+uv run ruff format --line-length 78 src tests tools
+uv run ruff check --fix --extend-select I src tests tools
+uv run basedpyright src tests tools
+uv run mypy src tests tools
 uv run pytest tests
 ```
 

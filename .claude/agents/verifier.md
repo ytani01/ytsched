@@ -26,8 +26,8 @@ color: green
 選ぶ（多くて 2〜3 個。全部やらない）。
 
 - `uv sync` が通るか。`.venv` の Python の版数
-- `uv run pytest` が通るか（TODO-003 以降）
-- lint・型チェックが通るか（TODO-004 以降）
+- `uv run pytest` が通るか
+- lint・型チェックが通るか
 - **アプリが起動するか。** Bash ツールの `run_in_background` で
   `uv run ytsched webapp --datadir <一時ディレクトリ>` を起動し、
   数秒待ってから curl で HTTP ステータスを見る。終わったら

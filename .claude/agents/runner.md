@@ -3,7 +3,6 @@ name: runner
 description: lint・型チェック・テストを決まった順に走らせて、出力をそのまま報告する。切り分けはしない。main（管理者）から名指しで依頼されたときだけ使う。自動では起動しない。
 tools: Read, Write, Bash, Grep, Glob
 model: haiku
-effort: low
 color: cyan
 ---
 
@@ -27,17 +26,16 @@ color: cyan
 `~/work/ytsched` で、この順に 1 つずつ。
 
 ```sh
-uv run ruff format --line-length 78 src tests
-uv run ruff check --fix --extend-select I src tests
-uv run basedpyright src tests
-uv run mypy src tests
+uv run ruff format --line-length 78 src tests tools
+uv run ruff check --fix --extend-select I src tests tools
+uv run basedpyright src tests tools
+uv run mypy src tests tools
 uv run pytest tests
 ```
 
-- **`mise run lint` / `mise run test` は使わない。** あれは
-  `rm -f uv.lock` → `uv sync` → `uv pip install -U` に依存していて、
-  呼ぶたびに依存を上げ直す。テストが壊れたときに、変更のせいか依存が
-  上がったせいかが分からなくなる
+- **`mise run lint` / `mise run test` は使わない。** 依存のタスクが
+  1 つ落ちると、mise はそこで止まり、残りのタスクを走らせない
+  （TODO-198 で実測）。「落ちても止まらない」が守れず、残りの結果が取れない
 - `ruff` の 2 つはファイルを書き換える。**何をどう書き換えたかを
   `git diff --stat` で見て報告する**（書き換えが無ければ「無し」）
 
