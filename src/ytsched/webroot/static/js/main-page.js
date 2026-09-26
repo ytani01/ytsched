@@ -10,6 +10,9 @@
 //   changeSearchN() -- main.html の #search_n_in の onchange (検索モード)
 //   window.ytsched.view_month -- onloadHdr() が #main の data-view から
 //     入れる。week.js・nav.js・swipe.js が読む (TODO-137)
+//   window.ytsched.today_str -- onloadHdr() が #main の data-today から
+//     入れる。nav.js の scrollToId() が sde_align "home" のときに読む
+//     (TODO-199)
 //   fillMainHeight() -- #main を画面の高さまで伸ばして、フッターとの間に
 //     body の地 (白) が残らないようにする (TODO-184)。onloadHdr()・
 //     week.js の setActiveWeek()・resize / orientationchange から呼ぶ
@@ -93,7 +96,8 @@
    * (``date-post``) と同じ道を通して検索語を消す。
    *
    * ``MainHandler.post()`` はリダイレクト先へ ``sde_align`` を引き継ぐ
-   * ので、先頭に合わせるのもそのまま効く。``view`` は ``conf.json`` へ
+   * ので、``"home"`` の位置合わせ (月曜日を上端に、今日がはみ出すなら
+   * 今日の下端に。TODO-199) もそのまま効く。``view`` は ``conf.json`` へ
    * 保存されない (``get_view()``) ので、月間表示からも週間表示へ戻る。
    *
    * @param {String} monday_str
@@ -103,7 +107,7 @@
     ytsched.doPost(ytsched.url_prefix, {
       date: monday_str,
       search_str: "",
-      sde_align: "top",
+      sde_align: "home",
     });
   };
 
@@ -169,7 +173,7 @@
       setTimeout(function () {
         clickCount = 0;
       }, 350);
-      ytsched.scrollToDate(ytsched.url_prefix, monday_str, "top");
+      ytsched.scrollToDate(ytsched.url_prefix, monday_str, "home");
     } else {
       // double click
       clickCount = 0;

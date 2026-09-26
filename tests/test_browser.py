@@ -207,6 +207,80 @@ def test_home_button_moves_the_view(page, server):
     assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
 
 
+# 1 週間の表示が画面より長くなる高さ（TODO-199）。予定の無い週でも
+# 7 日ぶんの欄で超える
+SHORT_VIEWPORT = {"width": 412, "height": 300}
+
+
+def _wait_today_above_footer(page, date):
+    """``date`` の欄が、画面の上端からフッターのゲージの上までに収まる
+    のを待つ。直す前は月曜に合わせて止まり、収まらないまま時間切れになる。"""
+    page.wait_for_function(
+        """(id) => {
+            const r = document.getElementById(id).getBoundingClientRect();
+            const g = document.getElementById('footer_gauge_bar');
+            return 0 <= r.top && r.bottom <= g.getBoundingClientRect().top;
+        }""",
+        arg=f"date-{date.strftime('%Y-%m-%d')}",
+        timeout=5000,
+    )
+
+
+def test_home_button_keeps_today_in_view(page, server):
+    """週が画面より長くても、ホームボタンで今日が画面に収まる（TODO-199）。
+
+    月曜を上端に合わせるだけだと、週末の今日が画面の下にはみ出した。
+    今日の欄の下端に合わせても、URL は月曜のまま。
+
+    今日はサーバの日付で決まるので、``today_str`` を書き換えて
+    日曜・月曜の 2 通りを作る。
+    """
+    monday = _monday_of(datetime.date.today())
+    sunday = monday + datetime.timedelta(days=6)
+    page.set_viewport_size(SHORT_VIEWPORT)
+    _open(page, server, monday.strftime("%Y-%m-%d"))
+
+    # 今日が日曜: 日曜の欄が画面の下に収まる
+    page.evaluate(f"ytsched.today_str = '{sunday.strftime('%Y-%m-%d')}'")
+    page.evaluate("scrollTo(0, 0)")
+    page.locator("#home_button").click()
+    _wait_today_above_footer(page, sunday)
+    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+
+    # 今日が月曜: 今までどおり ``sde_align=top`` と同じ位置に月曜が来る
+    monday_id = f"date-{monday.strftime('%Y-%m-%d')}"
+    page.evaluate(f"ytsched.scrollToId('{monday_id}', 'top', 'instant')")
+    top_expected = page.evaluate(
+        f"document.getElementById('{monday_id}').getBoundingClientRect().top"
+    )
+
+    page.wait_for_timeout(400)  # ダブルクリックと見なされないように
+    page.evaluate(f"ytsched.today_str = '{monday.strftime('%Y-%m-%d')}'")
+    page.evaluate("scrollTo(0, document.body.scrollHeight)")
+    page.locator("#home_button").click()
+    page.wait_for_function(
+        f"() => document.getElementById('{monday_id}')"
+        f".getBoundingClientRect().top === {top_expected}",
+        timeout=5000,
+    )
+
+
+def test_home_reload_keeps_today_in_view(page, server):
+    """ダブルタップの読み直し（``sde_align=home``）でも、今日が画面に
+    収まる（TODO-199）。"""
+    today = datetime.date.today()
+    monday = _monday_of(today)
+    page.set_viewport_size(SHORT_VIEWPORT)
+    page.goto(
+        f"{server}?date={monday.strftime('%Y-%m-%d')}&sde_align=home",
+        wait_until="load",
+    )
+    page.wait_for_selector("#main", state="visible")
+
+    _wait_today_above_footer(page, today)
+    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+
+
 def test_date_column_and_edit_menu_are_delegated(page, server):
     """日付欄と編集画面の戻る操作がイベント委譲で動く（TODO-108）。"""
     monday = _monday_of(datetime.date.today())
@@ -1358,11 +1432,12 @@ def _double_tap_home_in_search(page, tap, interval_msec=None):
 
 
 def _wait_for_top_screen(page, monday):
-    """トップ画面（``monday`` の週、先頭合わせ）になるまで待つ。"""
+    """トップ画面（``monday`` の週、``sde_align=home``。TODO-199）に
+    なるまで待つ。"""
     page.wait_for_url(
         lambda url: (
             f"date={monday.strftime('%Y-%m-%d')}" in url
-            and "sde_align=top" in url
+            and "sde_align=home" in url
         ),
         timeout=10000,
     )
@@ -1393,7 +1468,7 @@ def test_home_button_single_tap_still_reloads_search_screen(
     monday = _monday_of(today)
     assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
     # ダブルタップではないので sde_align は付かない
-    assert "sde_align=top" not in page.url
+    assert "sde_align=" not in page.url
     _assert_search_screen(page)
     assert page.locator("#search_str").input_value() == "けんさくよう"
 

@@ -30,6 +30,8 @@
 //     scrollToDate (TODO-137)
 //   setActiveBlockOfDate() (month.js) -- popstateHdr・scrollToDate
 //     (月間表示、TODO-137)
+//   window.ytsched.today_str (main-page.js の onloadHdr()) -- scrollToId
+//     (sde_align が "home" のとき、TODO-199)
 // week.js は base.html でこのあとに読み込まれるが、呼ぶのは実行時なので前方参照でよい
 
 /**
@@ -358,6 +360,28 @@
         top: bottom_of_el - win_h + menu_bar_h + scroll_offset,
         behavior: behavior,
       });
+    }
+    if (sde_align == "home") {
+      // ホームボタン (TODO-199)。el (月曜日) は "top" と同じ位置に
+      // 合わせるが、週が長くて今日の欄が下にはみ出すなら、今日の欄の
+      // 下端を画面の下に固定した帯 (フッターのゲージ、検索画面では
+      // 無いのでメニューバー) の上に合わせる。offsetTop は #week_wrap
+      // からの位置なので、今日の欄は文書の上端からの位置で測る
+      let top = top_of_el - scroll_offset;
+      const el_today = document.getElementById(`date-${ytsched.today_str}`);
+      if (el_today) {
+        const el_footer =
+          document.getElementById("footer_gauge_bar") || el_menu_bar;
+        const bottom_of_today =
+          el_today.getBoundingClientRect().bottom + window.scrollY;
+        top = Math.max(
+          top,
+          bottom_of_today -
+            el_footer.getBoundingClientRect().top +
+            scroll_offset,
+        );
+      }
+      scrollTo({ left: 0, top: top, behavior: behavior });
     }
 
     return true;
