@@ -14,7 +14,7 @@
 |------|------|------|
 | 見込み | Sonnet 5 / effort medium | main（実装）+ verifier（Sonnet 5 / medium） |
 
-`/claude-api prompt-audit`（2026-09-27）で見つかった 3 件。
+`/claude-api prompt-audit`（2026-09-27）で見つかった 4 件。
 
 - [ ] 着手前に verifier に測らせる: `lint` の依存のどれかを落とした状態で
       `mise run test` を叩き、残りのタスクが走るか止まるか
@@ -24,6 +24,8 @@
       （`.claude/agents/runner.md:30-33`、`.agents/agents/runner.md:19-22`）
 - [ ] verifier の「（TODO-003 以降）」「（TODO-004 以降）」を消す
       （`.claude/agents/verifier.md:29-30`）
+- [ ] runner の frontmatter から `effort: low` を消す
+      （`.claude/agents/runner.md:6`）
 - [ ] verifier に、直した runner の 5 つのコマンドを走らせて通るか確かめさせる
 
 **背景**
@@ -37,6 +39,10 @@
 - Codex 側（`.agents/agents/runner.md`）も揃える（TODO-197 の方針。
   2026-09-27 に利用者が決めた）。`.codex/agents/runner.toml` は
   コマンドを持たないので直さない
+- runner は `model: haiku` なのに `effort: low` がある。Haiku 4.5 は
+  `effort` に対応しないので、書いても効かない（`todo-workflow` skill）。
+  Codex 側の `model_reasoning_effort = "low"` は Codex のモデルに効くので残す
+- 定義を直したら、Claude Code の再起動が要る（再起動するのは利用者）
 
 **決めること**
 
