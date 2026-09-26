@@ -280,7 +280,9 @@
       case "search-n":
         ytsched.changeSearchN(el.value);
         break;
-      case "submit-form":
+      case "submit-on-change":
+        // <select> 用。mousedown の "submit-form" と分けないと、押した
+        // 時点で選び直す前の値のまま送信される (TODO-200)
         ytsched.doSubmit(el.dataset.formId);
         break;
     }

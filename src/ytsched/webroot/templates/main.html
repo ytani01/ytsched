@@ -424,7 +424,7 @@
             <use href="{{ static_url('icons/icons.svg') }}#list"></use>
           </svg>
           <select id="todo_days" name="todo_days" class="my-align-middle"
-            data-action="submit-form" data-form-id="todo_days_form">
+            data-action="submit-on-change" data-form-id="todo_days_form">
             {% for opt in todo_days_list %}
             {% if todo_days_list[opt] == todo_days_value %}
             <option value="{{ todo_days_list[opt] }}" selected>
