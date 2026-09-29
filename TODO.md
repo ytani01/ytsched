@@ -36,7 +36,7 @@
 
 |      | main | 担当 |
 |------|------|------|
-| 見込み | Opus 5.5 / effort high | main（実装）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
+| 見込み | Opus 5.5 / effort medium | main（実装）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
 
 - [ ] `TrashHandler._restore()` で、`is_todo()` なら `ToDo.jsonl`
       （`add_sde(None, …)`）へ入れる。`SchedUpdater.cmd_add()` と同じ分け方
@@ -55,7 +55,7 @@
 
 |      | main | 担当 |
 |------|------|------|
-| 見込み | Opus 5.5 / effort high | implementer（Sonnet 5.5 / medium）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
+| 見込み | Opus 5.5 / effort medium | implementer（Sonnet 5.5 / medium）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
 
 - [ ] `WebServer` の `tornado.web.Application` に `xsrf_cookies=True` を渡す
 - [ ] テンプレートのフォーム（`main.html`・`edit.html`・`edit_menu.html`・
@@ -116,7 +116,7 @@ xsrf_cookies を有効にすると決めた（利用者が決めた。2026-09-30
 
 |      | main | 担当 |
 |------|------|------|
-| 見込み | Opus 5.5 / effort high | main（実装）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
+| 見込み | Opus 5.5 / effort medium | main（実装）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
 
 - [ ] `ConfFile.DEF_CONF` の `ToDo_Days` を `"1y"` から `"365"` にする。
       `tests/test_handler.py:334`（`TODO_DAYS[...]` で引いている）も直す
