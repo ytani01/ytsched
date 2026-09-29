@@ -51,6 +51,9 @@ CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形�
 全体を 1 回だけ書き直す。**`SchedDataFile` と違って `.bak` は作らない**
 （ゴミ箱から消したものの `.bak` はゴミ箱のゴミ箱になって意味が無いため。
 TODO-141）。
+`trash.jsonl` はバイトで読んで行ごとにデコードする。デコードできない行や
+JSON として読めない行は、その行だけ警告して飛ばす（`delete_many()` は
+そのような行を元のバイトのまま残す。TODO-208）。
 
 ## データモデル: `SchedDataEnt` / `SchedDataFile` / `SchedData`
 

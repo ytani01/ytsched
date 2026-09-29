@@ -2773,6 +2773,33 @@ class TestTrashHandler(WebTestBase):
         assert "古い内容" not in remaining
         assert "2026-08-30T14:23:05" in remaining
 
+    def test_undecodable_bytes_do_not_break_pages(self):
+        """デコードできない行があっても、一覧・ゴミ箱・一括削除は動く（TODO-208）。"""
+        self.write_trash()
+        bad = b'{"trashed_at": "2026-08-31T00:00:00", "title": "\xff"}\n'
+        with (self.datadir / "trash.jsonl").open("ab") as f:
+            f.write(bad)
+
+        assert self.fetch(URL_PREFIX + "/").code == 200
+        assert self.fetch(URL_PREFIX + "/trash").code == 200
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                [
+                    ("cmd", "delete_many"),
+                    ("sde_id", "id-1"),
+                    ("trashed_at", "2026-08-29T09:10:00"),
+                ]
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+        assert res.code == 302
+        assert (self.datadir / "trash.jsonl").read_bytes().endswith(bad)
+
     def test_delete_many_with_date_redirects_to_trash_with_date(self):
         """``date`` を渡すと、Location にも付く（TODO-183）。"""
         self.write_trash()

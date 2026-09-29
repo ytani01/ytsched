@@ -111,10 +111,12 @@ class TrashFile:
         )
 
         entries: list[TrashEntry] = []
-        with self.pathname.open(encoding=self.ENCODING) as f:
+        # バイトで読み、行ごとにデコードする。デコードできない行だけを
+        # 飛ばすため（``UnicodeDecodeError`` は ``ValueError`` の仲間）
+        with self.pathname.open("rb") as f:
             for lineno, line in enumerate(f, start=1):
                 try:
-                    data = json.loads(line)
+                    data = json.loads(line.decode(self.ENCODING))
                     trashed_at = data["trashed_at"]
                     if not isinstance(trashed_at, str):
                         raise TypeError("trashed_at is not a string")
@@ -151,14 +153,19 @@ class TrashFile:
             return 0
 
         count = 0
-        with self.pathname.open(encoding=self.ENCODING) as f:
+        with self.pathname.open("rb") as f:
             for lineno, line in enumerate(f, start=1):
                 try:
-                    data = json.loads(line)
+                    data = json.loads(line.decode(self.ENCODING))
                     trashed_at = data["trashed_at"]
                     if not isinstance(trashed_at, str):
                         raise TypeError("trashed_at is not a string")
-                except (json.JSONDecodeError, TypeError, KeyError) as e:
+                except (
+                    json.JSONDecodeError,
+                    TypeError,
+                    ValueError,
+                    KeyError,
+                ) as e:
                     self.__log.warning(
                         f"{self.pathname}:{lineno}: {e} .. ignored"
                     )
@@ -199,7 +206,8 @@ class TrashFile:
 
         同じ ``sde_id``/``trashed_at`` の行が複数あることは無い想定だが、
         あれば全て取り除く。壊れていて ``entries()`` が警告して飛ばす
-        行は、復旧の手がかりを残すため書き直しでも消さずそのまま残す。
+        行（デコードできないバイトを含む行も）は、復旧の手がかりを残すため
+        書き直しでも消さず、元のバイトのまま残す。
 
         同じ組の行が複数あればすべて取り除き、実際に消した行数を返す。
         一致がなければ（ファイルが無い場合を含む）書き直さずに 0 を返す。
@@ -207,14 +215,14 @@ class TrashFile:
         if not entries or not self.pathname.exists():
             return 0
 
-        with self.pathname.open(encoding=self.ENCODING) as f:
+        with self.pathname.open("rb") as f:
             lines = f.readlines()
 
-        kept: list[str] = []
+        kept: list[bytes] = []
         deleted = 0
         for line in lines:
             try:
-                data = json.loads(line)
+                data = json.loads(line.decode(self.ENCODING))
                 trashed_at = data["trashed_at"]
                 if not isinstance(trashed_at, str):
                     raise TypeError("trashed_at is not a string")
@@ -244,7 +252,7 @@ class TrashFile:
         """1 組を削除する ``delete_many()`` の互換用ラッパ。"""
         return self.delete_many({(sde_id, trashed_at)}) > 0
 
-    def _write_lines(self, lines: list[str]) -> None:
+    def _write_lines(self, lines: list[bytes]) -> None:
         """``lines`` で ``trash.jsonl`` を書き直す。
 
         同じディレクトリの一時ファイルへ書いてから ``Path.replace()`` で
@@ -260,7 +268,7 @@ class TrashFile:
         try:
             if self.pathname.exists():
                 os.fchmod(fd, self.pathname.stat().st_mode)
-            with os.fdopen(fd, mode="w", encoding=self.ENCODING) as f:
+            with os.fdopen(fd, mode="wb") as f:
                 f.writelines(lines)
             Path(tmp_name).replace(self.pathname)
         except BaseException:

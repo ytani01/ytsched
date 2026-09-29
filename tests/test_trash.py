@@ -330,6 +330,35 @@ def test_count_ignores_broken_lines(tmp_path):
     assert trash.count() == 1
 
 
+def write_trash_with_bad_bytes(path):
+    """有効な行の間に、UTF-8 でデコードできない行を 1 つ挟む。"""
+    line = json.dumps(
+        {"trashed_at": "2026-08-30T10:00:00", **mk_sde(sde_id="a").to_dict()},
+        ensure_ascii=False,
+    ).encode("utf-8")
+    bad = b'{"trashed_at": "2026-08-30T11:00:00", "title": "\xff\xfe"}'
+    path.write_bytes(line + b"\n" + bad + b"\n" + line + b"\n")
+    return bad + b"\n"
+
+
+def test_undecodable_bytes_are_skipped(tmp_path):
+    """デコードできない行は、その行だけ飛ばす（TODO-208）。"""
+    write_trash_with_bad_bytes(tmp_path / "trash.jsonl")
+    trash = TrashFile(tmp_path)
+
+    assert trash.count() == 2
+    assert len(trash.entries()) == 2
+
+
+def test_delete_many_keeps_undecodable_line_as_is(tmp_path):
+    path = tmp_path / "trash.jsonl"
+    bad = write_trash_with_bad_bytes(path)
+    trash = TrashFile(tmp_path)
+
+    assert trash.delete_many({("a", "2026-08-30T10:00:00")}) == 2
+    assert path.read_bytes() == bad
+
+
 def test_count_exceeds_entries_max(tmp_path):
     path = tmp_path / "trash.jsonl"
     lines = [
