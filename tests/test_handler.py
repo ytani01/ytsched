@@ -62,7 +62,7 @@ def test_load_conf_no_file(datadir):
     handler = make_handler(make_app(datadir), HandlerBase)
 
     assert handler._conf.to_dict() == ConfFile.DEF_CONF
-    assert handler.get_conf("ToDo_Days") == "1y"
+    assert handler.get_conf("ToDo_Days") == "365"
     assert (
         json.loads((datadir / CONF_FNAME).read_text(encoding="utf-8"))
         == ConfFile.DEF_CONF
@@ -128,7 +128,7 @@ def test_conf_reloads_when_file_changed_outside(datadir):
     """
     app = make_app(datadir)
     handler1 = make_handler(app, HandlerBase)
-    assert handler1.get_conf("ToDo_Days") == "1y"
+    assert handler1.get_conf("ToDo_Days") == "365"
 
     # mtime の分解能で不安定にならないよう、明示的に時刻をずらす
     conf_path = datadir / CONF_FNAME
@@ -330,10 +330,7 @@ def test_def_conf_matches_each_class_default():
 
     assert def_conf["SearchStr"] == ""
     assert def_conf["FilterStr"] == ""
-    assert (
-        MainBinder.TODO_DAYS[def_conf["ToDo_Days"]]
-        == MainBinder.DEF_TODO_DAYS
-    )
+    assert int(def_conf["ToDo_Days"]) == MainBinder.DEF_TODO_DAYS
     assert int(def_conf["SearchN"]) == MainBinder.DEF_SEARCH_N
     assert (
         handler_util.str2month_cal(def_conf["MonthCal"])

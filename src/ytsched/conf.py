@@ -41,7 +41,7 @@ class ConfFile:
     #: あるかどうかは、テスト側で両方を import して確かめる
     #: (循環参照を避けるため、ここでは素の dict として持つ)。
     #: - ``SearchStr`` ``FilterStr``: 未指定
-    #: - ``ToDo_Days``: ``MainBinder.DEF_TODO_DAYS`` (365) = ``"1y"``
+    #: - ``ToDo_Days``: ``MainBinder.DEF_TODO_DAYS`` (365) = ``"365"``
     #: - ``SearchN``: ``MainBinder.DEF_SEARCH_N`` (5)
     #: - ``MonthCal``: ``MainBinder.DEF_MONTH_CAL`` (True) = ``"1"``
     #: - ``LoadWeekPages``: ``MainBinder.DEF_LOAD_WEEK_PAGES`` (4)
@@ -52,7 +52,7 @@ class ConfFile:
     DEF_CONF: ClassVar[dict[str, str]] = {
         "SearchStr": "",
         "FilterStr": "",
-        "ToDo_Days": "1y",
+        "ToDo_Days": "365",
         "SearchN": "5",
         "MonthCal": "1",
         "LoadWeekPages": "4",

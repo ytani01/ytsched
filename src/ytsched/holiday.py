@@ -48,7 +48,7 @@ def fetch(url: str) -> bytes:
     bytes
 
     """
-    with urllib.request.urlopen(url) as res:
+    with urllib.request.urlopen(url, timeout=30) as res:
         return res.read()
 
 

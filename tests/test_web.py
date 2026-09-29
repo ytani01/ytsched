@@ -1076,7 +1076,7 @@ class TestInvalidArgs(WebTestBase):
         """
         self.get_body(URL_PREFIX + "/", date=DATE1_STR, todo_days="abc")
 
-        assert self.conf_data()["ToDo_Days"] == "1y"
+        assert self.conf_data()["ToDo_Days"] == "365"
 
     def test_invalid_todo_days_falls_back_to_the_default(self):
         """数字にならない ``todo_days`` は既定値になる。"""
@@ -1369,7 +1369,7 @@ class TestInvalidArgs(WebTestBase):
             URL_PREFIX + "/", date=DATE1_STR, todo_days="99999999999"
         )
 
-        assert self.conf_data()["ToDo_Days"] == "1y"
+        assert self.conf_data()["ToDo_Days"] == "365"
 
     def test_huge_todo_days_does_not_break_next_request(self):
         """一度踏んでも、次の素の GET が開ける。

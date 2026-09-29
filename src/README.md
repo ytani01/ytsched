@@ -35,8 +35,13 @@ src/ytsched/
       js/           # ブラウザ側のスクリプト 11 本（後述）
 ```
 
-CLI には `webapp`（Web サーバ、本来の入口）と `migrate`（旧形式からの
-移行）の 2 つがある。
+CLI には次の 5 つのコマンドがある。
+
+- `webapp`: Web サーバ（本来の入口）
+- `migrate`: 旧形式（タブ区切り .cgi）のデータを JSON Lines へ変換する
+- `fix-id`: 予定の `sde_id` を UUID へ振り直す
+- `holiday`: 内閣府の CSV から日本の祝日を取得して登録する
+- `notify`: その日の予定と、期限の近い ToDo をテキストで標準出力へ出す
 
 `-h` / `--help`、`-d` / `--debug`、`-V` / `-v` / `--version` は、
 `click_utils.py` の `click_common_opts()` がグループと全サブコマンドに
@@ -291,10 +296,9 @@ classDiagram
   分けてある。`SchedUpdater` と同じく **tornado を知らない**。
   **`load_month_cal(year, month)`** は、週間表示の日曜日の下に出す
   月間ミニカレンダー 1 か月分（`MonthCal`）を組み立てる（TODO-103）。
-  予定の有無は `SchedData.sdf_has_sde()`（ファイルを開かず、大きさ
-  だけを見る）で決めるだけで、フィルタ・検索・ToDo は反映しない。
-  `sdf_exists()` ではなく大きさを見るのは、`save()` が 1 件も無いときも
-  空のファイルを書くため（全部削除した日にドットが残ってしまう）。
+  予定の有無・重要・祝日は `SchedData.get_sdf(date).sde` で中身を
+  読んで判定する（`SchedData` のキャッシュに載る。初回はファイルを
+  開くぶん重い）。フィルタ・検索は反映しない。
   `SchedWeek.month_cals`
   （`MainViewBuilder` が「週の月曜が含まれる月」と「その翌月」の
   2 つを詰める。検索モードでは空リスト）に 1 つずつ入る。同じ月が
@@ -478,6 +482,5 @@ flowchart TD
 
 ## テンプレートの autoescape
 
-`base.html` は `{% autoescape None %}` のまま（エスケープを切っている）。
-単一ユーザ・自分の入力しか自分に見えないため実害が無いと判断し、現状
-維持と決めている。
+テンプレートは tornado の既定のままで、`.html` の出力はエスケープされる
+（`base.html` にも `{% autoescape None %}` は置いていない）。
