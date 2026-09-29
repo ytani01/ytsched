@@ -742,7 +742,8 @@ class SchedDataFile:
         Notes
         -----
         全て上書きされる。
-        ファイルが存在し、空でない場合は、バックアップされる。
+        ファイルが存在し、空でない場合は、バックアップされる
+        （``__make_backup()``。書き込みは一時ファイルへ先に済ませる）。
 
         スケジュールが 1 件も無い場合は、空のファイルを書く。
         空のファイルをバックアップしないのは、``.bak`` にしか残って
@@ -784,10 +785,7 @@ class SchedDataFile:
             if self.pathname.exists():
                 tmp_pathname.chmod(self.pathname.stat().st_mode)
                 if self.pathname.stat().st_size > 0:
-                    backup_pathname = self.pathname.with_name(
-                        self.pathname.name + self.BACKUP_EXT
-                    )
-                    shutil.move(self.pathname, backup_pathname)
+                    self.__make_backup()
 
             tmp_pathname.replace(self.pathname)
         except BaseException:
@@ -795,6 +793,29 @@ class SchedDataFile:
             raise
 
         self._stat_key = (st.st_mtime, st.st_size)
+
+    def __make_backup(self) -> None:
+        """
+        本体を ``.bak`` へ残す。本体は消さない。
+
+        ハードリンクを一時名で作ってから ``.bak`` へ ``replace()`` するので、
+        本体が無い時間も、``.bak`` が無い時間も作らない。
+        ハードリンクが使えないファイルシステムでは、``shutil.move()`` に
+        戻る（この間は本体が無い）。
+        """
+        backup_pathname = self.pathname.with_name(
+            self.pathname.name + self.BACKUP_EXT
+        )
+        link_pathname = self.pathname.with_name(
+            f".{backup_pathname.name}.{uuid.uuid4().hex}"
+        )
+        try:
+            os.link(self.pathname, link_pathname)
+            link_pathname.replace(backup_pathname)
+        except OSError as e:
+            self.__log.debug(f"hardlink failed, move instead: {e}")
+            link_pathname.unlink(missing_ok=True)
+            shutil.move(self.pathname, backup_pathname)
 
     def add_sde(self, sde: SchedDataEnt) -> None:
         """

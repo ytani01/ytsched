@@ -8,6 +8,7 @@ import inspect
 import json
 import os
 import uuid
+from pathlib import Path
 from typing import Any
 from unittest import mock
 
@@ -1575,3 +1576,76 @@ def test_save_keeps_permission(tmp_path):
     finally:
         os.umask(old)
     assert new.pathname.stat().st_mode & 0o777 == 0o644
+
+
+def test_save_swap_failure_keeps_original_and_backup(tmp_path, monkeypatch):
+    """本体を差し替える直前で失敗しても、本体と ``.bak`` の両方が残る。
+
+    ``.bak`` はハードリンクで作るので、本体を移さない。
+    """
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.add_sde(mk_sde(sde_id="id-9", title="追加"))
+    backup = path.parent / (path.name + SchedDataFile.BACKUP_EXT)
+
+    real_replace = Path.replace
+
+    def fail_on_swap(self, target):
+        if Path(target) == path:
+            raise OSError("swap failed")
+        return real_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", fail_on_swap)
+    with pytest.raises(OSError):
+        sdf.save()
+
+    assert path.read_text(encoding="utf-8") == DATALINE1 + "\n"
+    assert backup.read_text(encoding="utf-8") == DATALINE1 + "\n"
+    assert sorted(p.name for p in path.parent.iterdir()) == sorted(
+        [path.name, backup.name]
+    )
+
+
+def test_save_without_hardlink_falls_back_to_move(tmp_path, monkeypatch):
+    """ハードリンクが使えないときも、``.bak`` に元の内容が残る。"""
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.add_sde(mk_sde(sde_id="id-9", title="追加"))
+
+    def no_link(src, dst):
+        raise OSError("no hardlink")
+
+    monkeypatch.setattr(os, "link", no_link)
+    sdf.save()
+
+    backup = path.parent / (path.name + SchedDataFile.BACKUP_EXT)
+    assert backup.read_text(encoding="utf-8") == DATALINE1 + "\n"
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 2
+    assert sorted(p.name for p in path.parent.iterdir()) == sorted(
+        [path.name, backup.name]
+    )
+
+
+def test_save_backup_replace_failure_leaves_no_link(tmp_path, monkeypatch):
+    """``os.link`` が成功して ``.bak`` への差し替えで失敗しても、
+    一時名のリンクを残さず、``.bak`` へ移す方法で保存できる。"""
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.add_sde(mk_sde(sde_id="id-9", title="追加"))
+    backup = path.parent / (path.name + SchedDataFile.BACKUP_EXT)
+
+    real_replace = Path.replace
+
+    def fail_on_backup(self, target):
+        if Path(target) == backup:
+            raise OSError("backup replace failed")
+        return real_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", fail_on_backup)
+    sdf.save()
+
+    assert backup.read_text(encoding="utf-8") == DATALINE1 + "\n"
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 2
+    assert sorted(p.name for p in path.parent.iterdir()) == sorted(
+        [path.name, backup.name]
+    )

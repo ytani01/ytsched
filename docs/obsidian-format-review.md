@@ -40,7 +40,7 @@
 | 置き場所 | 1 日 1 ファイル（`{年}/{月}/{日}.jsonl`）。ToDo は `ToDo.jsonl` にまとめる | `SchedDataFile.date2path()` |
 | 1 件の形 | 1 行 1 件の JSON。キーは `sde_id` `date` `time_start` `time_end` `type` `title` `place` `detail` の 8 つ | `SchedDataEnt.to_dict()` |
 | 読み込み | 行ごとに判断し、読めない行だけ飛ばす。飛ばした行は生のバイト列で覚え、次の保存で末尾へ書き戻す | `SchedDataFile.load()` / `load_line()` |
-| 保存 | その日のぶんを全件書き直す。書く前に空でなければ `.bak` へ退避 | `SchedDataFile.save()` |
+| 保存 | その日のぶんを全件書き直す。一時ファイルへ書き、空でなければ `.bak` へハードリンクで残してから差し替える | `SchedDataFile.save()` |
 | キャッシュ | 日付をキーに `SchedDataFile` を最大 2000 件持つ（`SchedData`） | `SchedData.get_sdf()` |
 | 外部変更の検出 | 読んだときの `(st_mtime, st_size)` と、いまの値を比べる | `SchedDataFile.is_stale()` |
 | 日にデータがあるか | ファイルの有無（`is_file()`）と大きさ（`st_size > 0`）だけを見て、**開かない** | `SchedData.sdf_exists()` / `sdf_has_sde()` |
