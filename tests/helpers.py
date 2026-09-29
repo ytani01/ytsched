@@ -77,6 +77,8 @@ def make_app(datadir):
         static_url_prefix=URL_PREFIX + "/static/",
         template_path=Path(webroot) / "templates",
         debug=False,
+        xsrf_cookies=True,
+        xsrf_cookie_kwargs={"expires_days": 365},
     )
     _APP_SD[app] = sd
     _APP_CONF[app] = conf

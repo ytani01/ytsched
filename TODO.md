@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目: TODO-205〜209。** これまでに 204 件を決着させた。
+**残っている項目: TODO-205、TODO-207〜209。** これまでに 205 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-210` から**。
 
@@ -27,36 +27,6 @@
 
 既に日付のファイルへ入ってしまった ToDo には何もしない（利用者が決めた。
 2026-09-30）。
-
----
-
-## TODO-206. POST に CSRF 対策を入れる（xsrf_cookies）
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5.5 / effort medium | implementer（Sonnet 5.5 / medium）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
-
-- [ ] `WebServer` の `tornado.web.Application` に `xsrf_cookies=True` を渡す
-- [ ] テンプレートのフォーム（`main.html`・`edit.html`・`edit_menu.html`・
-      `trash.html` など。`rg -n '<form' src/ytsched/webroot/templates`）に
-      `{% module xsrf_form_html() %}` を入れる
-- [ ] `nav.js` の `doPost()` が作るフォームにもトークンを入れる
-- [ ] テストの POST（`tests/` の `rg -n 'method="POST"|fetch\(.*POST'` と
-      ブラウザテスト）を通す。トークンの無い POST が 403 になるテストを足す
-
-いまは POST にトークンが無い。リバースプロキシが Basic 認証なら、
-ブラウザは他のサイトから送らせた POST にも認証情報を付けるので、外の
-ページから予定の削除やゴミ箱の全消去ができる。
-
-xsrf_cookies を有効にすると決めた（利用者が決めた。2026-09-30）。
-テスト用にだけ切る設定は作らず、テスト側でトークンを取って送る。
-取り方が込み入るなら、着手時に相談する。
-
-`_xsrf` cookie は、ログインの仕組みが無いとセッション cookie になり、
-タブが復元された古い画面から保存すると 403 になる。
-`xsrf_cookie_kwargs` に `expires_days=365` を渡す。トークンが合わずに
-403 になったときは、TODO-204 の 409 と同じ作りの画面に「読み込み直して
-ください」と出す（どちらも利用者が決めた。2026-09-30）。
 
 ---
 

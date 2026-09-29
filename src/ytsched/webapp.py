@@ -111,6 +111,8 @@ class WebServer:
             template_path=self._webroot / "templates",
             autoreload=self._dbg,
             debug=self._dbg,
+            xsrf_cookies=True,
+            xsrf_cookie_kwargs={"expires_days": 365},
         )
         self.__log.debug(f"app={self._app.__dict__}")
 

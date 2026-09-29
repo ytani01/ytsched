@@ -26,6 +26,7 @@
     </div>
     <div class="my-trash-delete-col my-row-end">
       <form id="trash-delete-form" action="{{ url_prefix }}trash" method="POST">
+        {% module xsrf_form_html() %}
         <input type="hidden" name="cmd" value="delete_many">
         {% if date %}<input type="hidden" name="date" value="{{ date }}">{% end %}
         <button class="my-btn my-trash-delete" type="submit" aria-label="選択した項目を完全に削除" disabled>
@@ -92,6 +93,7 @@
         </div>
         <div class="my-trash-actions">
           <form action="{{ url_prefix }}trash" method="POST">
+        {% module xsrf_form_html() %}
             <input type="hidden" name="cmd" value="restore">
             <input type="hidden" name="sde_id" value="{{ sde.sde_id }}">
             <input type="hidden" name="trashed_at" value="{{ entry.trashed_at }}">

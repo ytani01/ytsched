@@ -169,6 +169,24 @@ class WebTestBase(tornado.testing.AsyncHTTPTestCase):
         path = self.data_path(date)
         return path.parent / (path.name + ".bak")
 
+    def fetch(self, path, raise_error=False, **kwargs):
+        """POST のときだけ、GET で ``_xsrf`` cookie を取って cookie と
+        本文の両方へ付ける（TODO-206）。``xsrf=False`` で付けない。
+        """
+        xsrf = kwargs.pop("xsrf", True)
+        if xsrf and kwargs.get("method") == "POST":
+            res = super().fetch(URL_PREFIX + "/")
+            token = re.search(
+                r"_xsrf=([^;]+)", res.headers["Set-Cookie"]
+            ).group(1)  # type: ignore[union-attr]
+            kwargs["headers"] = {
+                **kwargs.get("headers", {}),
+                "Cookie": f"_xsrf={token}",
+            }
+            kwargs["body"] = f"{kwargs.get('body') or ''}&_xsrf={token}"
+
+        return super().fetch(path, raise_error, **kwargs)
+
     def get_body(self, path, **args):
         """GET して、200 を確かめて、本文を返す。"""
         if args:
@@ -3158,3 +3176,36 @@ def test_templates_have_no_inline_event_handlers():
 
     for template in templates.glob("*.html"):
         assert pattern.search(template.read_text(encoding="utf-8")) is None
+
+
+class TestXsrf(WebTestBase):
+    """POST の CSRF 対策（TODO-206）"""
+
+    def test_post_without_token_is_403(self):
+        res = self.fetch(
+            URL_PREFIX + "/",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode({"date": "2026-01-01"}),
+            xsrf=False,
+        )
+
+        assert res.code == 403
+        assert "一覧へ戻って" in res.body.decode("utf-8")
+
+    def test_forms_have_xsrf_hidden(self):
+        """edit.html・trash.html・main.html の POST フォームにトークンが出る。"""
+        self.write_data(
+            datetime.date(2026, 1, 1),
+            [mk_dataline(sde_id="a1", title="x", date="2026-01-01")],
+        )
+        self.post_body(
+            URL_PREFIX + "/", cmd="del", orig_date="2026-01-01", sde_id="a1"
+        )
+        edit = self.get_body(URL_PREFIX + "/edit", date="2026-01-01")
+        trash = self.get_body(URL_PREFIX + "/trash")
+        main = self.get_body(URL_PREFIX + "/")
+
+        assert main.count('name="_xsrf"') == 3
+        assert edit.count('name="_xsrf"') == 1
+        assert trash.count('name="_xsrf"') == 2

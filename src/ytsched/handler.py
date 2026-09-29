@@ -92,6 +92,8 @@ class HandlerBase(tornado.web.RequestHandler):
     # 利用者に説明を出すエラー (TODO-204)。ここに無いもの (404・500 など)
     # は tornado の既定の画面のまま
     ERROR_MESSAGES: ClassVar[dict[int, str]] = {
+        # 403 を出すのは xsrf の検査だけ (TODO-206)
+        403: "画面が古くなっています。一覧へ戻って、もう一度操作してください。",
         409: "この予定は、編集画面を開いたあとで変更されています。"
         "一覧から開き直してください。",
     }

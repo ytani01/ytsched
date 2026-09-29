@@ -36,6 +36,7 @@
   </div>
   <form id="input_form" name="input_form"
         action="{{ post_url }}" method="POST">
+    {% module xsrf_form_html() %}
 
     {% if orig_date %}
     <input id="orig_date" name="orig_date"

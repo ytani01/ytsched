@@ -99,3 +99,11 @@ def test_autoreload_with_debug(tmp_path):
     svr = WebServer(datadir=str(tmp_path / "data"), debug=True)
 
     assert svr._app.settings.get("autoreload") is True
+
+
+def test_xsrf_settings(tmp_path):
+    """CSRF 対策が本番の Application で有効（TODO-206）。"""
+    settings = WebServer(datadir=str(tmp_path / "data"))._app.settings
+
+    assert settings["xsrf_cookies"] is True
+    assert settings["xsrf_cookie_kwargs"] == {"expires_days": 365}

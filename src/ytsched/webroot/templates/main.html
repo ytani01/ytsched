@@ -365,6 +365,7 @@
       <div class="my-menu-search-col my-fs-medium my-row-end">
         <form id="form_search" name="form_search"
           action="{{ url_prefix }}" method="POST">
+          {% module xsrf_form_html() %}
 
           <svg class="my-icon my-icon-xl my-btn my-align-middle"
             data-action="submit-form" data-form-id="form_search">
@@ -420,6 +421,7 @@
       <div class="my-footer-todo-col">
         <form id="todo_days_form" name="todo_days_form"
           action="{{ url_prefix }}" method="POST">
+          {% module xsrf_form_html() %}
           <svg class="my-icon my-icon-xl my-align-middle">
             <use href="{{ static_url('icons/icons.svg') }}#list"></use>
           </svg>
@@ -444,6 +446,7 @@
       <div class="my-footer-filter-col my-fs-medium">
         <form id="form_filter" name="form_filter"
           action="{{ url_prefix }}" method="POST">
+          {% module xsrf_form_html() %}
           <svg class="my-icon my-icon-xl my-btn my-align-middle"
             data-action="submit-form" data-form-id="form_filter">
             <use href="{{ static_url('icons/icons.svg') }}#filter"></use>

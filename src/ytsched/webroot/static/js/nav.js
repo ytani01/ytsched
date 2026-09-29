@@ -189,6 +189,12 @@
     form.style.display = "none";
     document.body.appendChild(form);
 
+    // tornadoの xsrf_cookiesが要求するトークン (TODO-206)
+    const xsrf = document.cookie.match(/(?:^|; )_xsrf=([^;]*)/);
+    if (xsrf) {
+      data = { ...data, _xsrf: decodeURIComponent(xsrf[1]) };
+    }
+
     if (data !== undefined) {
       for (let param in data) {
         const input = document.createElement("input");

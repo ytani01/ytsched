@@ -211,9 +211,13 @@ classDiagram
   `handler_util.py` にある（`convert_value()` / `str2date()` /
   `check_date()` / `date_range()` / `check_int_range()`。
   TODO-027・TODO-081）。
-  `write_error()` は、`ERROR_MESSAGES` にあるステータス（いまは 409）だけ
+  `write_error()` は、`ERROR_MESSAGES` にあるステータス（いまは 403・409）だけ
   `error.html` で日本語の説明と一覧へのリンクを出す。404・500 などは
-  tornado の既定の画面のまま（TODO-204）
+  tornado の既定の画面のまま（TODO-204）。
+  403 は CSRF 対策の `xsrf_cookies` が出す（TODO-206）。**POST のフォームには
+  `{% module xsrf_form_html() %}` を入れる。** `nav.js` の `doPost()` は
+  `_xsrf` cookie を読んで hidden に足す。`_xsrf` cookie は 365 日持たせる。
+  テストの `WebTestBase.fetch()` は POST のときだけトークンを付ける
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
   受け取り（`cmd=add/fix/update/del`）を兼ねる。`MainBinder` がフォーム・
   クエリ引数の解析と検証を、`MainViewBuilder` が週データとテンプレートへ
