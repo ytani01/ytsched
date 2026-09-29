@@ -64,6 +64,10 @@
 基準そのものは `~/.claude/CLAUDE.md` にある。TODO-001〜016 を見直して
 その基準を決めたときの材料は `archives/todo/TODO-017` にある。
 
+定義は implementer / verifier / reviewer / wording の 4 つ。lint・型チェック・
+テストを決まった順に走らせるだけのときは、verifier を haiku に上書きして
+「定型の実行」と頼む（TODO-203）。
+
 ### トークン消費量の記録
 
 集計の手順（`token-usage.py` の使い方、`--since` の渡し方）は
