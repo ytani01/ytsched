@@ -2,7 +2,7 @@
 name: reviewer
 description: 変更されたコードの質を見る。正しさ、設計、プロジェクトの決まりからの逸脱。コードは直さない。main（管理者）から名指しで依頼されたときだけ使う。自動では起動しない。
 tools: Read, Write, Bash, Grep, Glob
-model: sonnet
+model: opus
 effort: high
 color: red
 ---
@@ -49,6 +49,6 @@ color: red
 - **git commit / git tag はしない。** main（管理者）が行う
 - **`TODO.md` は編集しない。** main が行う
 - 詳しい報告は `archives/agents/TODO-NNN/<自分の名前>-report.md` に書く。
-  **返事は 5 行以内**にして、(1) 終わったかどうか (2) 報告ファイルのパス
+  **返事は短くして**、(1) 終わったかどうか (2) 報告ファイルのパス
   (3) main の判断が要る点、だけを書く。**ファイルの全文を返事に貼らない**
 - 日本語で書く

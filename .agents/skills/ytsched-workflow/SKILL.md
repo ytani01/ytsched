@@ -34,7 +34,7 @@ ytsched プロジェクトにおける開発・タスク管理の標準手順。
 
 1. `archives/todo/TODO-NNN. タイトル.md` を作成（きっかけ、やったこと、テスト、見込み/実施/消費トークン表）。
 2. `TODO.md` から完了項目の節を削除する（一覧は `archives/index.md` を見る）。
-3. 利用者が明示して依頼した場合だけ、`wording-check` スキルで語彙確認。
+3. 管理者（main）が明示して依頼した場合だけ、`wording-check` スキルで語彙確認。
 4. コミット（完了時）:
    ```bash
    git commit -m "feat(...): …（TODO-NNN）"
