@@ -1532,3 +1532,46 @@ def test_sd_max_version_ignores_trash_file(tmp_path):
     sd = SchedData(str(tmp_path))
 
     assert sd.max_version(UUID_C) == 1
+
+
+def test_save_failure_keeps_original_and_backup(tmp_path, monkeypatch):
+    """書き込みの途中で失敗しても、元のファイルと ``.bak`` は変わらない。
+
+    一時ファイルも残さない。
+    """
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.save()  # `.bak` に DATALINE1 が入る
+    backup = path.parent / (path.name + SchedDataFile.BACKUP_EXT)
+    sdf.add_sde(mk_sde(sde_id="id-9", title="追加"))
+
+    def boom(self):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(SchedDataEnt, "mk_dataline", boom)
+    with pytest.raises(OSError):
+        sdf.save()
+
+    assert path.read_text(encoding="utf-8") == DATALINE1 + "\n"
+    assert backup.read_text(encoding="utf-8") == DATALINE1 + "\n"
+    assert sorted(p.name for p in path.parent.iterdir()) == sorted(
+        [path.name, backup.name]
+    )
+
+
+def test_save_keeps_permission(tmp_path):
+    """元のファイルのパーミッションを引き継ぐ。無いときは umask に従う。"""
+    path = write_data(tmp_path, DATE1, [DATALINE1])
+    path.chmod(0o640)
+    sdf = SchedDataFile(DATE1, topdir=str(tmp_path))
+    sdf.save()
+    assert path.stat().st_mode & 0o777 == 0o640
+
+    old = os.umask(0o022)
+    try:
+        new = SchedDataFile(datetime.date(2021, 4, 1), topdir=str(tmp_path))
+        new.add_sde(mk_sde(sde_id="id-8"))
+        new.save()
+    finally:
+        os.umask(old)
+    assert new.pathname.stat().st_mode & 0o777 == 0o644

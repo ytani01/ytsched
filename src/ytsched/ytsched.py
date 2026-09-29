@@ -759,24 +759,42 @@ class SchedDataFile:
         """
         self.__log.debug("")
 
-        if self.pathname.exists() and self.pathname.stat().st_size > 0:
-            backup_pathname = self.pathname.with_name(
-                self.pathname.name + self.BACKUP_EXT
-            )
-            shutil.move(self.pathname, backup_pathname)
-
         self.pathname.parent.mkdir(parents=True, exist_ok=True)
 
-        with self.pathname.open(mode="wb") as f:
-            for sde in self.sde:
-                line = sde.mk_dataline()
-                f.write(line.encode(self.ENCODING) + b"\n")
+        # 同じディレクトリの一時ファイルへ書き終えてから差し替える
+        # （途中で失敗しても、元のファイルと ``.bak`` は残る）。
+        # ``open("xb")`` は umask に従ったパーミッションで作るので、
+        # 元のファイルが無いときはそのままでよい。
+        tmp_pathname = self.pathname.with_name(
+            f".{self.pathname.name}.{uuid.uuid4().hex}"
+        )
+        try:
+            with tmp_pathname.open(mode="xb") as f:
+                for sde in self.sde:
+                    line = sde.mk_dataline()
+                    f.write(line.encode(self.ENCODING) + b"\n")
 
-            f.writelines(raw_line + b"\n" for raw_line in self.skipped_lines)
+                f.writelines(
+                    raw_line + b"\n" for raw_line in self.skipped_lines
+                )
 
-            f.flush()
-            st = os.fstat(f.fileno())
-            self._stat_key = (st.st_mtime, st.st_size)
+                f.flush()
+                st = os.fstat(f.fileno())
+
+            if self.pathname.exists():
+                tmp_pathname.chmod(self.pathname.stat().st_mode)
+                if self.pathname.stat().st_size > 0:
+                    backup_pathname = self.pathname.with_name(
+                        self.pathname.name + self.BACKUP_EXT
+                    )
+                    shutil.move(self.pathname, backup_pathname)
+
+            tmp_pathname.replace(self.pathname)
+        except BaseException:
+            tmp_pathname.unlink(missing_ok=True)
+            raise
+
+        self._stat_key = (st.st_mtime, st.st_size)
 
     def add_sde(self, sde: SchedDataEnt) -> None:
         """
