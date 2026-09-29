@@ -130,7 +130,11 @@ class TrashHandler(HandlerBase):
             sde.place,
             sde.detail,
         )
-        self._sd.add_sde(restored.date, restored)
+        # ToDo は ``ToDo.jsonl`` へ入れる（``SchedUpdater.cmd_add()`` と同じ）。
+        # 日付のファイルへ入れると、一覧のリンクから編集画面を開けない（TODO-205）
+        self._sd.add_sde(
+            None if restored.is_todo() else restored.date, restored
+        )
         self._sd.save()
         self.redirect(f"{self._app_info.url_prefix}?date={restored.date}")
 

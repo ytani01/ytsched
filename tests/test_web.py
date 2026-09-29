@@ -2528,6 +2528,59 @@ class TestTrashHandler(WebTestBase):
             encoding="utf-8"
         ) == before
 
+    def test_restore_todo_goes_to_todo_file_and_edit_opens(self):
+        """ToDo の復活先は ``ToDo.jsonl``。一覧のリンクで編集画面が開く（TODO-205）。"""
+        todo = json.loads(
+            mk_dataline(
+                sde_id="id-t",
+                time_start=None,
+                time_end=None,
+                type="□買い物",
+                title="ノートを買う",
+                place="",
+                detail="",
+            )
+        )
+        (self.datadir / "trash.jsonl").write_text(
+            json.dumps(
+                {"trashed_at": "2026-08-29T09:10:00", **todo},
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        res = self.fetch(
+            URL_PREFIX + "/trash",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(
+                {
+                    "cmd": "restore",
+                    "sde_id": "id-t",
+                    "trashed_at": "2026-08-29T09:10:00",
+                }
+            ),
+            follow_redirects=False,
+            raise_error=False,
+        )
+
+        assert res.code == 302
+        assert not self.data_path(DATE1).exists()
+        restored = json.loads(
+            (self.datadir / "ToDo.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()[0]
+        )
+        assert restored["title"] == "(復活)ノートを買う"
+        body = self.get_body(
+            URL_PREFIX + "/edit",
+            date=DATE1_STR,
+            sde_id=restored["sde_id"],
+            todo_flag="true",
+        )
+        assert "(復活)ノートを買う" in body
+
     def test_get_shows_version_and_groups_by_uuid_part(self):
         """版が違っても同じ UUID 部分でグループになり、版が表示される(TODO-171)。"""
         uuid_a = "3f2a1b0c-4d5e-6f70-8192-a3b4c5d6e7f8"

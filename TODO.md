@@ -1,32 +1,10 @@
 # TODO
 
-**残っている項目: TODO-205、TODO-207〜209。** これまでに 205 件を決着させた。
+**残っている項目: TODO-207〜209。** これまでに 206 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-210` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
-
----
-
-## TODO-205. ゴミ箱から復活した ToDo が日付のファイルに入るのを直す
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5.5 / effort medium | main（実装）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
-
-- [ ] `TrashHandler._restore()` で、`is_todo()` なら `ToDo.jsonl`
-      （`add_sde(None, …)`）へ入れる。`SchedUpdater.cmd_add()` と同じ分け方
-- [ ] ToDo を復活させて、一覧のリンク（`todo_flag=true`）から編集画面が
-      開けるテストを足す
-
-いまは `add_sde(restored.date, …)` なので、ToDo も締切日のファイルへ入る。
-一覧のリンクは `is_todo()` で `todo_flag=true` を付け、`EditHandler` は
-`ToDo.jsonl` を探すので 404 になる。`sched_load.py` の
-`load_month_cal()` のコメントは「正常な操作では混ざらない」としているが、
-復活はその例外になっている。
-
-既に日付のファイルへ入ってしまった ToDo には何もしない（利用者が決めた。
-2026-09-30）。
 
 ---
 
