@@ -30,7 +30,7 @@ src/ytsched/
   __main__.py      # click による CLI（`ytsched` コマンド）
   webroot/
     templates/      # tornado のテンプレート
-                    # （base/main/month/mini_cal/edit/sde/trash.html。TODO-137）
+                    # （base/main/month/mini_cal/edit/sde/trash/error.html。TODO-137）
     static/         # CSS・アイコン・manifest.json・favicon
       js/           # ブラウザ側のスクリプト 11 本（後述）
 ```
@@ -129,6 +129,7 @@ classDiagram
         +get_conf()
         +set_conf()
         +on_finish()
+        +write_error()
     }
     class AppInfo {
         <<frozen dataclass>>
@@ -155,6 +156,7 @@ classDiagram
         +post()
     }
     class SchedUpdater {
+        +is_conflict(form)
         +exec_update(form)
         +cmd_add()
         +cmd_del()
@@ -208,7 +210,10 @@ classDiagram
   引数や設定値の変換と検証は、`self` を使わない純粋な関数として
   `handler_util.py` にある（`convert_value()` / `str2date()` /
   `check_date()` / `date_range()` / `check_int_range()`。
-  TODO-027・TODO-081）
+  TODO-027・TODO-081）。
+  `write_error()` は、`ERROR_MESSAGES` にあるステータス（いまは 409）だけ
+  `error.html` で日本語の説明と一覧へのリンクを出す。404・500 などは
+  tornado の既定の画面のまま（TODO-204）
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
   受け取り（`cmd=add/fix/update/del`）を兼ねる。`MainBinder` がフォーム・
   クエリ引数の解析と検証を、`MainViewBuilder` が週データとテンプレートへ
@@ -216,6 +221,12 @@ classDiagram
   実行**で、`post()` は描かずに `redirect()` する（POST-Redirect-GET、
   TODO-050）。リロードで再送信にならないようにするため。`cmd` を
   実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
+  `fix`/`update` で送られた `sde_id` が `orig_date` のファイルにもう無い
+  （古い編集画面から保存した、同じフォームを 2 回送った）ときは、
+  何も書かずに 409 を返す（`SchedUpdater.is_conflict()`。TODO-204）。
+  そのまま書くと、同じ `sde_id` の予定が 2 件できるため。
+  `sde_id` が空なら新規作成として判定しないので、編集画面の新規
+  （`new_flag`）は `sde_id` の欄を空で出す。
   一覧に出すのは、**渡された日を含む週の月曜から日曜までの 7 日**
   （`SchedLoader.load_week()`。TODO-049）。検索したときだけは週で
   区切らず、条件に当たった日を古いほうへさかのぼって並べる

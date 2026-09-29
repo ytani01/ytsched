@@ -23,7 +23,7 @@ from ytsched.edit_handler import EditHandler
 from ytsched.main_handler import MainHandler
 from ytsched.sched_update import SchedUpdater
 from ytsched.trash import TrashFile
-from ytsched.ytsched import SchedDataEnt, SchedDataFile
+from ytsched.ytsched import SchedDataEnt
 
 DATE1 = datetime.date(2021, 3, 1)
 DATE1_STR = "2021-03-01"
@@ -1748,7 +1748,11 @@ class TestUpdate(WebTestBase):
         """更新したはずのデータが見つからないときは 404 (TODO-016)。"""
         sde_id = self.add_sde()
 
-        with mock.patch.object(SchedDataFile, "get_sde", return_value=None):
+        # ``SchedDataFile.get_sde`` を丸ごと差し替えると、保存の前の
+        # 409 の判定 (TODO-204) に先に引っかかる。読み直しだけを外す
+        with mock.patch.object(
+            SchedUpdater, "get_modified_sde", return_value=None
+        ):
             res = self.fetch(
                 URL_PREFIX + "/",
                 method="POST",
@@ -1885,6 +1889,138 @@ class TestUpdate(WebTestBase):
         dates = {json.loads(line)["date"] for line in lines}
         assert titles == {"ノートを買う #1", "ノートを買う #2"}
         assert dates == {DATE1_STR}
+
+
+class TestConflict(WebTestBase):
+    """古い編集画面から保存したときの 409 (TODO-204)
+
+    版が進んだあとに古い ``sde_id`` で ``fix``/``update`` を送ると、
+    前は削除が空振りし、同じ次の版がもう 1 行できていた。
+    """
+
+    def post_res(self, **args):
+        """POST して、レスポンスをそのまま返す（200 を確かめない）。"""
+        return self.fetch(
+            URL_PREFIX + "/",
+            method="POST",
+            headers=FORM_HEADERS,
+            body=urlencode(args),
+        )
+
+    def post_edit(
+        self, cmd, sde_id, title, orig_date: str | None = DATE1_STR
+    ):
+        args = {
+            "cmd": cmd,
+            "sde_id": sde_id,
+            "date": DATE1_STR,
+            "sde_type": "会議",
+            "title": title,
+        }
+        if orig_date:
+            args["orig_date"] = orig_date
+        return self.post_res(**args)
+
+    def lines(self, path):
+        return path.read_text(encoding="utf-8").splitlines()
+
+    def add_sde(self):
+        """DATE1 に 1 件追加して、その sde_id を返す。"""
+        res = self.post_edit("add", "", "新しい予定", orig_date=None)
+        assert res.code == 200
+        lines = self.lines(self.data_path(DATE1))
+        assert len(lines) == 1
+        return json.loads(lines[0])["sde_id"]
+
+    def assert_conflict(self, res):
+        assert res.code == 409
+        body = res.body.decode("utf-8")
+        assert "編集画面を開いたあとで変更されています" in body
+        assert f'href="{URL_PREFIX}/"' in body
+
+    def test_update_from_other_tab_is_409(self):
+        """2 つのタブで同じ予定を編集し、あとから保存したほうは 409。"""
+        sde_id = self.add_sde()
+        assert self.post_edit("update", sde_id, "タブ A").code == 200
+        path = self.data_path(DATE1)
+        before = path.read_bytes()
+        trash_before = (self.datadir / "trash.jsonl").read_bytes()
+
+        self.assert_conflict(self.post_edit("update", sde_id, "タブ B"))
+
+        # データもゴミ箱も変わらない
+        assert path.read_bytes() == before
+        assert (self.datadir / "trash.jsonl").read_bytes() == trash_before
+        lines = self.lines(path)
+        assert len(lines) == 1
+        assert json.loads(lines[0])["title"] == "タブ A"
+
+    def test_fix_sent_twice_is_409(self):
+        """同じフォームを 2 回送ると、2 回目は 409。1 回目は保存済み。"""
+        sde_id = self.add_sde()
+        assert self.post_edit("fix", sde_id, "変更後").code == 200
+
+        self.assert_conflict(self.post_edit("fix", sde_id, "変更後"))
+
+        lines = self.lines(self.data_path(DATE1))
+        assert len(lines) == 1
+        assert json.loads(lines[0])["sde_id"] == SchedDataEnt.next_id(sde_id)
+
+    def test_todo_fix_sent_twice_is_409(self):
+        """ToDo (``orig_date`` が無い) も ``ToDo.jsonl`` を見て 409。"""
+        sde_id = SchedDataEnt.new_id()
+        todo = self.datadir / "ToDo.jsonl"
+        todo.write_text(
+            mk_dataline(
+                sde_id=sde_id,
+                time_start=None,
+                time_end=None,
+                type="□買い物",
+                title="ノートを買う",
+                place="",
+                detail="",
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        def post():
+            return self.post_res(
+                cmd="fix",
+                sde_id=sde_id,
+                date=DATE1_STR,
+                sde_type="□買い物",
+                title="ノートを買う(変更)",
+            )
+
+        assert post().code == 200
+        self.assert_conflict(post())
+        assert len(self.lines(todo)) == 1
+
+    def test_new_from_edit_page_is_not_409(self):
+        """編集画面の新規から保存しても 409 にしない。
+
+        画面が出す ``sde_id``・``orig_date`` をそのまま送る。新規の画面が
+        仮の ID を出していると、どのファイルにも無い ID として 409 に
+        なっていた（レビューで見つかった）。
+        """
+        body = self.get_body(URL_PREFIX + "/edit", date=DATE1_STR)
+        match = re.search(r'id="sde_id"[^>]*value="([^"]*)"', body)
+        assert match is not None
+
+        res = self.post_edit(
+            "fix", match.group(1), "新規", orig_date=orig_date_in(body)
+        )
+
+        assert res.code == 200
+        assert len(self.lines(self.data_path(DATE1))) == 1
+
+    def test_404_keeps_default_page(self):
+        """409 以外は tornado の既定の画面のまま。"""
+        res = self.fetch(URL_PREFIX + "/edit?sde_id=no-such-id")
+
+        assert res.code == 404
+        assert "編集画面を開いたあとで" not in res.body.decode("utf-8")
 
 
 class TestInvalidUpdateArgs(WebTestBase):

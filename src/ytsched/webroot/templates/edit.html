@@ -155,10 +155,12 @@
       </div><!-- my-edit-detail-row -->
 
       <!-- ID -->
+      {# 新規では空で送る。仮の ID を送ると、どのファイルにも無い
+         ID として 409 になる (TODO-204) #}
       <div id="div_id" class="my-edit-id">
         <div class="my-edit-id-col">
           <input id="sde_id" name="sde_id" size="45"
-                 type="text" value="{{ sde.sde_id }}" readonly>
+                 type="text" value="{% if not new_flag %}{{ sde.sde_id }}{% end %}" readonly>
         </div><!-- my-edit-id-col -->
       </div><!-- my-edit-id -->
 

@@ -9,6 +9,7 @@ __author__ = "ytani01"
 __date__ = "2021/01"
 
 import dataclasses
+from typing import ClassVar
 
 import tornado.web
 
@@ -49,6 +50,7 @@ class HandlerBase(tornado.web.RequestHandler):
     HTML_MAIN = "main.html"
     HTML_EDIT = "edit.html"
     HTML_TRASH = "trash.html"
+    HTML_ERROR = "error.html"
 
     def __init__(self, app, req, **kwargs):
         """Constructor
@@ -86,6 +88,31 @@ class HandlerBase(tornado.web.RequestHandler):
         self._sd: SchedData = sd
         self._app_info = app_info
         self._conf = conf
+
+    # 利用者に説明を出すエラー (TODO-204)。ここに無いもの (404・500 など)
+    # は tornado の既定の画面のまま
+    ERROR_MESSAGES: ClassVar[dict[int, str]] = {
+        409: "この予定は、編集画面を開いたあとで変更されています。"
+        "一覧から開き直してください。",
+    }
+
+    def write_error(self, status_code: int, **kwargs) -> None:
+        """``ERROR_MESSAGES`` にあるものだけ、日本語の説明と一覧への
+        リンクを出す (TODO-204)。
+        """
+        message = self.ERROR_MESSAGES.get(status_code)
+        if message is None:
+            super().write_error(status_code, **kwargs)
+            return
+
+        self.render(
+            self.HTML_ERROR,
+            title=self._app_info.title,
+            version=self._app_info.version,
+            url_prefix=self._app_info.url_prefix,
+            status_code=status_code,
+            message=message,
+        )
 
     def get_conf(self, name):
         """設定値を返す。無ければ ``None`` を返す。"""

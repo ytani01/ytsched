@@ -155,6 +155,21 @@ class SchedUpdater:
         self.__log.debug(f"date={date}, modified_sde_id={modified_sde_id}")
         return date, modified_sde_id
 
+    def is_conflict(self, form: SchedUpdateForm) -> bool:
+        """``fix``/``update`` で送られた ``sde_id`` が、``orig_date`` の
+        ファイルにもう無ければ真 (TODO-204)。
+
+        編集画面を開いたあとで、別のタブや 2 回目の送信で版が進んで
+        いると、``cmd_del()`` は空振りし、``next_id()`` が既にある版を
+        もう一度作る。そのまま書くと同じ ``sde_id`` が 2 行になるので、
+        何も書かずに断る。409 にするのは呼び出し側。
+
+        ``sde_id`` が空なのは新規作成なので、見ない。
+        """
+        if form.cmd not in ["fix", "update"] or not form.sde_id:
+            return False
+        return self._sd.get_sde(form.orig_date, form.sde_id) is None
+
     def get_modified_sde(
         self, date: datetime.date | None, sde_id: str | None
     ) -> SchedDataEnt | None:

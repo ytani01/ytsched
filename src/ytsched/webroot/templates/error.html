@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{# HandlerBase.write_error() が出す (TODO-204) #}
+{% block content %}
+<main>
+  <p>{{ message }}</p>
+  <p><a href="{{ url_prefix }}">一覧へ戻る</a></p>
+  <p class="my-fs-small">({{ status_code }})</p>
+</main>
+{% end %}

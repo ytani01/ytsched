@@ -97,9 +97,16 @@ class MainHandler(HandlerBase):
         cmd = self.get_argument("cmd", None)
         if cmd not in ["add", "fix", "update", "del"]:
             return None, None
-        modified_date, modified_sde_id = self._updater.exec_update(
-            self._binder.get_update_form(cmd)
-        )
+        form = self._binder.get_update_form(cmd)
+        if self._updater.is_conflict(form):
+            raise tornado.web.HTTPError(
+                409,
+                "sde already changed: orig_date=%s, sde_id=%s (cmd=%s)",
+                form.orig_date,
+                form.sde_id,
+                cmd,
+            )
+        modified_date, modified_sde_id = self._updater.exec_update(form)
         if cmd == "del":
             return modified_date, None
         sde = self._updater.get_modified_sde(modified_date, modified_sde_id)
