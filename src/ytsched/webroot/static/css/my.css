@@ -648,15 +648,19 @@ textarea {
     to   { transform: rotate(360deg); }
 }
 
-/* 追加・修正・削除の直後に、更新した日付と予定を 3 秒点滅 (TODO-213) */
+/*
+ * 追加・修正・削除の直後に、更新した日付と予定を 5 秒 (6 回) 点滅 (TODO-213)。
+ * 色が補間されると黄色の出ている時間が短く見えるので、step-end で
+ * 中間の色を出さずに切り替える (TODO-215)
+ */
 .my-flash {
-    animation: my-flash 3s ease-out;
+    animation: my-flash calc(5s / 6) step-end 6;
 }
 
 /* 背景色を塗り替えると消えている相で元の色まで消えるので、内側の影で重ねる */
 @keyframes my-flash {
-    0%, 33%, 66% { box-shadow: inset 0 0 0 100vmax #ffeb3b; }
-    16%, 50%, 83%, 100% { box-shadow: none; }
+    0% { box-shadow: inset 0 0 0 100vmax #ffeb3b; }
+    50%, 100% { box-shadow: none; }
 }
 
 /*

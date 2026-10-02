@@ -464,6 +464,30 @@
         ].map((el) => el.closest(".my-sde")),
       );
     }
+    // 予定の行が画面の外や固定の帯の裏にあると点滅に気づけないので、
+    // 上下の帯の間に入るようにずらす (TODO-215)。予定の行があればそちらを
+    // 見る。日付の欄は onloadHdr() の scrollToDate() が合わせ済みで、
+    // 予定の多い日は画面より高い。週のゲージは検索モードでは無い
+    const target = els.findLast((el) => el);
+    if (target) {
+      const margin = 30;
+      const top =
+        document.getElementById("week_bar")?.getBoundingClientRect().bottom ??
+        0;
+      const bottom = (
+        document.getElementById("footer_gauge_bar") ||
+        document.getElementById("menu_bar")
+      ).getBoundingClientRect().top;
+      const r = target.getBoundingClientRect();
+      let dy = 0;
+      if (r.bottom > bottom) {
+        dy = r.bottom - bottom + margin;
+      }
+      // 上端が上の帯に隠れるなら、下端より上端を見せる
+      dy = Math.min(dy, r.top - top - margin);
+      // "instant" でないと Bootstrap の scroll-behavior でアニメーションになる
+      scrollBy({ left: 0, top: dy, behavior: "instant" });
+    }
     els.forEach((el) => {
       if (!el) {
         return;

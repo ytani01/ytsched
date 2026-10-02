@@ -2890,6 +2890,63 @@ def test_flash_marks_date_and_sde_and_cleans_url(page, server, tmp_path):
     assert "sde_align=top" in page.url
 
 
+@pytest.mark.parametrize(
+    ("sde_align", "sde_id"),
+    [
+        ("top", "id-39"),  # 末尾の予定が下の帯より下にある
+        ("bottom", "id-0"),  # 先頭の予定が上の帯より上にある
+    ],
+)
+def test_flash_scrolls_sde_between_bars(
+    page, server, tmp_path, sde_align, sde_id
+):
+    """画面の外にある予定を点滅させるときは、上下の固定の帯の間まで
+    スクロールする（TODO-215）。"""
+    import json
+
+    date = datetime.date.today()
+    path = tmp_path / "data" / date.strftime("%Y") / date.strftime("%m")
+    path.mkdir(parents=True, exist_ok=True)
+    lines = [
+        json.dumps(
+            {
+                "sde_id": f"id-{i}",
+                "date": date.isoformat(),
+                "time_start": f"{i % 24:02}:00",
+                "time_end": "",
+                "type": "",
+                "title": f"予定{i}",
+                "place": "",
+                "detail": "",
+            },
+            ensure_ascii=False,
+        )
+        for i in range(40)
+    ]
+    (path / (date.strftime("%d") + ".jsonl")).write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
+    page.set_viewport_size(SHORT_VIEWPORT)
+    page.goto(
+        f"{server}?date={date}&sde_align={sde_align}&flash_sde_id={sde_id}",
+        wait_until="load",
+    )
+    page.wait_for_selector(".my-sde.my-flash")
+
+    r = page.evaluate(
+        """() => ({
+            sde: document.querySelector('.my-sde.my-flash')
+                .getBoundingClientRect().toJSON(),
+            top: document.getElementById('week_bar')
+                .getBoundingClientRect().bottom,
+            bottom: document.getElementById('footer_gauge_bar')
+                .getBoundingClientRect().top,
+        })"""
+    )
+    assert r["top"] <= r["sde"]["top"]
+    assert r["sde"]["bottom"] <= r["bottom"]
+
+
 def test_flash_class_is_removed_after_animation(page, server, tmp_path):
     """点滅が終わったら class が外れる（週を移って戻ったときに
     点滅し直さないため）。"""
@@ -2897,5 +2954,5 @@ def test_flash_class_is_removed_after_animation(page, server, tmp_path):
 
     page.wait_for_function(
         "document.querySelectorAll('.my-flash').length === 0",
-        timeout=6000,
+        timeout=8000,
     )
