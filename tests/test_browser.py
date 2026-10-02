@@ -2858,3 +2858,44 @@ def test_gauge_drag_needle_does_not_pass_this_week_on_reload_month(
 
     assert "view=month" in page.url
     _assert_needle_did_not_pass_this_week(page, target_percent)
+
+
+def _open_flash(page, server, tmp_path, date):
+    """``flash_*`` 付きの URL（追加・修正・削除の直後）を開く。"""
+    _write_sched(tmp_path, date, "点滅する予定")
+    page.goto(
+        f"{server}?date={date}&sde_align=top&flash_date={date}"
+        f"&flash_sde_id=id-{date}",
+        wait_until="load",
+    )
+    page.wait_for_selector("#main", state="visible")
+
+
+def test_flash_marks_date_and_sde_and_cleans_url(page, server, tmp_path):
+    """日付の欄と予定の行に ``my-flash`` が付き、URL から
+    ``flash_*`` だけが消える（TODO-213）。"""
+    date = datetime.date.today()
+    _open_flash(page, server, tmp_path, date)
+
+    assert page.locator(f"#date-{date} .my-date-col.my-flash").count() == 1
+    assert page.locator(".my-sde.my-flash").count() >= 1
+    assert (
+        page.locator(".my-flash").count()
+        == page.locator(
+            f"#date-{date} .my-date-col.my-flash, .my-sde.my-flash"
+        ).count()
+    )
+    assert "flash_" not in page.url
+    assert f"date={date}" in page.url
+    assert "sde_align=top" in page.url
+
+
+def test_flash_class_is_removed_after_animation(page, server, tmp_path):
+    """点滅が終わったら class が外れる（週を移って戻ったときに
+    点滅し直さないため）。"""
+    _open_flash(page, server, tmp_path, datetime.date.today())
+
+    page.wait_for_function(
+        "document.querySelectorAll('.my-flash').length === 0",
+        timeout=6000,
+    )

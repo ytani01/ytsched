@@ -231,7 +231,9 @@ classDiagram
   クエリ引数の解析と検証を、`MainViewBuilder` が週データとテンプレートへ
   渡す値を組み立てる（TODO-106）。**`GET` が描画、`POST` が
   実行**で、`post()` は描かずに `redirect()` する（POST-Redirect-GET、
-  TODO-050）。リロードで再送信にならないようにするため。`cmd` を
+  TODO-050）。リロードで再送信にならないようにするため。追加・修正・削除では、リダイレクト先に
+  `flash_date` / `flash_sde_id` を付け、`main-page.js` が該当の日付と
+  予定を 3 秒点滅させて URL から消す（TODO-213）。`cmd` を
   実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
   `fix`/`update` で送られた `sde_id` が `orig_date` のファイルにもう無い
   （古い編集画面から保存した、同じフォームを 2 回送った）ときは、

@@ -55,7 +55,7 @@ class MainHandler(HandlerBase):
             f"request.body_arguments={self.request.body_arguments}"
         )
         self._binder.update_conf_args()
-        modified_date, edit_url = self.exec_cmd()
+        modified_date, flash_sde_id, edit_url = self.exec_cmd()
         if edit_url:
             self.redirect(edit_url)
             return
@@ -66,6 +66,9 @@ class MainHandler(HandlerBase):
                 {
                     "date": date,
                     "sde_align": self.get_argument("sde_align", None),
+                    # 一覧で該当の日付と予定を点滅させる (TODO-213)
+                    "flash_date": modified_date,
+                    "flash_sde_id": flash_sde_id,
                 },
             )
         )
@@ -92,11 +95,17 @@ class MainHandler(HandlerBase):
             path if not params else f"{path}?{urllib.parse.urlencode(params)}"
         )
 
-    def exec_cmd(self) -> tuple[datetime.date | None, str | None]:
-        """更新コマンドを実行し、必要なら編集画面の URL を返す。"""
+    def exec_cmd(
+        self,
+    ) -> tuple[datetime.date | None, str | None, str | None]:
+        """更新コマンドを実行する。
+
+        ``(日付, 点滅させる sde_id, 編集画面の URL)`` を返す。
+        sde_id は add / fix のときだけ入り、del と update では None。
+        """
         cmd = self.get_argument("cmd", None)
         if cmd not in ["add", "fix", "update", "del"]:
-            return None, None
+            return None, None, None
         form = self._binder.get_update_form(cmd)
         if self._updater.is_conflict(form):
             raise tornado.web.HTTPError(
@@ -108,7 +117,7 @@ class MainHandler(HandlerBase):
             )
         modified_date, modified_sde_id = self._updater.exec_update(form)
         if cmd == "del":
-            return modified_date, None
+            return modified_date, None, None
         sde = self._updater.get_modified_sde(modified_date, modified_sde_id)
         if sde is None:
             raise tornado.web.HTTPError(
@@ -122,12 +131,16 @@ class MainHandler(HandlerBase):
         if todo_flag:
             modified_date = sde.date
         if cmd == "update":
-            return modified_date, self.mkurl(
-                self._app_info.url_prefix + "edit/",
-                {
-                    "date": modified_date,
-                    "sde_id": modified_sde_id,
-                    "todo_flag": str(todo_flag).lower(),
-                },
+            return (
+                modified_date,
+                None,
+                self.mkurl(
+                    self._app_info.url_prefix + "edit/",
+                    {
+                        "date": modified_date,
+                        "sde_id": modified_sde_id,
+                        "todo_flag": str(todo_flag).lower(),
+                    },
+                ),
             )
-        return modified_date, None
+        return modified_date, modified_sde_id, None

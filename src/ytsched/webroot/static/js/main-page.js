@@ -436,6 +436,50 @@
     ytsched.dispGauge(ytsched.ytState.activeMonday);
   }; // onloadHdr()
 
+  /**
+   * 追加・修正・削除の直後に、該当する日付と予定を点滅させる (TODO-213)。
+   *
+   * POST のリダイレクト先に付く ``flash_date`` / ``flash_sde_id`` を読み、
+   * 点滅させたあと、リロードで繰り返さないよう URL から消す。
+   */
+  const flashUpdated = () => {
+    const url = new URL(location.href);
+    const date = url.searchParams.get("flash_date");
+    const sdeId = url.searchParams.get("flash_sde_id");
+    if (!date && !sdeId) {
+      return;
+    }
+    const els = [];
+    if (date) {
+      // 日付の行は背景が中の欄に覆われるので、日付の欄を点滅させる
+      els.push(
+        document.querySelector(`#date-${CSS.escape(date)} .my-date-col`),
+      );
+    }
+    if (sdeId) {
+      els.push(
+        // data-sde-id は内容欄にあるので、行全体 (.my-sde) を点滅させる
+        ...[
+          ...document.querySelectorAll(`[data-sde-id="${CSS.escape(sdeId)}"]`),
+        ].map((el) => el.closest(".my-sde")),
+      );
+    }
+    els.forEach((el) => {
+      if (!el) {
+        return;
+      }
+      el.classList.add("my-flash");
+      // 残すと、週を移って表示し直したときに点滅し直す。
+      // 点滅の途中で隠れると animationend ではなく animationcancel が届く
+      const off = () => el.classList.remove("my-flash");
+      el.addEventListener("animationend", off, { once: true });
+      el.addEventListener("animationcancel", off, { once: true });
+    });
+    url.searchParams.delete("flash_date");
+    url.searchParams.delete("flash_sde_id");
+    history.replaceState(history.state, "", url);
+  };
+
   window.ytsched.changeSearchN = (val) => {
     console.log(`changeSearchN: val=${val}`);
     // search_n は URL に載せない (TODO-050)
@@ -768,6 +812,7 @@
   };
 
   window.addEventListener("load", onloadHdr);
+  window.addEventListener("load", flashUpdated);
   // キーボードでの操作は一覧だけ (TODO-050)
   window.addEventListener("keydown", ytsched.keyHdr);
   // 画面内で完結した移動から戻ってきたとき (TODO-050)

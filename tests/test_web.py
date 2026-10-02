@@ -11,7 +11,7 @@ import json
 import re
 from pathlib import Path
 from unittest import mock
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 import pytest
 import tornado.testing
@@ -3195,6 +3195,67 @@ class TestRedirect(WebTestBase):
 
         assert res.code == 302
         assert f"date={DATE1_STR}" in res.headers["Location"]
+
+    def flash_query(self, res):
+        """リダイレクト先のクエリから ``flash_*`` だけを dict で返す。"""
+        query = parse_qs(urlsplit(res.headers["Location"]).query)
+        return {k: v[0] for k, v in query.items() if k.startswith("flash_")}
+
+    def test_add_flashes_date_and_sde(self):
+        """add は、日付と新しい予定の sde_id を点滅させる (TODO-213)。"""
+        res = self.post_no_redirect(
+            URL_PREFIX + "/",
+            cmd="add",
+            sde_id="",
+            date=DATE1_STR,
+            sde_type="会議",
+            title="新しい予定",
+        )
+        lines = self.data_path(DATE1).read_text(encoding="utf-8").splitlines()
+
+        assert self.flash_query(res) == {
+            "flash_date": DATE1_STR,
+            "flash_sde_id": json.loads(lines[0])["sde_id"],
+        }
+
+    def test_fix_flashes_destination_date_and_new_sde_id(self):
+        """fix は、移動先の日付と次の版の sde_id だけを点滅させる。"""
+        sde_id = self.add_sde()
+
+        res = self.post_no_redirect(
+            URL_PREFIX + "/",
+            cmd="fix",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date="2021-03-06",
+            sde_type="会議",
+            title="直した予定",
+        )
+
+        assert self.flash_query(res) == {
+            "flash_date": "2021-03-06",
+            "flash_sde_id": SchedDataEnt.next_id(sde_id),
+        }
+
+    def test_del_flashes_date_only(self):
+        """del は日付だけ点滅させる。"""
+        sde_id = self.add_sde()
+
+        res = self.post_no_redirect(
+            URL_PREFIX + "/",
+            cmd="del",
+            sde_id=sde_id,
+            orig_date=DATE1_STR,
+            date=DATE1_STR,
+        )
+
+        assert self.flash_query(res) == {"flash_date": DATE1_STR}
+
+    def test_post_without_cmd_has_no_flash(self):
+        """cmd の無い POST (設定変更だけ) は点滅させない。"""
+        res = self.post_no_redirect(URL_PREFIX + "/", date=DATE1_STR)
+
+        assert self.flash_query(res) == {}
 
     def test_search_str_is_not_in_url(self):
         """検索語は URL に入れず、``conf.json`` に保存する。

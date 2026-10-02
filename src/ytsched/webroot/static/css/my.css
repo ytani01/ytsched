@@ -648,6 +648,17 @@ textarea {
     to   { transform: rotate(360deg); }
 }
 
+/* 追加・修正・削除の直後に、更新した日付と予定を 3 秒点滅 (TODO-213) */
+.my-flash {
+    animation: my-flash 3s ease-out;
+}
+
+/* 背景色を塗り替えると消えている相で元の色まで消えるので、内側の影で重ねる */
+@keyframes my-flash {
+    0%, 33%, 66% { box-shadow: inset 0 0 0 100vmax #ffeb3b; }
+    16%, 50%, 83%, 100% { box-shadow: none; }
+}
+
 /*
  * 縦位置。inline 要素 (アイコン・入力欄) に付けるもので、Grid の
  * ``align-self`` とは別物。
