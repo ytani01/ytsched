@@ -45,12 +45,10 @@
     {% if d.date == today %}
     {% set td_class = td_class + ' my-mini-cal-day-today' %}
     {% end %}
-    {% if d.in_month %}
     {% if d.is_holiday or d.date.weekday() == 6 %}
     {% set td_class = td_class + ' my-mini-cal-day-holiday' %}
     {% elif d.date.weekday() == 5 %}
     {% set td_class = td_class + ' my-mini-cal-day-sat' %}
-    {% end %}
     {% end %}
     <td class="{{ td_class }}"
       data-action="{{ mini_cal_action }}" data-date="{{ d.date }}">

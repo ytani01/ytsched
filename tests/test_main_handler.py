@@ -1181,6 +1181,41 @@ class TestMonthCal(WebTestBase):
         assert by_date[target] is True
         assert by_date[datetime.date(2021, 3, 16)] is False
 
+    def test_holiday_only_day_has_no_dot(self):
+        """休日の予定だけの日は ``has_sched`` が偽（背景色で分かるので
+        ドットを出さない。TODO-218）。他の予定もあれば真。重要の印
+        （``has_important``）も、休日の予定では付けない。
+        """
+        only = datetime.date(2021, 3, 20)
+        mixed = datetime.date(2021, 3, 21)
+        self.write_data(
+            only,
+            [
+                mk_dataline(
+                    date=only.isoformat(), type="休日", title="春分の日"
+                )
+            ],
+        )
+        self.write_data(
+            mixed,
+            [
+                mk_dataline(
+                    date=mixed.isoformat(), type="祝日", title="!祝日"
+                ),
+                mk_dataline(sde_id="id-2", date=mixed.isoformat()),
+            ],
+        )
+
+        month_cal = self.loader().load_month_cal(2021, 3)
+
+        by_date = {
+            d.date: (d.is_holiday, d.has_sched, d.has_important)
+            for week in month_cal.weeks
+            for d in week
+        }
+        assert by_date[only] == (True, False, False)
+        assert by_date[mixed] == (True, True, False)
+
     def test_todo_deadline_sets_has_todo_but_not_has_sched(self):
         """ToDo の締切がある日は ``has_todo`` が真、``has_sched`` は偽
         （ToDo は通常の予定として数えない。TODO-129）。

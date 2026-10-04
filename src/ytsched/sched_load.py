@@ -383,6 +383,10 @@ class SchedLoader:
             for _ in range(7):
                 day_sde = self._sd.get_sdf(date1).sde
                 sde_list = [sde for sde in day_sde if not sde.is_todo()]
+                # 休日は背景色で分かるので、ドットの対象から外す (TODO-218)
+                dot_sde_list = [
+                    sde for sde in sde_list if not sde.is_holiday()
+                ]
                 todo_sde_list = [sde for sde in day_sde if sde.is_todo()]
                 # 日付ファイル側に ToDo 型の行が混ざっていても印が
                 # 消えないよう、四角のほうで拾う (TODO-129 の reviewer
@@ -400,9 +404,9 @@ class SchedLoader:
                         in_month=(
                             date1.year == year and date1.month == month
                         ),
-                        has_sched=len(sde_list) > 0,
+                        has_sched=len(dot_sde_list) > 0,
                         has_important=any(
-                            sde.is_important() for sde in sde_list
+                            sde.is_important() for sde in dot_sde_list
                         ),
                         is_holiday=any(sde.is_holiday() for sde in sde_list),
                         has_todo=has_todo,

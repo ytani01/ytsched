@@ -785,12 +785,41 @@ class TestMonthMiniCal(WebTestBase):
 
         april = panel[panel.index("2021/04") :]
         m = re.search(
-            r'<td class="my-mini-cal-day my-btn my-mini-cal-day-out"'
+            r'<td class="my-mini-cal-day my-btn my-mini-cal-day-out'
+            r' my-mini-cal-day-sat"'
             r'\s*data-action="scroll-date" data-date="2021-05-01">'
             r'\s*<div class="my-mini-cal-daynum">1</div>',
             april,
         )
         assert m is not None
+
+    def test_out_of_month_holiday_is_colored(self):
+        """前後の月の埋めセルにも、休日の色を付ける（TODO-218）。
+
+        2021-04-29（木）に休日を登録し、5 月分の最初の週の埋めセルを見る。
+        """
+        holiday = datetime.date(2021, 4, 29)
+        self.write_data(
+            holiday,
+            [
+                mk_dataline(
+                    date=holiday.isoformat(), type="休日", title="昭和の日"
+                )
+            ],
+        )
+        body = self.get_body(URL_PREFIX + "/", date="2021-04-26")
+        panel = week_panel(body)
+
+        # 週の欄にも「2021/05」の見出しが出るので、最後 (ミニカレンダー) を取る
+        may = panel[panel.rindex("2021/05") :]
+        m = re.search(
+            r'<td class="([^"]*)"\s*data-action="scroll-date"'
+            r' data-date="2021-04-29">',
+            may,
+        )
+        assert m is not None
+        assert "my-mini-cal-day-out" in m.group(1)
+        assert "my-mini-cal-day-holiday" in m.group(1)
 
     def test_not_shown_in_search_mode(self):
         """検索モードでは、スイッチもミニカレンダーも出さない
