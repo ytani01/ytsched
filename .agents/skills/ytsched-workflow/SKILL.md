@@ -24,9 +24,9 @@ ytsched プロジェクトにおける開発・タスク管理の標準手順。
 1. **実装 (`implementer`)**:
    - `TODO.md` の該当項目範囲のみを変更。
    - 変更後は自分でも基本動作を確認。
-2. **検証 (`verifier` / `runner`)**:
-   - `runner`: `ruff`, `basedpyright`, `mypy`, `pytest` を定型実行。
-   - `verifier`: `--datadir <一時ディレクトリ>` を用いてアプリの起動・curl 検証・テストを実行。
+2. **検証 (`verifier`)**:
+   - 「定型の実行」: `ruff`, `basedpyright`, `mypy`, `pytest` をファイルを書き換えずに順に実行。
+   - 動作確認: `--datadir <一時ディレクトリ>` を用いてアプリの起動・curl 検証・テストを実行。
 3. **レビュー (`reviewer`)**:
    - `git diff` を確認し、設計・正しさ・規約逸脱をチェック。
 
