@@ -26,6 +26,7 @@
 //   loadingSpinner() (spinner.js) -- doSubmit・doGet・doPost
 //   weekOffsetOfDate() (week.js)  -- popstateHdr・scrollToDate
 //   setActiveWeek() (week.js)     -- popstateHdr・scrollToDate
+//   isSliding() (week.js)         -- popstateHdr・scrollToDate (TODO-217)
 //   window.ytsched.view_month (main-page.js の onloadHdr()) -- popstateHdr・
 //     scrollToDate (TODO-137)
 //   setActiveBlockOfDate() (month.js) -- popstateHdr・scrollToDate
@@ -278,7 +279,12 @@
     }
 
     const offset = ytsched.weekOffsetOfDate(date);
-    if (offset !== null && offset !== ytsched.ytState.activeWeekOffset) {
+    // 滑らせている途中なら、同じ週でも setActiveWeek() を通して取り
+    // 消す。通さないと、あとから流し終えた先の週で上書きされる (TODO-217)
+    if (
+      offset !== null &&
+      (offset !== ytsched.ytState.activeWeekOffset || ytsched.isSliding())
+    ) {
       ytsched.setActiveWeek(offset, false);
     }
 
@@ -423,7 +429,12 @@
     // URL はこのあとこの関数が ``date`` で書き換えるので、ここでは
     // 積まない
     const offset = ytsched.weekOffsetOfDate(date);
-    if (offset !== null && offset !== ytsched.ytState.activeWeekOffset) {
+    // 滑らせている途中なら、同じ週でも setActiveWeek() を通して取り
+    // 消す。通さないと、あとから流し終えた先の週で上書きされる (TODO-217)
+    if (
+      offset !== null &&
+      (offset !== ytsched.ytState.activeWeekOffset || ytsched.isSliding())
+    ) {
       ytsched.setActiveWeek(offset, false);
     }
 

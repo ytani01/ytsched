@@ -10,13 +10,19 @@
 //   layoutWeeks()      -- main-page.js (onloadHdr)
 //   setActiveWeek()    -- nav.js (popstateHdr / scrollToDate)
 //   slideWeekWrap()    -- swipe.js (cancelSwipeDrag)
+//   slideToWeekOfDate() -- main-page.js (homeButtonHdr)・keyboard.js
+//                         (keyHdr の Home、TODO-217)
+//   isSliding()        -- nav.js (popstateHdr / scrollToDate)・main-page.js
+//                         (homeButtonHdr のダブルタップ、TODO-217)
+//   finishSlide()      -- swipe.js (swipeDragTo、TODO-217)
 //   moveToMonday()     -- moveActiveDate (このファイル)・
 //                         main-page.js (startAutoPageTurn)
 //   moveActiveDate()   -- swipe.js (swipeFinish)・keyboard.js (keyHdr)・
 //                         main-page.js (pageTurnPointerUpHdr)
 //   moveActiveMonth()  -- swipe.js (swipeFinish、ミニカレンダーの上での
 //                         スワイプ・ドラッグ、TODO-136)
-//   weekPanelOf() / cancelActiveSlide / SWIPE_SLIDE_MSEC / mondayDaysInMonth()
+//   weekPanelOf() / cancelActiveSlide / SWIPE_SLIDE_MSEC / HOME_SLIDE_MSEC /
+//     SLIDE_CLASSES / cancelSlide() / mondayDaysInMonth()
 //     はこのファイル内だけで使う
 // 外から使うもの:
 //   ytState (state.js)          -- elWeekWrap・activeWeekOffset・activeMonday
@@ -25,6 +31,7 @@
 //   getLocaltimeDateString() / getLocaltimeString() / shiftDays() (nav.js)
 //     -- weekOffsetOfDate・moveToMonday・moveActiveDate・moveActiveMonth
 //   pushDateInUrl() / scrollToId() (nav.js) -- setActiveWeek
+//   followGauge() (gauge.js)    -- slideToWeekOfDate (TODO-217)
 //   fillMainHeight() (main-page.js) -- setActiveWeek (TODO-184)
 //   doGet() (nav.js)            -- moveToMonday・moveActiveDate
 //   scrollToDate() (nav.js)     -- moveActiveMonth (TODO-136)
@@ -38,6 +45,12 @@
 (() => {
   const ytsched = window.ytsched;
   const SWIPE_SLIDE_MSEC = 200;
+  // 今日の週へ流す長さ (msec)。CSS の ``.my-week-wrap-homing`` の
+  // transition と合わせる (TODO-217)
+  const HOME_SLIDE_MSEC = 1000;
+  // 滑らせるときに付ける transition のクラス。後から来た呼び出しが
+  // 前のクラスを外せるように並べておく (TODO-217)
+  const SLIDE_CLASSES = ["my-week-wrap-sliding", "my-week-wrap-homing"];
 
   /**
    * ``offset`` の週の ``.my-week-panel`` を返す (TODO-069)。
@@ -160,12 +173,17 @@
       return false;
     }
 
+    // 滑らせている途中なら取り消す (TODO-217)。ゲージのクリック・
+    // 戻る/進むのように直に移ってきたとき、あとから ``on_done`` が
+    // 走って、選んだ週を上書きしないように
+    cancelSlide();
+
     ytsched.ytState.activeWeekOffset = offset;
     ytsched.layoutWeeks();
 
     // 滑らせ終わった位置から、ずらした分を戻す。並べ直しで見た目の
     // 位置は変わらないので、transition を掛けずに戻す
-    ytsched.ytState.elWeekWrap.classList.remove("my-week-wrap-sliding");
+    ytsched.ytState.elWeekWrap.classList.remove(...SLIDE_CLASSES);
     ytsched.ytState.elWeekWrap.classList.remove("my-week-wrap-dragging");
     ytsched.ytState.elWeekWrap.style.transform = "";
 
@@ -201,6 +219,45 @@
   // 消す)。呼び出しが重なったとき、次の呼び出しの先頭で使う (TODO-057)。
   // week.js だけで閉じる状態 (TODO-083)
   let cancelActiveSlide = null;
+  // 走っている ``slideWeekWrap()`` を、行き先まで済ませる (``on_done``
+  // も呼ぶ)。``cancelActiveSlide`` と一緒に立ち、一緒に消える (TODO-217)
+  let finishActiveSlide = null;
+
+  /**
+   * 走っている ``slideWeekWrap()`` を、待たずに行き先まで済ませる
+   * (TODO-217)。``on_done`` も呼ぶ。走っていなければ何もしない。
+   */
+  window.ytsched.finishSlide = () => {
+    if (finishActiveSlide) {
+      finishActiveSlide();
+    }
+  };
+
+  /**
+   * ``slideWeekWrap()`` が走っている途中か (TODO-217)。
+   *
+   * @return {boolean}
+   */
+  window.ytsched.isSliding = () => cancelActiveSlide !== null;
+
+  /**
+   * 走っている ``slideWeekWrap()`` を取り消す (TODO-217)。``on_done`` は
+   * 呼ばない。transition のクラスも外すので、``slideToWeekOfDate()`` の
+   * 針の追従もそこで止まる。位置 (transform) は戻さないので、戻すのは
+   * 呼び出し側 (``setActiveWeek()`` か、ページの読み直し)。
+   *
+   * @return {boolean}   取り消したら true
+   */
+  const cancelSlide = () => {
+    if (!cancelActiveSlide) {
+      return false;
+    }
+    cancelActiveSlide();
+    cancelActiveSlide = null;
+    finishActiveSlide = null;
+    ytsched.ytState.elWeekWrap.classList.remove(...SLIDE_CLASSES);
+    return true;
+  };
 
   /**
    * ``ytState.elWeekWrap`` を ``target_x`` (px) まで滑らせてから ``on_done`` を
@@ -217,10 +274,20 @@
    * タイマーを消す) だけ行い、``on_done()`` は呼ばない。あとから来た
    * 呼び出しが勝つ。
    *
+   * ``slide_class`` と ``msec`` は、今日の週へ流すとき
+   * (``slideToWeekOfDate()``) だけ変える (TODO-217)。
+   *
    * @param {number} target_x
    * @param {Function} on_done
+   * @param {String} slide_class   transition を掛けるクラス
+   * @param {number} msec          ``slide_class`` の transition の長さ
    */
-  window.ytsched.slideWeekWrap = (target_x, on_done) => {
+  window.ytsched.slideWeekWrap = (
+    target_x,
+    on_done,
+    slide_class = "my-week-wrap-sliding",
+    msec = SWIPE_SLIDE_MSEC,
+  ) => {
     if (!ytsched.ytState.elWeekWrap || !ytsched.hasAdjacentWeek()) {
       on_done();
       return;
@@ -249,8 +316,9 @@
       }
       done = true;
       cancelActiveSlide = null;
+      finishActiveSlide = null;
       cleanup();
-      ytsched.ytState.elWeekWrap.classList.remove("my-week-wrap-sliding");
+      ytsched.ytState.elWeekWrap.classList.remove(slide_class);
       on_done();
     };
     const onEnd = (event) => {
@@ -267,12 +335,92 @@
       done = true;
       cleanup();
     };
+    finishActiveSlide = finish;
 
     ytsched.ytState.elWeekWrap.addEventListener("transitionend", onEnd);
-    timeoutId = setTimeout(finish, SWIPE_SLIDE_MSEC + 100);
+    timeoutId = setTimeout(finish, msec + 100);
 
-    ytsched.ytState.elWeekWrap.classList.add("my-week-wrap-sliding");
+    ytsched.ytState.elWeekWrap.classList.remove(...SLIDE_CLASSES);
+    ytsched.ytState.elWeekWrap.classList.add(slide_class);
     ytsched.ytState.elWeekWrap.style.transform = `translateX(${target_x}px)`;
+  };
+
+  /**
+   * ``date_str`` の週まで、間の週も見せながら横に流してから ``on_done``
+   * を呼ぶ (TODO-217)。ホームボタン・キーの Home で今日の週へ戻るとき
+   * に使う。
+   *
+   * 時間は離れ具合によらず一定で、速度は強めの ease-out (CSS の
+   * ``.my-week-wrap-homing``)。離れているほど速く動き出し、今日の週に
+   * 近づくにつれて遅くなる。
+   *
+   * 流している間は、毎フレーム ``.my-week-wrap`` の位置から何週ぶん
+   * 来たかを出して、ゲージの針を追従させる (``followGauge()``)。
+   * 途中で取り消されたとき (``setActiveWeek()`` が直に呼ばれた・
+   * 次の呼び出しが来た) は、``.my-week-wrap-homing`` が外れるか
+   * ``homeFollowId`` が変わるので、そこで追従をやめる。
+   *
+   * その週が DOM に無い (読み直しになる)・月間表示
+   * (``weekOffsetOfDate()`` が null)・すでにその週にいるときは、流さずに
+   * すぐ ``on_done`` を呼ぶ。
+   *
+   * @param {String} date_str   'YYYY-mm-dd'
+   * @param {Function} on_done
+   */
+  // 走っている針の追従の番号。新しい ``slideToWeekOfDate()`` が来たら
+  // 古い追従を止めるために使う (TODO-217)
+  let homeFollowId = 0;
+
+  window.ytsched.slideToWeekOfDate = (date_str, on_done) => {
+    const offset = ytsched.weekOffsetOfDate(date_str);
+    const cur = ytsched.ytState.activeWeekOffset;
+    const rel = offset === null ? 0 : offset - cur;
+    if (rel === 0) {
+      on_done();
+      return;
+    }
+
+    // 間の週と行き先の週も流れて見えるようにする。``my-week-near`` は
+    // 流し終えたあとの ``setActiveWeek()`` の ``layoutWeeks()`` が付け直す
+    const step = rel > 0 ? 1 : -1;
+    for (let i = step; i !== rel + step; i += step) {
+      const panel = weekPanelOf(cur + i);
+      if (panel) {
+        panel.classList.add("my-week-near");
+      }
+    }
+
+    const win_w = document.documentElement.clientWidth;
+    const elWrap = ytsched.ytState.elWeekWrap;
+    const cur_monday = weekPanelOf(cur).dataset.monday;
+    const follow_id = ++homeFollowId;
+    const follow = () => {
+      if (
+        follow_id !== homeFollowId ||
+        !elWrap.classList.contains("my-week-wrap-homing")
+      ) {
+        ytsched.followGauge(null);
+        return;
+      }
+      const transform = getComputedStyle(elWrap).transform;
+      const x = transform === "none" ? 0 : new DOMMatrix(transform).m41;
+      ytsched.followGauge(cur_monday, -x / win_w);
+      requestAnimationFrame(follow);
+    };
+
+    ytsched.slideWeekWrap(
+      -rel * win_w,
+      () => {
+        if (follow_id === homeFollowId) {
+          ++homeFollowId; // 追従を止める
+          ytsched.followGauge(null);
+        }
+        on_done();
+      },
+      "my-week-wrap-homing",
+      HOME_SLIDE_MSEC,
+    );
+    requestAnimationFrame(follow);
   };
 
   /**

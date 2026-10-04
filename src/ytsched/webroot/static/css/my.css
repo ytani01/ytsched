@@ -870,6 +870,13 @@ textarea {
     transition: transform 0.2s ease-out;
 }
 
+/* ホームボタン・キーの Home で今日の週へ流すとき (TODO-217)。
+   離れているほど速く動き出し、今日の週に近づくにつれて遅くなる。
+   長さは week.js の HOME_SLIDE_MSEC と合わせる */
+.my-week-wrap-homing {
+    transition: transform 1s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
 /* 月の見出し行 (TODO-147)。週の先頭と、週の途中で月が替わる日の直前に
    出す。週間表示では日付欄から年月を落としてあるので、年月を持って
    いるのはこの行だけ */

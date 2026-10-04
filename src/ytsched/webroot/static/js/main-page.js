@@ -35,6 +35,8 @@
 //   mondayOf() (gauge.js)                     -- homeButtonHdr
 //   popstateHdr() (nav.js)                    -- popstate に登録
 //   layoutWeeks() / moveToMonday() / moveActiveDate() (week.js)
+//   slideToWeekOfDate() / isSliding() / setActiveWeek() (week.js) --
+//     homeButtonHdr (TODO-217)
 //   dispGauge() / dispGaugeMarks() (gauge.js) -- onloadHdr
 //   keyHdr() (keyboard.js)                    -- keydown に登録
 //   swipe.js の touch* / mouse* の 7 ハンドラ -- 各イベントに登録
@@ -173,7 +175,10 @@
       setTimeout(function () {
         clickCount = 0;
       }, 350);
-      ytsched.scrollToDate(ytsched.url_prefix, monday_str, "home");
+      // 今日の週まで横に流してから移る (TODO-217)
+      ytsched.slideToWeekOfDate(monday_str, () => {
+        ytsched.scrollToDate(ytsched.url_prefix, monday_str, "home");
+      });
     } else {
       // double click
       clickCount = 0;
@@ -181,6 +186,14 @@
       // データを読み直す (TODO-069)。前後数ヶ月ぶんを DOM に持つ
       // ようになったので、抱えたまま古くなる。ダブルタップが、
       // 手で取り直す道
+      //
+      // 1 回目で流し始めた分は取り消し、元の週に並べ直す (TODO-217)。
+      // 流し終えたときの pushState() が読み直しの途中に割り込まない
+      // ように。並べ直すのは、「戻る」で bfcache から元のページが出た
+      // とき、流しかけの位置のまま残らないように
+      if (ytsched.isSliding()) {
+        ytsched.setActiveWeek(ytsched.ytState.activeWeekOffset, false);
+      }
       reloadHome(monday_str);
     }
   };

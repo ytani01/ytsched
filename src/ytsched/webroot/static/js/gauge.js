@@ -12,6 +12,7 @@
 //                        main-page.js (homeButtonHdr)
 //   dispGauge()        -- week.js (setActiveWeek)・main-page.js (onloadHdr)
 //   dispGaugeMarks()   -- main-page.js (onloadHdr)
+//   followGauge()      -- week.js (slideToWeekOfDate、TODO-217)
 //   gaugeBarPointerDownHdr / gaugeBarPointerMoveHdr / gaugeBarPointerUpHdr /
 //   gaugeBarPointerCancelHdr -- main-page.js が window の pointerdown / pointermove /
 //                              pointerup / pointercancel に登録する (TODO-178)
@@ -287,6 +288,36 @@
       elGaugeR.getBoundingClientRect(); // 強制的にレイアウトを確定させる
     }
     setGaugeNoTransition(false);
+  };
+
+  /**
+   * 針を ``transition`` を掛けずに、``date_str`` の週から ``weeks`` 週
+   * (小数でよい) ずらした位置へ置く (TODO-217)。今日の週へ流している
+   * 間、week.js の ``slideToWeekOfDate()`` が毎フレーム呼ぶ。ラベルは
+   * 近いほうの週に丸めて出すので、「-4w → -3w → …」と数え下がる。
+   *
+   * ``date_str`` に null を渡すと ``transition`` を戻す (流し終えたとき)。
+   * ドラッグ中は ``dispGauge()`` と同じく針に触らない (``transition``
+   * もドラッグの側に任せる)。
+   *
+   * @param {String | null} date_str   'YYYY-mm-dd'
+   * @param {number} weeks
+   */
+  window.ytsched.followGauge = (date_str, weeks = 0) => {
+    if (gaugeBarDragStart) {
+      return;
+    }
+    if (!date_str) {
+      setGaugeNoTransition(false);
+      return;
+    }
+    const this_monday = ytsched.mondayOf(
+      ytsched.getLocaltimeDateString(new Date()),
+    );
+    setGaugeNoTransition(true);
+    setGaugeNeedles(
+      ytsched.calcDays(this_monday, ytsched.mondayOf(date_str)) + weeks * 7,
+    );
   };
 
   // ページを読み込んでから、一度でも針を置いたか (TODO-180)。

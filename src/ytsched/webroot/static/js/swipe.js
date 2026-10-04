@@ -18,6 +18,7 @@
 //   window.ytsched.ytState (state.js) -- elWeekWrap
 //   slideWeekWrap() (week.js)  -- cancelSwipeDrag
 //   hasAdjacentWeek() (week.js) -- swipeDragTo
+//   finishSlide() (week.js)     -- swipeDragTo (TODO-217)
 //   moveActiveDate() (week.js) -- swipeFinish
 //   moveActiveMonth() (week.js) -- swipeFinish (始点がミニカレンダーの
 //     上だったとき、TODO-136)
@@ -134,6 +135,11 @@
       ) {
         return false;
       }
+      // 滑らせている途中なら、先に行き先まで終わらせてから追従を
+      // 始める (TODO-217)。そのまま始めると指の位置に transition が
+      // 掛かって飛び、追従を見送るとマウスでは離したときにクリックに
+      // なってしまう
+      ytsched.finishSlide();
       swipeDragging = true;
       if (
         !ytsched.search_date_to &&
