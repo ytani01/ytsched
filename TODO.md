@@ -16,13 +16,16 @@
 
 - [ ] ミニカレンダーで前後の月の日（`.my-mini-cal-day-out`）にも、その月の日と
   同じ土日祝の背景色を付ける
+- [ ] 休日（`[休日]` `[祝日]`）の予定は、背景色で分かるのでドットの対象から
+  外す（休日だけの日にはドットを出さない）
 
 2027/05 のミニカレンダーで、前の月の 4/29（休日を登録済み）が赤くならない。
 `mini_cal.html` が、曜日・休日のクラスを `d.in_month` のときだけ足しているため
 （TODO-129 で決め、TODO-134 でも残した方針）。利用者と相談して、その月の日と
 同じ色にすることにした。前後の月の日との区別は文字色だけで付ける。
 
-対象は `mini_cal.html` の条件と、`my.css` の `.my-mini-cal-day-out` と曜日の
+ドットの判定は `sched_load.py` の `MonthCalDay` を作るところ（`has_sched` /
+`has_important`）。対象はこれと、`mini_cal.html` の条件と、`my.css` の `.my-mini-cal-day-out` と曜日の
 クラスの記述順、`tests/test_web.py`（788 行あたりに埋めセルの class を見る
 テストがある）。分岐が変わるので reviewer を入れ、そのあと verifier が
 Playwright で前後の月の休日・土日のセルの背景色を実測する。
