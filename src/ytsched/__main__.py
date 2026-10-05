@@ -299,8 +299,33 @@ Slack へ送るのはこのコマンドの役目ではない。出したテキ�
     default=None,
     help="Web 画面の URL。指定すると日付をリンクにする (Slack の mrkdwn)",
 )
+@click.option(
+    "--skip-empty",
+    "skip_empty",
+    is_flag=True,
+    default=False,
+    help="予定の無い日を出さない",
+)
+@click.option(
+    "--detail",
+    "detail",
+    is_flag=True,
+    default=False,
+    help="予定の行の下に詳細を出す",
+)
 @click_common_opts(__version__)
-def notify(ctx, datadir, date_str, no_todo, days, memo, url, debug):
+def notify(
+    ctx,
+    datadir,
+    date_str,
+    no_todo,
+    days,
+    memo,
+    url,
+    skip_empty,
+    detail,
+    debug,
+):
     """notify"""
     debug = _is_debug(ctx, debug)
     loggerInit(debug=debug)
@@ -319,6 +344,8 @@ def notify(ctx, datadir, date_str, no_todo, days, memo, url, debug):
             days=days,
             memo=memo,
             url=url,
+            skip_empty=skip_empty,
+            detail=detail,
         )
     )
 

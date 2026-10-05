@@ -237,3 +237,14 @@ cron の設定例（毎朝 7 時、Slack への送信は
 ```
 0 7 * * * $HOME/.local/bin/ytsched notify --url https://example.net/ytsched | $HOME/bin/slack-send.sh -r -c '#ytsched' -t 'ytsched'
 ```
+
+予定と ToDo は、Web 画面と同じ `[種別] タイトル @場所` の形で出る。
+
+`--days` で何日ぶんかをまとめて出すときは、`--skip-empty` を付けると
+予定の無い日を省ける。全部の日に予定が無ければ、予定の欄には期間と「予定なし」が
+出る。`--detail` を付けると、予定の詳細も出る。毎週月曜に 1 週間ぶんを
+送る例:
+
+```
+0 7 * * 1 $HOME/.local/bin/ytsched notify --days 7 --skip-empty --detail | $HOME/bin/slack-send.sh -c '#ytsched' -t 'ytsched'
+```

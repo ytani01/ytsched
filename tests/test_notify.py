@@ -244,3 +244,135 @@ def test_url_no_schedule(tmp_path):
         "<https://example.net/ytsched?date=2026-09-02|2026-09-02 (水)>\n"
         "  予定なし"
     )
+
+
+def test_type_title_place_like_web(tmp_path):
+    """予定と ToDo の行を ``[種別] タイトル @場所`` にする (TODO-224)。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    sd.add_sde(
+        date,
+        SchedDataEnt(
+            date=date,
+            time_start=datetime.time(10, 0),
+            sde_type="会議",
+            title="定例",
+            place="本社",
+        ),
+    )
+    sd.add_sde(date, SchedDataEnt(date=date, title="場所なし"))
+    sd.add_sde(
+        None,
+        SchedDataEnt(
+            date=datetime.date(2026, 9, 3),
+            sde_type="□予約",
+            place="岩本歯科医院",
+        ),
+    )
+    sd.add_sde(
+        None,
+        SchedDataEnt(
+            date=datetime.date(2026, 9, 4), sde_type="□", title="種別なし"
+        ),
+    )
+    sd.save()
+
+    text = build_notify_text(sd, date)
+
+    assert text == (
+        "2026-09-02 (水)\n"
+        "  10:00-      [会議] 定例 @本社\n"
+        "  場所なし\n"
+        "\n"
+        "期限が近い ToDo\n"
+        "  09-03 [予約] __ @岩本歯科医院\n"
+        "  09-04 種別なし"
+    )
+
+
+def test_url_escapes_type_and_place(tmp_path):
+    """``url`` のとき、種別と場所もエスケープする (TODO-224)。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    sd.add_sde(
+        date,
+        SchedDataEnt(date=date, sde_type="a&`b", title="t", place="<p>"),
+    )
+    sd.add_sde(
+        None,
+        SchedDataEnt(
+            date=datetime.date(2026, 9, 3), sde_type="□<x>", place="a&b"
+        ),
+    )
+    sd.save()
+
+    text = build_notify_text(sd, date, url="https://example.net/ytsched")
+
+    assert "  `[a&amp;'b] t @&lt;p&gt;`\n" in text
+    assert text.endswith("  09-03 [&lt;x&gt;] __ @a&amp;b")
+
+
+def _add_titled(sd, date, title, detail=""):
+    sd.add_sde(date, SchedDataEnt(date=date, title=title, detail=detail))
+
+
+def test_skip_empty_omits_empty_days(tmp_path):
+    """``skip_empty`` なら予定の無い日を出さない (TODO-221)。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 10, 5)
+    _add_titled(sd, datetime.date(2026, 10, 7), "水曜")
+    sd.save()
+
+    text = build_notify_text(sd, date, days=7, skip_empty=True)
+
+    assert text == "2026-10-07 (水)\n  水曜"
+
+
+def test_skip_empty_all_empty_shows_period(tmp_path):
+    """全部の日に予定が無ければ、期間の見出しと「予定なし」 (TODO-221)。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 10, 5)
+
+    text = build_notify_text(sd, date, days=7, skip_empty=True)
+    assert text == "2026-10-05 (月) 〜 10-11 (日)\n  予定なし"
+
+    text = build_notify_text(sd, date, skip_empty=True)
+    assert text == "2026-10-05 (月)\n  予定なし"
+
+    text = build_notify_text(
+        sd, date, days=2, skip_empty=True, url="https://example.net/y"
+    )
+    assert text == (
+        "<https://example.net/y?date=2026-10-05|2026-10-05 (月) 〜 10-06 (火)>"
+        "\n  予定なし"
+    )
+
+
+def test_skip_empty_off_keeps_empty_days(tmp_path):
+    """``skip_empty`` を指定しなければ、予定の無い日も出す。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 10, 5)
+
+    text = build_notify_text(sd, date, days=2)
+
+    assert text == (
+        "2026-10-05 (月)\n  予定なし\n\n2026-10-06 (火)\n  予定なし"
+    )
+
+
+def test_detail_lines_indented(tmp_path):
+    """``detail`` なら、予定の行の下に detail を全行、1 段深く出す。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 10, 5)
+    _add_titled(sd, date, "予定", detail="1 行目\n2 & `行目\n\n")
+    sd.save()
+
+    assert build_notify_text(sd, date) == "2026-10-05 (月)\n  予定"
+    assert build_notify_text(sd, date, detail=True) == (
+        "2026-10-05 (月)\n  予定\n    1 行目\n    2 & `行目"
+    )
+    assert build_notify_text(
+        sd, date, detail=True, url="https://example.net/y"
+    ).endswith("  `予定`\n    1 行目\n    2 &amp; '行目")
