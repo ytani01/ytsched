@@ -31,6 +31,13 @@ TODO_HEADER = "期限が近い ToDo"
 TIME_FIELD_WIDTH = 11
 
 
+def slack_escape(text: str) -> str:
+    """Slack の mrkdwn で特別な意味を持つ ``&`` ``<`` ``>`` をエスケープする。"""
+    return (
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    )
+
+
 def format_header(date: datetime.date) -> str:
     """``2026-09-02 (水)`` の形にする。"""
     weekday = WEEKDAY_JA[date.weekday()]
@@ -57,9 +64,19 @@ def format_todo_line(sde: SchedDataEnt) -> str:
     return f"  {sde.date.strftime('%m-%d')} {sde.title}"
 
 
-def build_schedule_section(sd: SchedData, date: datetime.date) -> list[str]:
-    """その日の予定の節（日付の見出し行を含む）を組み立てる。"""
-    lines = [format_header(date)]
+def build_schedule_section(
+    sd: SchedData, date: datetime.date, url: str | None = None
+) -> list[str]:
+    """その日の予定の節（日付の見出し行を含む）を組み立てる。
+
+    ``url`` を渡すと Slack の mrkdwn で出す（TODO-222）。日付の見出しを
+    ``<URL?date=YYYY-MM-DD|見出し>`` のリンクにし、予定の行は時刻の桁が
+    揃うよう `` ` `` で囲む。
+    """
+    header = format_header(date)
+    if url:
+        header = f"<{url}?date={date.isoformat()}|{header}>"
+    lines = [header]
 
     sdf = sd.get_sdf(date)
     sde_list = sorted(sdf.sde, key=lambda sde: sde.get_sortkey())
@@ -69,12 +86,18 @@ def build_schedule_section(sd: SchedData, date: datetime.date) -> list[str]:
         return lines
 
     for sde in sde_list:
-        lines.append(format_schedule_line(sde))
+        line = format_schedule_line(sde)
+        if url:
+            # タイトル中の ` はインラインコードを途中で切るので ' にする
+            line = f"  `{slack_escape(line[2:]).replace('`', "'")}`"
+        lines.append(line)
 
     return lines
 
 
-def build_todo_section(sd: SchedData, today: datetime.date) -> list[str]:
+def build_todo_section(
+    sd: SchedData, today: datetime.date, url: str | None = None
+) -> list[str]:
     """期限の近い ToDo の節を組み立てる（無ければ空リスト）。"""
     todo_sdf = sd.get_sdf(None)
 
@@ -91,7 +114,8 @@ def build_todo_section(sd: SchedData, today: datetime.date) -> list[str]:
 
     lines = [TODO_HEADER]
     for sde in urgent_sde:
-        lines.append(format_todo_line(sde))
+        line = format_todo_line(sde)
+        lines.append(slack_escape(line) if url else line)
 
     return lines
 
@@ -102,6 +126,7 @@ def build_notify_text(
     include_todo: bool = True,
     days: int = 1,
     memo: str | None = None,
+    url: str | None = None,
 ) -> str:
     """通知の本文を組み立てる。
 
@@ -116,6 +141,9 @@ def build_notify_text(
         何日ぶんの予定を出すか（``date`` を含む）
     memo: str | None
         指定すると、メッセージの先頭に出す
+    url: str | None
+        Web 画面の URL。指定すると Slack の mrkdwn で出し、日付を
+        その日の画面へのリンクにする（TODO-222）
 
     Returns
     -------
@@ -125,15 +153,17 @@ def build_notify_text(
     sections = []
 
     if memo:
-        sections.append([memo])
+        sections.append([slack_escape(memo) if url else memo])
 
     for offset in range(days):
         sections.append(
-            build_schedule_section(sd, date + datetime.timedelta(days=offset))
+            build_schedule_section(
+                sd, date + datetime.timedelta(days=offset), url=url
+            )
         )
 
     if include_todo:
-        todo_lines = build_todo_section(sd, date)
+        todo_lines = build_todo_section(sd, date, url=url)
         if todo_lines:
             sections.append(todo_lines)
 

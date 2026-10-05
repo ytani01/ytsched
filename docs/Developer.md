@@ -165,6 +165,7 @@ uv run ytsched notify --datadir ~/ytsched/data
 | `--no-todo` | 期限の近い ToDo を出さない |
 | `--days` | 対象の日を含めて何日ぶんの予定を出すか。既定は 1 |
 | `--memo` | メッセージの先頭に出す文言。既定は無し |
+| `--url` | Web 画面の URL。指定すると日付をリンクにする（TODO-222）。既定は無し |
 
 標準出力へテキストを出すだけで、Slack へは送らない。送るのは
 別の道具（`~/bin/slack-send.sh`）に任せ、cron から次のようにつなぐ:
@@ -180,6 +181,18 @@ uv run ytsched notify --datadir ~/ytsched/data
 `--days` を 2 以上にすると、`--date` の日から連続した日ぶんの節を
 続けて出し、期限の近い ToDo の節は全体の最後に 1 回だけ出す
 （`--date` の日を基準に判定する）。
+
+`--url` を指定すると、本文を Slack の mrkdwn で出す。日付の見出しを
+`<URL?date=YYYY-MM-DD|2026-09-02 (水)>` のリンクにし、予定の行は時刻の
+桁が揃うよう `` ` `` で囲み（タイトル中の `` ` `` は `'` にする）、
+タイトルなどの `&` `<` `>` をエスケープする。`--url` の値はそのまま
+差し込むので、クエリ（`?…`）の付かない URL を渡すこと。
+`slack-send.sh` は既定で本文をコードブロックで囲むので（その中では
+リンクにならない）、`-r` を付けて囲まずに送る:
+
+```sh
+0 7 * * * $HOME/.local/bin/ytsched notify --url https://example.net/ytsched | $HOME/bin/slack-send.sh -r -c '#ytsched' -t 'ytsched'
+```
 
 ## 6. 画面を撮る
 

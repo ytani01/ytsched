@@ -292,8 +292,15 @@ Slack へ送るのはこのコマンドの役目ではない。出したテキ�
     default=None,
     help="メッセージの先頭に出す文言",
 )
+@click.option(
+    "--url",
+    "url",
+    type=str,
+    default=None,
+    help="Web 画面の URL。指定すると日付をリンクにする (Slack の mrkdwn)",
+)
 @click_common_opts(__version__)
-def notify(ctx, datadir, date_str, no_todo, days, memo, debug):
+def notify(ctx, datadir, date_str, no_todo, days, memo, url, debug):
     """notify"""
     debug = _is_debug(ctx, debug)
     loggerInit(debug=debug)
@@ -306,7 +313,12 @@ def notify(ctx, datadir, date_str, no_todo, days, memo, debug):
     sd = SchedData(datadir)
     print(
         build_notify_text(
-            sd, date, include_todo=not no_todo, days=days, memo=memo
+            sd,
+            date,
+            include_todo=not no_todo,
+            days=days,
+            memo=memo,
+            url=url,
         )
     )
 

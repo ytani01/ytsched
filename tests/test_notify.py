@@ -194,3 +194,53 @@ def test_memo_none_is_not_prepended(tmp_path):
 
     assert not text.startswith("\n")
     assert text == "2026-09-02 (水)\n  予定なし"
+
+
+def test_url_links_header_and_quotes_lines(tmp_path):
+    """``url`` を渡すと、日付をリンクにし、予定の行を ` で囲む (TODO-222)。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    sd.add_sde(
+        date,
+        SchedDataEnt(
+            date=date,
+            time_start=datetime.time(10, 0),
+            time_end=datetime.time(11, 0),
+            title="A&B <`会議`>",
+        ),
+    )
+    sd.add_sde(
+        None,
+        SchedDataEnt(
+            date=datetime.date(2026, 9, 5), sde_type="□", title="x<y"
+        ),
+    )
+    sd.save()
+
+    text = build_notify_text(
+        sd, date, memo="m>n", url="https://example.net/ytsched"
+    )
+
+    assert text == (
+        "m&gt;n\n"
+        "\n"
+        "<https://example.net/ytsched?date=2026-09-02|2026-09-02 (水)>\n"
+        "  `10:00-11:00 A&amp;B &lt;'会議'&gt;`\n"
+        "\n"
+        "期限が近い ToDo\n"
+        "  09-05 x&lt;y"
+    )
+
+
+def test_url_no_schedule(tmp_path):
+    """``url`` を渡しても、「予定なし」はそのまま。"""
+    sd = SchedData(str(tmp_path))
+    date = datetime.date(2026, 9, 2)
+
+    text = build_notify_text(sd, date, url="https://example.net/ytsched")
+
+    assert text == (
+        "<https://example.net/ytsched?date=2026-09-02|2026-09-02 (水)>\n"
+        "  予定なし"
+    )

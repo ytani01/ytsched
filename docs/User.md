@@ -229,3 +229,11 @@ cron の設定例（毎朝 7 時、Slack への送信は
 ```
 0 7 * * * $HOME/.local/bin/ytsched notify | $HOME/bin/slack-send.sh -c '#ytsched' -t 'ytsched'
 ```
+
+`--url` に Web 画面の URL を渡すと、通知の日付がその日の画面へのリンクに
+なる。URL にはクエリ（`?…`）を付けない。このときは `slack-send.sh` に `-r` を付ける（付けないと、リンクに
+ならず文字のまま出る）。
+
+```
+0 7 * * * $HOME/.local/bin/ytsched notify --url https://example.net/ytsched | $HOME/bin/slack-send.sh -r -c '#ytsched' -t 'ytsched'
+```
