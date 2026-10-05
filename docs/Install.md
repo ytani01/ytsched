@@ -2,7 +2,7 @@
 
 サーバへの導入、更新、常駐（systemd --user）、リバースプロキシの
 置き方をまとめる。全体の紹介は [../README.md](../README.md)、
-画面の使い方は [User.md](User.md)、開発環境の用意は
+画面の使い方は [UsersGuide.md](UsersGuide.md)、開発環境の用意は
 [Developer.md](Developer.md) を見ること。
 
 ## 1. 動かす環境

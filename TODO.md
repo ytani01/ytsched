@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目: TODO-221、TODO-223。** これまでに 221 件を決着させた。
+**残っている項目: TODO-221。** これまでに 222 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
 **番号は `TODO-224` から**。
 
@@ -30,29 +30,6 @@
 - 予定も ToDo も無い日でも 1 通は届く、という今の動きは変えない
 - 場所（place）の表示と Web 画面へのリンクは、今回は足さない
   （リンクは TODO-222 で扱う）
-
----
-
-## TODO-223. docs/User.md のファイル名を UsersGuide.md に変える
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5.5 / effort medium | main（実装）+ verifier（Sonnet 5.5 / medium） |
-
-- [ ] `git mv docs/User.md docs/UsersGuide.md`
-- [ ] 参照を直す。対象は
-  `rg -n "User\.md" --glob '!archives/**' --glob '!TODO.md'` で出るもの
-  （README.md、docs/Install.md、docs/Developer.md、main.html の GitHub への
-  リンク、my.css のコメント、mise.toml の description、tools/annotate.py）
-
-背景:
-
-- `archives/` の中の参照とファイル名（TODO-152・155・158 など）は、
-  当時の記録なので直さない。docs/Developer.md から archives の
-  TODO-152 のファイルへ張ったリンクも、そのファイル名のまま残す
-- 図のファイル名（`docs/user-*.png`、`tools/user-figs.json`）は変えない
-- main.html のリンクは GitHub の `HEAD` を指すので、push するまでは
-  新しい名前が 404 になる
 
 ---
 

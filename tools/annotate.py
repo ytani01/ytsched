@@ -3,7 +3,7 @@
 #
 """画面のキャプチャに引き出し線と吹き出しを重ねる (TODO-152)
 
-``docs/User.md`` に貼る図を作る。``tools/screenshot.py`` で撮った PNG を
+``docs/UsersGuide.md`` に貼る図を作る。``tools/screenshot.py`` で撮った PNG を
 HTML に貼り、その上へ吹き出しを絶対位置で並べ、引き出し線を SVG で引いて、
 chromium で撮り直す。
 

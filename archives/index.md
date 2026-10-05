@@ -4,6 +4,7 @@
 作り直すので、手で直さない。やらないと決めたものは（対応しない）が付いている。
 進行中の項目は [TODO.md](../TODO.md) にある。
 
+- [TODO-223. docs／User.md のファイル名を UsersGuide.md に変える](todo/TODO-223.%20docs%EF%BC%8FUser.md%20%E3%81%AE%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E5%90%8D%E3%82%92%20UsersGuide.md%20%E3%81%AB%E5%A4%89%E3%81%88%E3%82%8B.md)
 - [TODO-222. ytsched notify で、日付をリンクにする](todo/TODO-222.%20ytsched%20notify%20%E3%81%A7%E3%80%81%E6%97%A5%E4%BB%98%E3%82%92%E3%83%AA%E3%83%B3%E3%82%AF%E3%81%AB%E3%81%99%E3%82%8B.md)
 - [TODO-220. mylog の使われていない機能を削る（対応しない）](todo/TODO-220.%20mylog%20%E3%81%AE%E4%BD%BF%E3%82%8F%E3%82%8C%E3%81%A6%E3%81%84%E3%81%AA%E3%81%84%E6%A9%9F%E8%83%BD%E3%82%92%E5%89%8A%E3%82%8B%EF%BC%88%E5%AF%BE%E5%BF%9C%E3%81%97%E3%81%AA%E3%81%84%EF%BC%89.md)
 - [TODO-219. 使われていないコードと重複を整理する](todo/TODO-219.%20%E4%BD%BF%E3%82%8F%E3%82%8C%E3%81%A6%E3%81%84%E3%81%AA%E3%81%84%E3%82%B3%E3%83%BC%E3%83%89%E3%81%A8%E9%87%8D%E8%A4%87%E3%82%92%E6%95%B4%E7%90%86%E3%81%99%E3%82%8B.md)

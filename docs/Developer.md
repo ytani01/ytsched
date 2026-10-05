@@ -2,7 +2,7 @@
 
 開発環境の用意、開発ツールの使い方、テストとログの決まりをまとめる。
 利用者向けの説明は [../README.md](../README.md) と
-[User.md](User.md)、導入と運用は [Install.md](Install.md)、
+[UsersGuide.md](UsersGuide.md)、導入と運用は [Install.md](Install.md)、
 ソースコードの構成は
 [../src/README.md](../src/README.md)、テストの構成は
 [../tests/README.md](../tests/README.md)、データ形式は
@@ -239,7 +239,7 @@ mise run shot -- --open -p todo046
 
 ## 7. 図に注釈を入れる
 
-`docs/User.md` に貼っている画面図は、撮ったキャプチャに `tools/annotate.py`
+`docs/UsersGuide.md` に貼っている画面図は、撮ったキャプチャに `tools/annotate.py`
 で引き出し線と吹き出しを重ねたもの（TODO-152）。キャプチャを HTML に貼り、
 吹き出しを絶対位置で並べ、引き出し線を SVG で引いて、chromium で撮り直す。
 
@@ -254,7 +254,7 @@ mise run figs -- --only user-week -o /tmp/try            # 1 枚だけ試す
 撮り直したら、同じ JSON でもう一度流せばよい。書き方は
 `tools/annotate.py` の docstring にある。
 
-`docs/User.md` の図を作り直す手順は
+`docs/UsersGuide.md` の図を作り直す手順は
 [../archives/todo/TODO-152. User.md に画面図を入れる.md](../archives/todo/TODO-152.%20User.md%20に画面図を入れる.md)
 に残してある（サンプルデータ、撮る URL、それぞれの高さ）。
 
