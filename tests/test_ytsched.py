@@ -364,22 +364,6 @@ def test_get_sortkey_order():
     assert sde_list == [holiday, timed, other, canceled]
 
 
-def test_get_date():
-    assert mk_sde().get_date() == (2021, 3, 1)
-
-
-def test_set_date():
-    sde = mk_sde()
-    sde.set_date(datetime.date(2022, 12, 31))
-    assert sde.date == datetime.date(2022, 12, 31)
-
-
-def test_set_date_none_is_today():
-    sde = mk_sde()
-    sde.set_date(None)
-    assert sde.date == datetime.date.today()
-
-
 @pytest.mark.parametrize(
     ("sde_type", "expected"),
     [
@@ -410,7 +394,7 @@ TODAY0 = datetime.date(2022, 6, 15)
 )
 def test_todo_urgency(offset_days, expected):
     sde = mk_sde()
-    sde.set_date(TODAY0 + datetime.timedelta(days=offset_days))
+    sde.date = TODAY0 + datetime.timedelta(days=offset_days)
     assert sde.todo_urgency(TODAY0) == expected
 
 
@@ -1133,10 +1117,10 @@ def test_get_sdf_lru_order(tmp_path):
 
     sd.get_sdf(DATE1)
     sd.get_sdf(date2)
-    assert sd.get_keys() == [str(DATE1), str(date2)]
+    assert list(sd._sdf_cache) == [DATE1, date2]
 
     sd.get_sdf(DATE1)
-    assert sd.get_keys() == [str(date2), str(DATE1)]
+    assert list(sd._sdf_cache) == [date2, DATE1]
 
 
 def test_get_sdf_discard(tmp_path):
@@ -1151,8 +1135,8 @@ def test_get_sdf_discard(tmp_path):
 
     # 10 * CACHE_DISCARD_RATE = 1 件が捨てられてから、1 件追加される
     assert sd.get_cache_size() == 10
-    assert str(DATE1) not in sd.get_keys()
-    assert str(DATE1 + datetime.timedelta(1)) in sd.get_keys()
+    assert DATE1 not in sd._sdf_cache
+    assert DATE1 + datetime.timedelta(1) in sd._sdf_cache
 
 
 def test_get_sdf_reloads_when_file_changed_outside(tmp_path):

@@ -357,7 +357,6 @@ class SchedDataEnt:
 
     def is_holiday(self):
         """休日かどうか（``type`` で判定する）。"""
-        # self.__log.debug("")
         if self.type == "":
             return False
         return self.type in self.TYPE_HOLYDAY
@@ -400,31 +399,7 @@ class SchedDataEnt:
                 sort_key = sort_key.replace(":-:", "99:99-99:99")
             else:
                 sort_key = sort_key.replace(":-:", "33:33-33:33")
-        # self.__log.debug(f"sort_key='{sort_key}'")
         return sort_key
-
-    def get_date(self):
-        """
-        Returns
-        -------
-        (year, month, day)
-        """
-        return (self.date.year, self.date.month, self.date.day)
-
-    def set_date(self, d: datetime.date | None = None) -> None:
-        """
-        Parameters
-        ----------
-        d: datetime.date | None
-
-        """
-        self.__log.debug(f"d={d}")
-
-        if d is None:
-            self.date = datetime.date.today()
-            return
-
-        self.date = d
 
     def get_timestr(self) -> str:
         """
@@ -579,7 +554,6 @@ class SchedDataFile:
         ``save()`` が書き戻す。ただし**空行は書き戻さない**
         (飛ばしても失うデータが無いため)。
         """
-        # self.__log.debug("")
 
         self.is_holiday = False
         self.skipped_lines = []
@@ -933,19 +907,6 @@ class SchedData:
         out_str = f"topdir:{self._topdir}, cache_size:{len(self._sdf_cache)}"
         return out_str
 
-    def get_keys(self):
-        """
-        Returns
-        -------
-        date_list: list of str ['2021-01-01', '2021-01-02', .. ]
-
-        """
-        date_list = []
-        for k in self._sdf_cache:
-            date_list.append(f"{k}")
-
-        return date_list
-
     def get_cache_size(self):
         return len(self._sdf_cache)
 
@@ -998,23 +959,16 @@ class SchedData:
         sdf: SchedDataFile
 
         """
-        # self.__log.debug(f"date={date}")
 
         try:
-            # self.__log.debug(f"_sdf.keys={self.get_keys()}")
             sdf = self._sdf_cache.pop(date)
-            # self.__log.debug(f"_sdf.keys={self.get_keys()}")
         except KeyError:
             self.__log.debug(f"cache miss: date={date}")
 
             if self.get_cache_size() >= self._cache_size:
                 discard_size = int(self._cache_size * self.CACHE_DISCARD_RATE)
-                for _i in range(discard_size):
-                    _discarded = self._sdf_cache.popitem(last=False)
-                    # self.__log.debug(
-                    #     f"discard[{_i + 1}/{discard_size}]:"
-                    #     f" date={_discarded[0]}"
-                    # )
+                for _ in range(discard_size):
+                    self._sdf_cache.popitem(last=False)
 
             sdf = SchedDataFile(date, self._topdir)
         else:
@@ -1023,11 +977,6 @@ class SchedData:
                 sdf = SchedDataFile(date, self._topdir)
 
         self._sdf_cache[date] = sdf
-        # self.__log.debug(f"_sdf.keys={self.get_keys()}")
-
-        # if not sdf.sde:
-        # self.__log.warning(f"{date} sdf.sde={sdf.sde}")
-
         return sdf
 
     def get_sde(
