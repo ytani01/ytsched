@@ -39,31 +39,29 @@
 |------|------|------|
 | 見込み | Opus 5.5 / effort medium | main（実装）+ reviewer（Opus 5.5 / high）+ verifier（Sonnet 5.5 / medium） |
 
-- [ ] `ytsched notify` の日付の見出しを、Slack の `<URL?date=YYYY-MM-DD|日付>`
-  の形のリンクにする。**既定でリンクを付ける**
-- [ ] `--url` で、リンクの元になる URL を変えられるようにする
-- [ ] 予定の行は、時刻の桁が揃うよう行ごとに `` ` `` で囲む
+- [ ] `ytsched notify` に `--url` を足す。**指定したときだけ**、日付の見出しを
+  Slack の `<URL?date=YYYY-MM-DD|日付>` の形のリンクにする。
+  指定しなければ今の出力のまま
+- [ ] `--url` を指定したときは、予定の行を、時刻の桁が揃うよう行ごとに
+  `` ` `` で囲む
 - [ ] `slack-send.sh` に、本文をコードブロックで囲まずに送るオプションを足す
   （このリポジトリの外。`~/bin/slack-send.sh`、元は
   [slack-send](https://github.com/ytani01/slack-send)）
-- [ ] テストを足し、`docs/User.md`・`docs/Developer.md` の cron の例を直す
+- [ ] テストを足し、`docs/User.md`・`docs/Developer.md` に `--url` の例を足す
 
 背景: `slack-send.sh` は本文全体を ```` ``` ```` で囲んで送る
 （`~/bin/slack-send.sh` の `jq` の行）。コードブロックの中ではリンクに
 ならないので、`slack-send.sh` の側も変える。リンク先の
 `?date=YYYY-MM-DD` は Web 画面がそのまま受け付ける（`main_binder.py` の
-`date` 引数）。
-
-**決めること（着手時に聞く）:** 既定にする外向きの URL
-（リバースプロキシの外から見た `…/ytsched`）。利用者にまだ聞けていない。
+`date` 引数）。リンクは `--url` を指定したときだけ付けると利用者と決めた
+（既定の URL は持たない）。
 
 注意:
 
-- リンクを既定で付けるので、`slack-send.sh` に素通しを足すまでは、
-  今の cron で届く通知に `<URL|日付>` が文字のまま出る。
-  `slack-send.sh` を先に直す
-- TODO-221 の `--detail` で出す詳細の行も、`` ` `` で囲むかを揃える。
-  先に済んだほうに合わせる
+- `--url` と、`slack-send.sh` の素通しのオプションは組にして使う。
+  片方だけだと、`<URL|日付>` や `` ` `` が文字のまま出る
+- TODO-221 の `--detail` で出す詳細の行も、`--url` のときに `` ` `` で
+  囲むかを揃える。先に済んだほうに合わせる
 
 ---
 
