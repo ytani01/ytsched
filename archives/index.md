@@ -4,6 +4,7 @@
 作り直すので、手で直さない。やらないと決めたものは（対応しない）が付いている。
 進行中の項目は [TODO.md](../TODO.md) にある。
 
+- [TODO-225. docs／UsersGuide.md と docs／Developer.md の冒頭に目次を付ける](todo/TODO-225.%20docs%EF%BC%8FUsersGuide.md%20%E3%81%A8%20docs%EF%BC%8FDeveloper.md%20%E3%81%AE%E5%86%92%E9%A0%AD%E3%81%AB%E7%9B%AE%E6%AC%A1%E3%82%92%E4%BB%98%E3%81%91%E3%82%8B.md)
 - [TODO-224. notify の行に、種別と場所も Web 画面と同じ形で出す](todo/TODO-224.%20notify%20%E3%81%AE%E8%A1%8C%E3%81%AB%E3%80%81%E7%A8%AE%E5%88%A5%E3%81%A8%E5%A0%B4%E6%89%80%E3%82%82%20Web%20%E7%94%BB%E9%9D%A2%E3%81%A8%E5%90%8C%E3%81%98%E5%BD%A2%E3%81%A7%E5%87%BA%E3%81%99.md)
 - [TODO-223. docs／User.md のファイル名を UsersGuide.md に変える](todo/TODO-223.%20docs%EF%BC%8FUser.md%20%E3%81%AE%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E5%90%8D%E3%82%92%20UsersGuide.md%20%E3%81%AB%E5%A4%89%E3%81%88%E3%82%8B.md)
 - [TODO-222. ytsched notify で、日付をリンクにする](todo/TODO-222.%20ytsched%20notify%20%E3%81%A7%E3%80%81%E6%97%A5%E4%BB%98%E3%82%92%E3%83%AA%E3%83%B3%E3%82%AF%E3%81%AB%E3%81%99%E3%82%8B.md)
