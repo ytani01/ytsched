@@ -1,8 +1,8 @@
 # TODO
 
-**残っている項目: TODO-221、TODO-222。** これまでに 220 件を決着させた。
+**残っている項目: TODO-221、TODO-222、TODO-223。** これまでに 220 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。
-**番号は `TODO-223` から**。
+**番号は `TODO-224` から**。
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
 
@@ -62,6 +62,29 @@
   片方だけだと、`<URL|日付>` や `` ` `` が文字のまま出る
 - TODO-221 の `--detail` で出す詳細の行も、`--url` のときに `` ` `` で
   囲むかを揃える。先に済んだほうに合わせる
+
+---
+
+## TODO-223. docs/User.md のファイル名を UsersGuide.md に変える
+
+|      | main | 担当 |
+|------|------|------|
+| 見込み | Opus 5.5 / effort medium | main（実装）+ verifier（Sonnet 5.5 / medium） |
+
+- [ ] `git mv docs/User.md docs/UsersGuide.md`
+- [ ] 参照を直す。対象は
+  `rg -n "User\.md" --glob '!archives/**' --glob '!TODO.md'` で出るもの
+  （README.md、docs/Install.md、docs/Developer.md、main.html の GitHub への
+  リンク、my.css のコメント、mise.toml の description、tools/annotate.py）
+
+背景:
+
+- `archives/` の中の参照とファイル名（TODO-152・155・158 など）は、
+  当時の記録なので直さない。docs/Developer.md から archives の
+  TODO-152 のファイルへ張ったリンクも、そのファイル名のまま残す
+- 図のファイル名（`docs/user-*.png`、`tools/user-figs.json`）は変えない
+- main.html のリンクは GitHub の `HEAD` を指すので、push するまでは
+  新しい名前が 404 になる
 
 ---
 
