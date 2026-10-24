@@ -9,6 +9,7 @@
 //   update_wday()  -- edit.html の #date の onchange
 //   setElDate()    -- edit.html の日付ボタンの onmousedown
 //   changeElDate() -- edit.html の日付ボタンの onmousedown
+//   keyDownHdr() は onloadEdit が #input_form の keydown に登録する
 //   onloadEdit() は window の load でこのファイルが登録し、changeDetailHeight()
 //     も別の load ハンドラから呼ぶ。mkInput() / wdayList / busyFlag は
 //     このファイル内だけで使う
@@ -131,6 +132,18 @@
     }
   };
 
+  // Ctrl+Enter (Mac は Cmd+Enter も) で確定する (TODO-226)。
+  // 変換中の Enter は IME の確定なので無視する
+  const keyDownHdr = (event) => {
+    if (event.key !== "Enter" || event.isComposing) {
+      return;
+    }
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      ytsched.submitCmd("fix");
+    }
+  };
+
   const onloadEdit = () => {
     ytsched.ytState.elLoadingSpinner =
       document.getElementById("loadingSpinner");
@@ -141,6 +154,9 @@
     document
       .getElementById("edit_main")
       .addEventListener("change", actionChangeHdr);
+    document
+      .getElementById("input_form")
+      .addEventListener("keydown", keyDownHdr);
     // ボタンバーが上下 2 か所にあるので、両方にリスナーを付ける (TODO-177)
     document.querySelectorAll(".my-edit-bar").forEach((el) => {
       el.addEventListener("mousedown", actionMouseDownHdr);
