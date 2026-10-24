@@ -438,7 +438,7 @@ def test_delete_many_keeps_unselected_and_broken_lines(tmp_path):
     assert json.loads(remaining[3])["sde_id"] == "b"
 
 
-def test_delete_unknown_trashed_at_returns_false(tmp_path):
+def test_delete_many_unknown_trashed_at_returns_zero(tmp_path):
     path = tmp_path / "trash.jsonl"
     path.write_text(
         json.dumps(
@@ -453,7 +453,7 @@ def test_delete_unknown_trashed_at_returns_false(tmp_path):
     )
     trash = TrashFile(tmp_path)
 
-    assert trash.delete("a", "no-such-timestamp") is False
+    assert trash.delete_many({("a", "no-such-timestamp")}) == 0
     # 書き直されず内容もそのまま
     assert path.read_text(encoding="utf-8").count("\n") == 1
 
@@ -475,15 +475,15 @@ def test_delete_keeps_original_permissions(tmp_path):
     path.chmod(0o644)
     trash = TrashFile(tmp_path)
 
-    trash.delete("a", "2026-08-30T10:00:00")
+    trash.delete_many({("a", "2026-08-30T10:00:00")})
 
     assert stat.S_IMODE(path.stat().st_mode) == 0o644
 
 
-def test_delete_no_file_returns_false(tmp_path):
+def test_delete_many_no_file_returns_zero(tmp_path):
     trash = TrashFile(tmp_path)
 
-    assert trash.delete("a", "2026-08-30T10:00:00") is False
+    assert trash.delete_many({("a", "2026-08-30T10:00:00")}) == 0
 
 
 def test_delete_many_empty_or_unknown_does_not_rewrite(tmp_path):

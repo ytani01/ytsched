@@ -2,11 +2,26 @@
 
 開発環境の用意、開発ツールの使い方、テストとログの決まりをまとめる。
 利用者向けの説明は [../README.md](../README.md) と
-[User.md](User.md)、導入と運用は [Install.md](Install.md)、
+[UsersGuide.md](UsersGuide.md)、導入と運用は [Install.md](Install.md)、
 ソースコードの構成は
 [../src/README.md](../src/README.md)、テストの構成は
 [../tests/README.md](../tests/README.md)、データ形式は
 [data-format.md](data-format.md) を見ること。
+
+## 目次
+
+- [1. 技術スタック](#1-技術スタック)
+- [2. 外部のライブラリ](#2-外部のライブラリ)
+- [3. 開発環境の用意](#3-開発環境の用意)
+- [4. mise のタスク](#4-mise-のタスク)
+- [5. 個別コマンドで実行する場合](#5-個別コマンドで実行する場合)
+- [6. 画面を撮る](#6-画面を撮る)
+- [7. 図に注釈を入れる](#7-図に注釈を入れる)
+- [8. テストの走らせ方](#8-テストの走らせ方)
+- [9. ログの書き方](#9-ログの書き方)
+- [10. memo](#10-memo)
+  - [10.1 JavaScript Date の罠](#101-javascript-date-の罠)
+  - [10.2 JavaScript scroll・size 関連](#102-javascript-scrollsize-関連)
 
 ## 1. 技術スタック
 
@@ -165,6 +180,9 @@ uv run ytsched notify --datadir ~/ytsched/data
 | `--no-todo` | 期限の近い ToDo を出さない |
 | `--days` | 対象の日を含めて何日ぶんの予定を出すか。既定は 1 |
 | `--memo` | メッセージの先頭に出す文言。既定は無し |
+| `--url` | Web 画面の URL。指定すると日付をリンクにする（TODO-222）。既定は無し |
+| `--skip-empty` | 予定の無い日を出さない（TODO-221） |
+| `--detail` | 予定の行の下に詳細を出す（TODO-221） |
 
 標準出力へテキストを出すだけで、Slack へは送らない。送るのは
 別の道具（`~/bin/slack-send.sh`）に任せ、cron から次のようにつなぐ:
@@ -180,6 +198,32 @@ uv run ytsched notify --datadir ~/ytsched/data
 `--days` を 2 以上にすると、`--date` の日から連続した日ぶんの節を
 続けて出し、期限の近い ToDo の節は全体の最後に 1 回だけ出す
 （`--date` の日を基準に判定する）。
+
+予定と ToDo の行は、Web 画面（`sde.html`）と同じ `[種別] タイトル @場所` の
+形で出す（TODO-224）。ToDo の種別は先頭の `□` を除いた部分で、`□` だけなら
+種別を出さない。タイトルが空なら `__`、場所が空なら `@場所` を出さない。
+
+`--skip-empty` を付けると、予定の無い日の節を出さない。全部の日に予定が
+無いときは、期間の見出し（`2026-10-05 (月) 〜 10-11 (日)`、1 日なら日付だけ）
+の下に「予定なし」を 1 行出すので、1 通は必ず届く。`--detail` を付けると、
+予定の行の下に detail を全行、予定の行より 1 段深く字下げして出す
+（TODO-221）。週の予定をまとめて送る例:
+
+```sh
+0 7 * * 1 $HOME/.local/bin/ytsched notify --days 7 --skip-empty --detail | $HOME/bin/slack-send.sh -c '#ytsched' -t 'ytsched'
+```
+
+`--url` を指定すると、本文を Slack の mrkdwn で出す。日付の見出しを
+`<URL?date=YYYY-MM-DD|2026-09-02 (水)>` のリンクにし、予定の行は時刻の
+桁が揃うよう `` ` `` で囲み（タイトル中の `` ` `` は `'` にする）、
+種別・タイトル・場所・詳細の `&` `<` `>` をエスケープする。詳細の `` ` `` も `'` にする。`--url` の値はそのまま
+差し込むので、クエリ（`?…`）の付かない URL を渡すこと。
+`slack-send.sh` は既定で本文をコードブロックで囲むので（その中では
+リンクにならない）、`-r` を付けて囲まずに送る:
+
+```sh
+0 7 * * * $HOME/.local/bin/ytsched notify --url https://example.net/ytsched | $HOME/bin/slack-send.sh -r -c '#ytsched' -t 'ytsched'
+```
 
 ## 6. 画面を撮る
 
@@ -226,7 +270,7 @@ mise run shot -- --open -p todo046
 
 ## 7. 図に注釈を入れる
 
-`docs/User.md` に貼っている画面図は、撮ったキャプチャに `tools/annotate.py`
+`docs/UsersGuide.md` に貼っている画面図は、撮ったキャプチャに `tools/annotate.py`
 で引き出し線と吹き出しを重ねたもの（TODO-152）。キャプチャを HTML に貼り、
 吹き出しを絶対位置で並べ、引き出し線を SVG で引いて、chromium で撮り直す。
 
@@ -241,7 +285,7 @@ mise run figs -- --only user-week -o /tmp/try            # 1 枚だけ試す
 撮り直したら、同じ JSON でもう一度流せばよい。書き方は
 `tools/annotate.py` の docstring にある。
 
-`docs/User.md` の図を作り直す手順は
+`docs/UsersGuide.md` の図を作り直す手順は
 [../archives/todo/TODO-152. User.md に画面図を入れる.md](../archives/todo/TODO-152.%20User.md%20に画面図を入れる.md)
 に残してある（サンプルデータ、撮る URL、それぞれの高さ）。
 

@@ -24,6 +24,19 @@ if TYPE_CHECKING:
     from .ytsched import SchedDataEnt
 
 
+# 壊れた行として飛ばす例外（``UnicodeDecodeError`` は ``ValueError`` の仲間）
+_BAD_LINE = (json.JSONDecodeError, TypeError, ValueError, KeyError)
+
+
+def _parse_line(line: bytes) -> tuple[dict, str]:
+    """1 行を読み、``(データ, trashed_at)`` を返す。壊れていれば ``_BAD_LINE`` の例外。"""
+    data = json.loads(line.decode(TrashFile.ENCODING))
+    trashed_at = data["trashed_at"]
+    if not isinstance(trashed_at, str):
+        raise TypeError("trashed_at is not a string")
+    return data, trashed_at
+
+
 @dataclasses.dataclass(frozen=True)
 class TrashEntry:
     """ゴミ箱の 1 行。``trashed_at`` はファイルに書いた文字列のまま持つ。"""
@@ -116,10 +129,7 @@ class TrashFile:
         with self.pathname.open("rb") as f:
             for lineno, line in enumerate(f, start=1):
                 try:
-                    data = json.loads(line.decode(self.ENCODING))
-                    trashed_at = data["trashed_at"]
-                    if not isinstance(trashed_at, str):
-                        raise TypeError("trashed_at is not a string")
+                    data, trashed_at = _parse_line(line)
                     entry_id = data.get("sde_id")
                     if uuid_part is not None and (
                         not isinstance(entry_id, str)
@@ -130,12 +140,7 @@ class TrashFile:
                     entries.append(
                         TrashEntry(trashed_at, SchedDataEnt.from_dict(data))
                     )
-                except (
-                    json.JSONDecodeError,
-                    TypeError,
-                    ValueError,
-                    KeyError,
-                ) as e:
+                except _BAD_LINE as e:
                     self.__log.warning(
                         f"{self.pathname}:{lineno}: {e} .. ignored"
                     )
@@ -156,16 +161,8 @@ class TrashFile:
         with self.pathname.open("rb") as f:
             for lineno, line in enumerate(f, start=1):
                 try:
-                    data = json.loads(line.decode(self.ENCODING))
-                    trashed_at = data["trashed_at"]
-                    if not isinstance(trashed_at, str):
-                        raise TypeError("trashed_at is not a string")
-                except (
-                    json.JSONDecodeError,
-                    TypeError,
-                    ValueError,
-                    KeyError,
-                ) as e:
+                    _parse_line(line)
+                except _BAD_LINE as e:
                     self.__log.warning(
                         f"{self.pathname}:{lineno}: {e} .. ignored"
                     )
@@ -222,19 +219,11 @@ class TrashFile:
         deleted = 0
         for line in lines:
             try:
-                data = json.loads(line.decode(self.ENCODING))
-                trashed_at = data["trashed_at"]
-                if not isinstance(trashed_at, str):
-                    raise TypeError("trashed_at is not a string")
+                data, trashed_at = _parse_line(line)
                 from .ytsched import SchedDataEnt
 
                 sde = SchedDataEnt.from_dict(data)
-            except (
-                json.JSONDecodeError,
-                TypeError,
-                ValueError,
-                KeyError,
-            ):
+            except _BAD_LINE:
                 kept.append(line)
                 continue
             if (sde.sde_id, trashed_at) in entries:
@@ -247,10 +236,6 @@ class TrashFile:
 
         self._write_lines(kept)
         return deleted
-
-    def delete(self, sde_id: str, trashed_at: str) -> bool:
-        """1 組を削除する ``delete_many()`` の互換用ラッパ。"""
-        return self.delete_many({(sde_id, trashed_at)}) > 0
 
     def _write_lines(self, lines: list[bytes]) -> None:
         """``lines`` で ``trash.jsonl`` を書き直す。

@@ -94,7 +94,7 @@ description = "screenshot of the webapp (TODO-046)"
 run = "uv run python tools/screenshot.py"
 
 [tasks.figs]
-description = "annotate screenshots for docs/User.md (TODO-152)"
+description = "annotate screenshots for docs/UsersGuide.md (TODO-152)"
 # 先に `mise run shot` でキャプチャを撮っておくこと。
 # 注釈の位置は tools/user-figs.json にある。
 run = "uv run python tools/annotate.py"

@@ -33,6 +33,11 @@
 - データの保存形式（JSON Lines、壊れた行の扱いなど）は
   `docs/data-format.md`
 
+## 他のプロジェクトと共通のファイル
+
+`src/ytsched/click_utils.py` と `src/ytsched/mylog.py` は他のプロジェクトと
+共通なので、**利用者から特別な指示が無い限り書き換えない。**
+
 ## ログ
 
 `mylog.py` のラッパを使う。標準の `logging` は使わない

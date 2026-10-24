@@ -121,7 +121,7 @@ ytsched webapp --datadir ~/ytsched/data --port 10085
 * タイプを「□」にすると、「ToDo」項目と見なす
 
 画面の操作、検索の使い方、`conf.json` の設定は
-[docs/User.md](docs/User.md) を参照。
+[docs/UsersGuide.md](docs/UsersGuide.md) を参照。
 
 
 ## 4. 課題・問題点
@@ -139,7 +139,7 @@ ytsched webapp --datadir ~/ytsched/data --port 10085
 | 文書 | 内容 |
 | --- | --- |
 | [docs/Install.md](docs/Install.md) | インストール、更新、systemd、リバースプロキシ |
-| [docs/User.md](docs/User.md) | ユーザーズマニュアル |
+| [docs/UsersGuide.md](docs/UsersGuide.md) | ユーザーズマニュアル |
 | [docs/Developer.md](docs/Developer.md) | 開発環境、開発ツール、テスト、ログ |
 | [docs/data-format.md](docs/data-format.md) | データの保存形式 |
 

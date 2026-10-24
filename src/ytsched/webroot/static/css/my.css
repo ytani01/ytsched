@@ -363,7 +363,7 @@ textarea {
     padding-left: calc(var(--my-gutter-x) * .5);
 }
 
-/* リンク先 (User.md) を示す下線は残し、``a`` の既定の青・訪問後の紫を
+/* リンク先 (UsersGuide.md) を示す下線は残し、``a`` の既定の青・訪問後の紫を
    打ち消す (TODO-160) */
 .my-version-info a {
     color: white;
