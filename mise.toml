@@ -1,5 +1,5 @@
 [tools]
-node = "26.8.1"
+node = "26.13.0"
 
 [tasks.upgradeproject]
 description = "upgrade in this project"
