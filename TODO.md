@@ -1,6 +1,6 @@
 # TODO
 
-**残っている項目: TODO-228、TODO-229、TODO-231、TODO-232。** これまでに 228 件を決着させた。
+**残っている項目: TODO-228。** これまでに 231 件を決着させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-233` から。**
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
@@ -18,43 +18,6 @@ TODO-227 の残り。基準の高さは入力欄にフォーカスが無いと�
 | 見込み | Opus 5.5 / effort medium | main のみ（決めるだけ。直すなら implementer + reviewer + verifier を立て直す） |
 
 **無駄を省く工夫:** 実機で困ってから直す選択肢を先に聞く。直す場合も `TODO-227` のテストの範囲で確かめる。
-
-## TODO-229. `main-page.js` の `scroll-behavior` のコメントを実態に合わせる
-
-`main-page.js` の 436 行と 501 行のコメントは Bootstrap の `scroll-behavior` を理由に挙げているが、CSS にその指定が無い（TODO-227 のレビューで判明）。指定の有無を確かめ、コメントと `behavior` の指定を直すかを決める。
-
-- [ ] 読み込んでいる CSS に `scroll-behavior` が無いことを確かめる
-- [ ] コメントを直す。指定を外すと滑らかに動く恐れが無ければ、指定も外す
-
-| | main | 担当 |
-|---|---|---|
-| 見込み | Opus 5.5 / effort medium | main（実装）+ verifier（Sonnet 5.5 / medium） |
-
-**無駄を省く工夫:** 数行の項目なので main が書く。確認は週送りとホームボタンの動きの代表 1 つずつに絞る。
-
-## TODO-231. `npm audit` の警告を見る
-
-`npm ci`（TODO-230）で 5 件（moderate 4、high 1。`brace-expansion`、`minimatch` など）の警告が出た。`npm audit --omit=dev` は 0 件で、開発用のパッケージだけの話。
-
-- [ ] 直すか（対応しない）とするかを利用者に聞く。`npm audit fix --force` は破壊的な更新を含むので、そのまま流さない
-
-| | main | 担当 |
-|---|---|---|
-| 見込み | Opus 5.5 / effort medium | main のみ（決めるだけ。直すなら implementer + verifier を立て直す） |
-
-**無駄を省く工夫:** 本番で使うパッケージは 0 件なので、実害の有無だけを先に判断する。
-
-## TODO-232. 詳細欄のブラウザテストがまれに落ちるのを直す
-
-`test_detail_fills_between_bars_and_blur_shrinks_it` が 4 回に 1 回落ちた（TODO-231 の確認で判明）。待つ条件の `h > 300` が、縮む前の高さ 368px でも成り立つので、処理の前に判定へ進むことがある。
-
-- [x] 待つ条件に上限を足し、縮む前の高さでは通らないようにする
-
-| | main | 担当 |
-|---|---|---|
-| 見込み | Opus 5.5 / effort medium | main（実装）+ verifier（Sonnet 5.5 / medium） |
-
-**無駄を省く工夫:** 数行の項目なので main が書く。確認はこのテスト 1 件の繰り返しだけにする。
 
 ## 完了済み
 
