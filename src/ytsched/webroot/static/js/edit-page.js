@@ -10,9 +10,10 @@
 //   setElDate()    -- edit.html の日付ボタンの onmousedown
 //   changeElDate() -- edit.html の日付ボタンの onmousedown
 //   keyDownHdr() は onloadEdit が #input_form の keydown に登録する
-//   onloadEdit() は window の load でこのファイルが登録し、changeDetailHeight()
-//     も別の load ハンドラから呼ぶ。mkInput() / wdayList / busyFlag は
-//     このファイル内だけで使う
+//   onloadEdit() は window の load でこのファイルが登録する。
+//     changeDetailHeight() は別の load ハンドラと window の resize
+//     (Android のキーボード表示で画面が縮む。TODO-227) から呼ぶ。
+//     mkInput() / wdayList / busyFlag はこのファイル内だけで使う
 // 外から使うもの:
 //   ytState (state.js)            -- onloadEdit が ytState.elLoadingSpinner をセット
 //   loadingSpinner() (spinner.js) -- submitCmd・onloadEdit
@@ -166,5 +167,6 @@
   window.addEventListener("load", function () {
     changeDetailHeight();
   });
+  window.addEventListener("resize", changeDetailHeight);
   window.addEventListener("load", onloadEdit);
 })();
