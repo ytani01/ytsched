@@ -13,8 +13,8 @@
 //   onloadEdit() は window の load でこのファイルが登録する。
 //     changeDetailHeight() は別の load ハンドラと、window の resize・
 //     #detail の blur から呼ぶ。fillDetailHeight() (TODO-227) は、#detail の
-//     入力中に画面が縮んでいる (Android のキーボード表示) とき、#detail の
-//     focus・window の resize から呼ぶ。mkInput() / wdayList / busyFlag は
+//     入力中に画面が基準の高さ (baseHeight) より縮んでいる (Android の
+//     キーボード表示) とき、#detail の focus・window の resize から呼ぶ。mkInput() / wdayList / busyFlag は
 //     このファイル内だけで使う
 // 外から使うもの:
 //   ytState (state.js)            -- onloadEdit が ytState.elLoadingSpinner をセット
@@ -79,7 +79,10 @@
     ytsched.setElDate(d1, el_date);
   };
 
-  let loadHeight = 0;
+  // 「縮んでいる」かを見る基準の高さ。入力欄にフォーカスが無いときの
+  // resize で更新する。キーボードはフォーカス中にしか出ないので、
+  // そのときの変化はウィンドウの変更や画面の回転とみなせる (TODO-227)
+  let baseHeight = 0;
   let lastHeight = 0;
   let detailFilled = false;
 
@@ -119,13 +122,16 @@
 
   const isDetailShrunk = () =>
     document.activeElement === document.getElementById("detail") &&
-    document.documentElement.clientHeight < loadHeight;
+    document.documentElement.clientHeight < baseHeight;
 
   const resizeHdr = () => {
-    if (loadHeight === 0) {
+    if (baseHeight === 0) {
       return; // load の前は #detail がまだ無いことがある
     }
     const win_h = document.documentElement.clientHeight;
+    if (!document.activeElement.matches("input, textarea, select")) {
+      baseHeight = win_h;
+    }
     if (isDetailShrunk()) {
       fillDetailHeight();
     } else if (win_h !== lastHeight) {
@@ -219,7 +225,7 @@
   };
 
   window.addEventListener("load", function () {
-    loadHeight = lastHeight = document.documentElement.clientHeight;
+    baseHeight = lastHeight = document.documentElement.clientHeight;
     changeDetailHeight();
   });
   window.addEventListener("resize", resizeHdr);

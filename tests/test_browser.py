@@ -2958,43 +2958,109 @@ def test_flash_class_is_removed_after_animation(page, server, tmp_path):
     )
 
 
-def test_detail_fills_between_bars_while_focused_and_screen_shrunk(
-    page, server
-):
+def _open_edit_sized(page, server, height):
+    """幅 412px、高さ ``height`` で編集画面を開く（TODO-227）。"""
+    page.set_viewport_size({"width": 412, "height": height})
+    _open_edit(page, server, datetime.date.today().isoformat())
+
+
+def _detail_box(page):
+    """詳細欄と上下のバーの位置、ページのスクロール量を返す。"""
+    return page.evaluate(
+        """() => {
+            const r = document.getElementById('detail')
+                .getBoundingClientRect();
+            return {
+                top: r.top, bottom: r.bottom, h: r.height,
+                scroll_y: window.scrollY,
+                bar_bottom: document.querySelector('.my-edit-bar-top')
+                    .getBoundingClientRect().bottom,
+                bar_top: document.querySelector('.my-edit-bar-bottom')
+                    .getBoundingClientRect().top,
+            };
+        }"""
+    )
+
+
+def _wait_detail_height(page, check):
+    """詳細欄の高さが ``check``（JS の式。引数 h）を満たすのを待つ。"""
+    page.wait_for_function(
+        "(src) => { const h = document.getElementById('detail')"
+        ".getBoundingClientRect().height; return eval(src); }",
+        arg=check,
+    )
+
+
+def test_detail_fills_between_bars_and_blur_shrinks_it(page, server):
     """入力中に画面が縮んだら、詳細欄が上下のバーの間いっぱいに広がり、
-    blur で元の高さに戻る（TODO-227）。
+    blur で縮んだ画面の高さの計算に戻る（TODO-227）。
 
     Android Chrome のキーボードで画面が縮むのを、viewport の高さを
     780px から 430px に変えて再現する。
     """
-    page.set_viewport_size({"width": 412, "height": 780})
-    _open_edit(page, server, datetime.date.today().isoformat())
-    box = """() => {
-        const r = document.getElementById('detail').getBoundingClientRect();
-        return {
-            top: r.top, bottom: r.bottom, h: r.height,
-            bar_bottom: document.querySelector('.my-edit-bar-top')
-                .getBoundingClientRect().bottom,
-            bar_top: document.querySelector('.my-edit-bar-bottom')
-                .getBoundingClientRect().top,
-        };
-    }"""
-    before = page.evaluate(box)
-
+    _open_edit_sized(page, server, 780)
     page.locator("#detail").focus()
     page.set_viewport_size({"width": 412, "height": 430})
-    page.wait_for_function(
-        "() => document.getElementById('detail')"
-        ".getBoundingClientRect().height < 369"
-    )
-    filled = page.evaluate(box)
+    _wait_detail_height(page, "h > 300")
+
+    filled = _detail_box(page)
     assert filled["top"] == pytest.approx(filled["bar_bottom"], abs=1)
     assert filled["bottom"] == pytest.approx(filled["bar_top"], abs=1)
 
+    # 画面は縮んだまま。blur で、広げる前の計算（最小 100px）に戻る
     page.evaluate("document.getElementById('detail').blur()")
-    page.set_viewport_size({"width": 412, "height": 780})
-    page.wait_for_function(
-        "(h) => document.getElementById('detail')"
-        ".getBoundingClientRect().height === h",
-        arg=before["h"],
-    )
+    _wait_detail_height(page, "h === 100")
+
+
+def test_detail_focus_does_not_move_when_screen_is_not_shrunk(page, server):
+    """画面が縮んでいなければ、フォーカスしても欄もページも動かない。"""
+    _open_edit_sized(page, server, 780)
+    before = _detail_box(page)
+
+    page.locator("#detail").focus()
+
+    after = _detail_box(page)
+    assert after["h"] == before["h"]
+    assert after["scroll_y"] == before["scroll_y"]
+
+
+def test_detail_fills_when_moving_from_other_input_with_keyboard(
+    page, server
+):
+    """タイトル欄でキーボードが開いたまま詳細欄へ移っても、欄が広がる。
+    入力欄にフォーカスがある間の高さの変化は、基準にしない。"""
+    _open_edit_sized(page, server, 780)
+    page.locator("#title").focus()
+    page.set_viewport_size({"width": 412, "height": 430})
+    _wait_detail_height(page, "h === 100")
+
+    page.locator("#detail").focus()
+
+    _wait_detail_height(page, "h > 300")
+    box = _detail_box(page)
+    assert box["top"] == pytest.approx(box["bar_bottom"], abs=1)
+
+
+def test_detail_click_does_not_fill_when_window_was_resized(page, server):
+    """フォーカスが無いときにウィンドウを低くしても、そのあと詳細欄を
+    クリックして広がらない（キーボードではなくウィンドウの変更）。"""
+    _open_edit_sized(page, server, 780)
+    page.set_viewport_size({"width": 412, "height": 430})
+    _wait_detail_height(page, "h === 100")
+
+    page.locator("#detail").click()
+
+    box = _detail_box(page)
+    assert box["h"] == 100
+    assert box["scroll_y"] == 0
+
+
+def test_detail_manual_height_is_kept_when_only_width_changes(page, server):
+    """幅だけが変わる resize では、手で変えた欄の高さを戻さない。"""
+    _open_edit_sized(page, server, 780)
+    page.evaluate("document.getElementById('detail').style.height = '500px'")
+
+    page.set_viewport_size({"width": 380, "height": 780})
+    page.evaluate("new Promise(r => requestAnimationFrame(() => r()))")
+
+    assert _detail_box(page)["h"] == 500
