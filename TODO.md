@@ -32,17 +32,17 @@ TODO-227 の残り。基準の高さは入力欄にフォーカスが無いと�
 
 **無駄を省く工夫:** 数行の項目なので main が書く。確認は週送りとホームボタンの動きの代表 1 つずつに絞る。
 
-## TODO-230. 編集後の hook で ESLint が動かない
+## TODO-231. `npm audit` の警告を見る
 
-`.claude/hooks/fmt-one.sh` が `.js` の編集後に ESLint を呼ぶが、`eslint@10.14.0` が入っておらず `npx canceled due to missing packages` で止まる（TODO-227 で発生。node を上げた `e1c47b2` との関係は未確認）。
+`npm ci`（TODO-230）で 5 件（moderate 4、high 1。`brace-expansion`、`minimatch` など）の警告が出た。`npm audit --omit=dev` は 0 件で、開発用のパッケージだけの話。
 
-- [ ] 原因を確かめて、hook が ESLint を走らせられるようにする
+- [ ] 直すか（対応しない）とするかを利用者に聞く。`npm audit fix --force` は破壊的な更新を含むので、そのまま流さない
 
 | | main | 担当 |
 |---|---|---|
-| 見込み | Opus 5.5 / effort medium | implementer（Sonnet 5.5 / medium）+ verifier（Sonnet 5.5 / medium） |
+| 見込み | Opus 5.5 / effort medium | main のみ（決めるだけ。直すなら implementer + verifier を立て直す） |
 
-**無駄を省く工夫:** 確認は `.js` を 1 つ編集して hook の出力を見るだけにする。ESLint の全件実行は頼まない。
+**無駄を省く工夫:** 本番で使うパッケージは 0 件なので、実害の有無だけを先に判断する。
 
 ## 完了済み
 
