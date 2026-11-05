@@ -105,7 +105,6 @@
 
   // 入力中に画面が縮んだら、#detail を上下のバーの間いっぱいに広げ、
   // 上端が上のバーのすぐ下に来るまでページを動かす (TODO-227)。
-  // behavior を指定するのは、CSS の scroll-behavior で滑らかに動かさないため
   const fillDetailHeight = () => {
     const el_detail = document.getElementById("detail");
     const top_h = document.querySelector(".my-edit-bar-top").offsetHeight;
@@ -114,10 +113,10 @@
 
     el_detail.style.height = `${Math.max(win_h - top_h - bottom_h, 100)}px`;
     detailFilled = true;
-    window.scrollTo({
-      top: el_detail.getBoundingClientRect().top + window.scrollY - top_h,
-      behavior: "instant",
-    });
+    window.scrollTo(
+      0,
+      el_detail.getBoundingClientRect().top + window.scrollY - top_h,
+    );
   };
 
   const isDetailShrunk = () =>
