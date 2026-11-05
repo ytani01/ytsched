@@ -432,9 +432,8 @@
     // 特定の日とは限らない (TODO-162 reviewer 指摘)。
     const date =
       ytsched.search_date_to || document.getElementById("cur_day").value;
-    // 読み直したあとの位置合わせは一度で移す。"auto" は CSS の
-    // scroll-behavior に従うので、Bootstrap 5 の :root の指定で
-    // アニメーションになってしまう (TODO-041)
+    // 読み直したあとの位置合わせは一度で移す。scrollToDate() の既定は
+    // "smooth" なので、指定しないとアニメーションになる (TODO-041)
     // 読み直した直後なので、履歴には積まない (TODO-050)
     ytsched.scrollToDate(
       location.pathname,
@@ -498,8 +497,7 @@
       }
       // 上端が上の帯に隠れるなら、下端より上端を見せる
       dy = Math.min(dy, r.top - top - margin);
-      // "instant" でないと Bootstrap の scroll-behavior でアニメーションになる
-      scrollBy({ left: 0, top: dy, behavior: "instant" });
+      scrollBy(0, dy);
     }
     els.forEach((el) => {
       if (!el) {
