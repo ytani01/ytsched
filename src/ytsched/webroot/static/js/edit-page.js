@@ -11,9 +11,11 @@
 //   changeElDate() -- edit.html の日付ボタンの onmousedown
 //   keyDownHdr() は onloadEdit が #input_form の keydown に登録する
 //   onloadEdit() は window の load でこのファイルが登録する。
-//     changeDetailHeight() は別の load ハンドラと window の resize
-//     (Android のキーボード表示で画面が縮む。TODO-227) から呼ぶ。
-//     mkInput() / wdayList / busyFlag はこのファイル内だけで使う
+//     changeDetailHeight() は別の load ハンドラと、window の resize・
+//     #detail の blur から呼ぶ。fillDetailHeight() (TODO-227) は、#detail の
+//     入力中に画面が縮んでいる (Android のキーボード表示) とき、#detail の
+//     focus・window の resize から呼ぶ。mkInput() / wdayList / busyFlag は
+//     このファイル内だけで使う
 // 外から使うもの:
 //   ytState (state.js)            -- onloadEdit が ytState.elLoadingSpinner をセット
 //   loadingSpinner() (spinner.js) -- submitCmd・onloadEdit
@@ -77,6 +79,10 @@
     ytsched.setElDate(d1, el_date);
   };
 
+  let loadHeight = 0;
+  let lastHeight = 0;
+  let detailFilled = false;
+
   const changeDetailHeight = () => {
     const el_detail = document.getElementById("detail");
     const detail_y = el_detail.parentElement.offsetTop;
@@ -91,6 +97,42 @@
     }
 
     el_detail.style.height = `${detail_h}px`;
+    detailFilled = false;
+  };
+
+  // 入力中に画面が縮んだら、#detail を上下のバーの間いっぱいに広げ、
+  // 上端が上のバーのすぐ下に来るまでページを動かす (TODO-227)。
+  // behavior を指定するのは、CSS の scroll-behavior で滑らかに動かさないため
+  const fillDetailHeight = () => {
+    const el_detail = document.getElementById("detail");
+    const top_h = document.querySelector(".my-edit-bar-top").offsetHeight;
+    const bottom_h = document.querySelector(".my-edit-bar-bottom").offsetHeight;
+    const win_h = document.documentElement.clientHeight;
+
+    el_detail.style.height = `${Math.max(win_h - top_h - bottom_h, 100)}px`;
+    detailFilled = true;
+    window.scrollTo({
+      top: el_detail.getBoundingClientRect().top + window.scrollY - top_h,
+      behavior: "instant",
+    });
+  };
+
+  const isDetailShrunk = () =>
+    document.activeElement === document.getElementById("detail") &&
+    document.documentElement.clientHeight < loadHeight;
+
+  const resizeHdr = () => {
+    if (loadHeight === 0) {
+      return; // load の前は #detail がまだ無いことがある
+    }
+    const win_h = document.documentElement.clientHeight;
+    if (isDetailShrunk()) {
+      fillDetailHeight();
+    } else if (win_h !== lastHeight) {
+      // 幅だけの変化では、手で変えた高さを戻さない
+      changeDetailHeight();
+    }
+    lastHeight = win_h;
   };
 
   const actionElement = (event) => {
@@ -158,6 +200,18 @@
     document
       .getElementById("input_form")
       .addEventListener("keydown", keyDownHdr);
+    const el_detail = document.getElementById("detail");
+    el_detail.addEventListener("focus", () => {
+      if (isDetailShrunk()) {
+        fillDetailHeight();
+      }
+    });
+    el_detail.addEventListener("blur", () => {
+      // 広げていないときは、手で変えた高さを戻さない
+      if (detailFilled) {
+        changeDetailHeight();
+      }
+    });
     // ボタンバーが上下 2 か所にあるので、両方にリスナーを付ける (TODO-177)
     document.querySelectorAll(".my-edit-bar").forEach((el) => {
       el.addEventListener("mousedown", actionMouseDownHdr);
@@ -165,8 +219,9 @@
   };
 
   window.addEventListener("load", function () {
+    loadHeight = lastHeight = document.documentElement.clientHeight;
     changeDetailHeight();
   });
-  window.addEventListener("resize", changeDetailHeight);
+  window.addEventListener("resize", resizeHdr);
   window.addEventListener("load", onloadEdit);
 })();

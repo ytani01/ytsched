@@ -2956,3 +2956,45 @@ def test_flash_class_is_removed_after_animation(page, server, tmp_path):
         "document.querySelectorAll('.my-flash').length === 0",
         timeout=8000,
     )
+
+
+def test_detail_fills_between_bars_while_focused_and_screen_shrunk(
+    page, server
+):
+    """入力中に画面が縮んだら、詳細欄が上下のバーの間いっぱいに広がり、
+    blur で元の高さに戻る（TODO-227）。
+
+    Android Chrome のキーボードで画面が縮むのを、viewport の高さを
+    780px から 430px に変えて再現する。
+    """
+    page.set_viewport_size({"width": 412, "height": 780})
+    _open_edit(page, server, datetime.date.today().isoformat())
+    box = """() => {
+        const r = document.getElementById('detail').getBoundingClientRect();
+        return {
+            top: r.top, bottom: r.bottom, h: r.height,
+            bar_bottom: document.querySelector('.my-edit-bar-top')
+                .getBoundingClientRect().bottom,
+            bar_top: document.querySelector('.my-edit-bar-bottom')
+                .getBoundingClientRect().top,
+        };
+    }"""
+    before = page.evaluate(box)
+
+    page.locator("#detail").focus()
+    page.set_viewport_size({"width": 412, "height": 430})
+    page.wait_for_function(
+        "() => document.getElementById('detail')"
+        ".getBoundingClientRect().height < 369"
+    )
+    filled = page.evaluate(box)
+    assert filled["top"] == pytest.approx(filled["bar_bottom"], abs=1)
+    assert filled["bottom"] == pytest.approx(filled["bar_top"], abs=1)
+
+    page.evaluate("document.getElementById('detail').blur()")
+    page.set_viewport_size({"width": 412, "height": 780})
+    page.wait_for_function(
+        "(h) => document.getElementById('detail')"
+        ".getBoundingClientRect().height === h",
+        arg=before["h"],
+    )
