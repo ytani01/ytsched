@@ -3001,7 +3001,8 @@ def test_detail_fills_between_bars_and_blur_shrinks_it(page, server):
     _open_edit_sized(page, server, 780)
     page.locator("#detail").focus()
     page.set_viewport_size({"width": 412, "height": 430})
-    _wait_detail_height(page, "h > 300")
+    # 縮む前の高さ（368px）でも通らないよう、上限も見る
+    _wait_detail_height(page, "h > 300 && h < 360")
 
     filled = _detail_box(page)
     assert filled["top"] == pytest.approx(filled["bar_bottom"], abs=1)
