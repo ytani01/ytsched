@@ -2890,21 +2890,56 @@ def test_flash_marks_date_and_sde_and_cleans_url(page, server, tmp_path):
     assert "sde_align=top" in page.url
 
 
-@pytest.mark.parametrize(
-    ("sde_align", "sde_id"),
-    [
-        ("top", "id-39"),  # 末尾の予定が下の帯より下にある
-        ("bottom", "id-0"),  # 先頭の予定が上の帯より上にある
-    ],
-)
-def test_flash_scrolls_sde_between_bars(
-    page, server, tmp_path, sde_align, sde_id
-):
-    """画面の外にある予定を点滅させるときは、上下の固定の帯の間まで
-    スクロールする（TODO-215）。"""
+def test_flash_marks_date_of_date_param(page, server, tmp_path):
+    """``flash_*`` が無くても、``date`` の日付の欄に ``my-flash`` が付き、
+    予定の行には付かない（TODO-233）。"""
+    date = datetime.date.today()
+    _write_sched(tmp_path, date, "点滅しない予定")
+    page.goto(f"{server}?date={date}&sde_align=top", wait_until="load")
+    page.wait_for_selector("#main", state="visible")
+
+    assert page.locator(f"#date-{date} .my-date-col.my-flash").count() == 1
+    assert page.locator(".my-flash").count() == 1
+    assert f"date={date}" in page.url
+
+
+def test_flash_needs_date_param(page, server, tmp_path):
+    """日付なしで開いたときは、``onloadHdr()`` が URL に ``date`` を
+    書き込んでも点滅させない（TODO-233）。"""
+    date = datetime.date.today()
+    _write_many_sched(tmp_path, date, 40)
+    page.set_viewport_size(SHORT_VIEWPORT)
+    page.goto(server, wait_until="load")
+    page.wait_for_selector("#main", state="visible")
+
+    assert "date=" in page.url
+    assert page.locator(".my-flash").count() == 0
+
+
+def test_flash_of_date_param_keeps_scroll(page, server, tmp_path):
+    """``date`` だけの点滅では、``scrollToDate()`` が下端に合わせた
+    予定の多い日を、日付の欄が見えるようにずらさない（TODO-233）。"""
+    date = datetime.date.today()
+    _write_many_sched(tmp_path, date, 40)
+    page.set_viewport_size(SHORT_VIEWPORT)
+    page.goto(f"{server}?date={date}&sde_align=bottom", wait_until="load")
+    page.wait_for_selector(".my-date-col.my-flash")
+
+    r = page.evaluate(
+        f"""() => ({{
+            col: document.querySelector('#date-{date} .my-date-col')
+                .getBoundingClientRect().top,
+            top: document.getElementById('week_bar')
+                .getBoundingClientRect().bottom,
+        }})"""
+    )
+    assert r["col"] < r["top"]
+
+
+def _write_many_sched(tmp_path, date, n):
+    """``date`` に ``id-0`` から ``id-{n-1}`` の予定を書く。"""
     import json
 
-    date = datetime.date.today()
     path = tmp_path / "data" / date.strftime("%Y") / date.strftime("%m")
     path.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -2921,11 +2956,27 @@ def test_flash_scrolls_sde_between_bars(
             },
             ensure_ascii=False,
         )
-        for i in range(40)
+        for i in range(n)
     ]
     (path / (date.strftime("%d") + ".jsonl")).write_text(
         "\n".join(lines) + "\n", encoding="utf-8"
     )
+
+
+@pytest.mark.parametrize(
+    ("sde_align", "sde_id"),
+    [
+        ("top", "id-39"),  # 末尾の予定が下の帯より下にある
+        ("bottom", "id-0"),  # 先頭の予定が上の帯より上にある
+    ],
+)
+def test_flash_scrolls_sde_between_bars(
+    page, server, tmp_path, sde_align, sde_id
+):
+    """画面の外にある予定を点滅させるときは、上下の固定の帯の間まで
+    スクロールする（TODO-215）。"""
+    date = datetime.date.today()
+    _write_many_sched(tmp_path, date, 40)
     page.set_viewport_size(SHORT_VIEWPORT)
     page.goto(
         f"{server}?date={date}&sde_align={sde_align}&flash_sde_id={sde_id}",

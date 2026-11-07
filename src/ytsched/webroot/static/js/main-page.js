@@ -448,15 +448,22 @@
     ytsched.dispGauge(ytsched.ytState.activeMonday);
   }; // onloadHdr()
 
+  // load で onloadHdr() が URL に date を書き込む前の値を見る。日付なしで
+  // 開いても、ページが長いと書き込まれて点滅してしまう (TODO-233)
+  const linkDate = new URL(location.href).searchParams.get("date");
+
   /**
    * 追加・修正・削除の直後に、該当する日付と予定を点滅させる (TODO-213)。
    *
    * POST のリダイレクト先に付く ``flash_date`` / ``flash_sde_id`` を読み、
    * 点滅させたあと、リロードで繰り返さないよう URL から消す。
+   * ``flash_date`` が無ければ ``date`` の日付を点滅させる。``date`` は
+   * 消さないので、リロードでも点滅する (TODO-233)。
    */
   const flashUpdated = () => {
     const url = new URL(location.href);
-    const date = url.searchParams.get("flash_date");
+    const flashDate = url.searchParams.get("flash_date");
+    const date = flashDate || linkDate;
     const sdeId = url.searchParams.get("flash_sde_id");
     if (!date && !sdeId) {
       return;
@@ -480,7 +487,8 @@
     // 上下の帯の間に入るようにずらす (TODO-215)。予定の行があればそちらを
     // 見る。日付の欄は onloadHdr() の scrollToDate() が合わせ済みで、
     // 予定の多い日は画面より高い。週のゲージは検索モードでは無い
-    const target = els.findLast((el) => el);
+    // date だけのときは scrollToDate() の位置のままにする (TODO-233)
+    const target = flashDate || sdeId ? els.findLast((el) => el) : null;
     if (target) {
       const margin = 30;
       const top =
