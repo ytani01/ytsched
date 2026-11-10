@@ -94,3 +94,41 @@
   `date` を月曜日のままにする方式では満たせない。テストは 2 回目だけ。
 - 今日が月曜日のときは、点滅が月曜日=今日の欄になるので「月曜日は点滅しない」を見分けられない
   （シングルクリックのテストだけ `today_str` を書き換えて見分けている）。
+
+---
+
+# 追記: 最終方式（ホームボタン = 今日の日付を指定した移動）
+
+## 変更
+`4720cf5` の上に重ねた。`git checkout 534930a -- src tests/test_browser.py` から作り直した（`sessionStorage` は無い）。
+`keyboard.js`・`week.js` は `534930a` と差分なし。キーの `Home` は触っていない。
+- `main-page.js`:
+  - `homeButtonHdr` / `reloadHome` は `date` に `ytsched.today_str` を渡す。`reloadHome` の `sde_align: "home"` は削除。
+    読み直す経路は URL の `?date=<今日>` を TODO-233 の点滅が拾う（特別な処理なし）。
+  - シングルクリックは `scrollToDate(url_prefix, today_str)`（`"top"`）の後に `ytsched.flashDate(today_str)`。
+  - 切り出し（最小限）: `flashUpdated` の点滅の付与を `flashEl(el)` にし、`ytsched.flashDate(date)` で公開。
+    既存の処理をそのまま呼べる形になっていなかったため。`flashUpdated` の挙動は変わらない。
+  - コメント（先頭の依存、`reloadHome` の説明）を合わせた。
+- `nav.js`: `scrollToId()` の `"home"` の分岐（TODO-199）と、先頭の `today_str` 依存コメントを削除。
+- `gauge.js`: `mondayOf()` の依存コメントから `homeButtonHdr` を削除。
+- `src/README.md`、`docs/UsersGuide.md`（ホームボタンは「今週の月曜へ」→「今日へ」。範囲外だが実装と食い違うため直した）。
+- `tests/test_browser.py`: `"home"` の位置合わせを見ていた `test_home_button_keeps_today_in_view`・
+  `test_home_reload_keeps_today_in_view`・`_wait_today_above_footer` を削除。`_wait_for_top_screen` は `date` が今日になるのだけ見る
+  （`sde_align=home` は見ない）。月曜日を期待していた箇所を今日に直した。
+  新規 2 件: シングルクリックで今日が上端（`scrollToId(day,'top')` と同じ位置）に来て点滅し月曜は点滅しない／
+  ダブルクリックで URL の `date` が今日になり、今日が点滅して月曜は点滅しない。
+
+## 消したコード / 残したもの
+- 消した: `scrollToId()` の `"home"` 分岐、`reloadHome` の `sde_align: "home"`、月曜日を計算していた `homeButtonHdr` の
+  `mondayOf` 呼び出し。
+- 残した: `mondayOf`（`week.js`・`gauge.js` が使う）、`sde_align` の引き継ぎ（サーバ。`"top"` / `"bottom"` が使う）、
+  `ytsched.today_str`（`homeButtonHdr` が読む）。
+
+## 確認
+- `-k "home or slide or flash or key"` → 23 passed。`mise run fmt` / `lint`（typecheck 含む）通過。
+- `534930a` の `src` に戻すと、足した 2 件とホーム関係の 9 件（日付を今日に直したもの）が落ちる（11 failed）。
+
+## 残る懸念
+- 検索画面の 1 回目のタップは、`date` が今日になったので、今日を含む期間から検索結果が遡る（今日の予定が出る）。
+  検索画面の点滅のテストは足していない（ダブルタップ後の URL と画面は既存テストが見ている）。
+- 今日が月曜日のときは、月曜日が点滅しないことを見分けられない（ダブルクリックのテストは今日が月曜日なら省く）。

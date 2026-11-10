@@ -7,14 +7,12 @@
 //
 // 外へ出すもの:
 //   homeButtonHdr() -- main.html の #home_button の onMouseDown
-//   flashDate()     -- 日付の欄を点滅させる。keyboard.js の Home も使う
-//     (TODO-234)
+//   flashDate()     -- 日付の欄を点滅させる (TODO-234)。homeButtonHdr が使う
 //   changeSearchN() -- main.html の #search_n_in の onchange (検索モード)
 //   window.ytsched.view_month -- onloadHdr() が #main の data-view から
 //     入れる。week.js・nav.js・swipe.js が読む (TODO-137)
 //   window.ytsched.today_str -- onloadHdr() が #main の data-today から
-//     入れる。nav.js の scrollToId() が sde_align "home" のときに読む
-//     (TODO-199)
+//     入れる。homeButtonHdr が読む (TODO-234)
 //   fillMainHeight() -- #main を画面の高さまで伸ばして、フッターとの間に
 //     body の地 (白) が残らないようにする (TODO-184)。onloadHdr()・
 //     week.js の setActiveWeek()・resize / orientationchange から呼ぶ
@@ -34,7 +32,6 @@
 //   loadingSpinner() (spinner.js)             -- onloadHdr
 //   doGet() / doPost() / scrollToDate() (nav.js)
 //   getLocaltimeDateString() (nav.js)         -- homeButtonHdr
-//   mondayOf() (gauge.js)                     -- homeButtonHdr
 //   popstateHdr() (nav.js)                    -- popstate に登録
 //   layoutWeeks() / moveToMonday() / moveActiveDate() (week.js)
 //   slideToWeekOfDate() / isSliding() / setActiveWeek() (week.js) --
@@ -91,37 +88,6 @@
     }
   };
 
-  // ホームボタンで読み直すとき、読み直した先で今日の欄を点滅させるための
-  // 記録 (TODO-234)。URL の ``date`` は月曜日なので、そのままでは TODO-233
-  // の点滅が月曜日を光らせる。記録は読んだら消す (再読み込みで点滅し直さない)
-  const HOME_FLASH_KEY = "ytsched_home_flash";
-
-  // 記録が古ければ、読み直しが起きなかったと見て捨てる (msec)
-  const HOME_FLASH_MSEC = 10000;
-
-  const setHomeFlash = () => {
-    try {
-      sessionStorage.setItem(HOME_FLASH_KEY, String(Date.now()));
-    } catch (e) {
-      console.log(`setHomeFlash: ${e}`);
-    }
-  };
-
-  /**
-   * ホームボタンの記録があれば消して、新しいかどうかを返す (TODO-234)。
-   * ``sessionStorage`` が使えないときは、点滅させないだけにする。
-   */
-  const takeHomeFlash = () => {
-    try {
-      const msec = Number(sessionStorage.getItem(HOME_FLASH_KEY));
-      sessionStorage.removeItem(HOME_FLASH_KEY);
-      return Date.now() - msec < HOME_FLASH_MSEC;
-    } catch (e) {
-      console.log(`takeHomeFlash: ${e}`);
-      return false;
-    }
-  };
-
   /**
    * 既定のトップ画面 (今週の週間表示) を読み直す (TODO-165)。
    *
@@ -130,20 +96,16 @@
    * で読み直しても検索結果が返ってしまう。検索結果の日付欄
    * (``date-post``) と同じ道を通して検索語を消す。
    *
-   * ``MainHandler.post()`` はリダイレクト先へ ``sde_align`` を引き継ぐ
-   * ので、``"home"`` の位置合わせ (月曜日を上端に、今日がはみ出すなら
-   * 今日の下端に。TODO-199) もそのまま効く。``view`` は ``conf.json`` へ
-   * 保存されない (``get_view()``) ので、月間表示からも週間表示へ戻る。
+   * ``view`` は ``conf.json`` へ保存されない (``get_view()``) ので、
+   * 月間表示からも週間表示へ戻る。
    *
-   * @param {String} monday_str
+   * @param {String} today_str
    */
-  const reloadHome = (monday_str) => {
-    setHomeFlash();
+  const reloadHome = (today_str) => {
     // search_str は URL に載せない (TODO-050)
     ytsched.doPost(ytsched.url_prefix, {
-      date: monday_str,
+      date: today_str,
       search_str: "",
-      sde_align: "home",
     });
   };
 
@@ -168,11 +130,10 @@
   };
 
   window.ytsched.homeButtonHdr = () => {
-    // シングル・ダブルとも、今日ではなく今週の月曜日へ移動する
-    // (TODO-105)。週間表示では週の頭が見えているほうが分かりやすい
-    const monday_str = ytsched.getLocaltimeDateString(
-      ytsched.mondayOf(ytsched.today_str),
-    );
+    // シングル・ダブルとも、今日の日付を指定して移動する (TODO-234)。
+    // 読み直すと、リダイレクト先の ``?date=`` を flashUpdated() が拾って
+    // 今日の欄を点滅させる (TODO-233)
+    const today_str = ytsched.today_str;
 
     if (ytsched.search_str0) {
       // 検索画面ではシングルタップ自体がページの読み直しを伴う
@@ -189,16 +150,15 @@
         // 記録は消さずに残す。トップ画面の読み込みが終わる前に 3 回目を
         // 叩かれたとき、消してあると「1 回目」に戻ってしまい、検索語つき
         // の POST が 2 回目の遷移を上書きして検索画面へ引き戻される
-        reloadHome(monday_str);
+        reloadHome(today_str);
         return;
       }
       setSearchHomeTapMsec(now);
 
       // 1 回目は待たずに読み直す (検索語はそのまま)。
       // search_str は URL に載せない (TODO-050)
-      setHomeFlash();
       ytsched.doPost(ytsched.url_prefix, {
-        date: monday_str,
+        date: today_str,
         search_str: document.getElementById("search_str").value,
       });
       return;
@@ -211,9 +171,10 @@
         clickCount = 0;
       }, 350);
       // 今日の週まで横に流してから移る (TODO-217)
-      ytsched.slideToWeekOfDate(monday_str, () => {
-        ytsched.scrollToDate(ytsched.url_prefix, monday_str, "home");
-        ytsched.flashDate(ytsched.today_str);
+      ytsched.slideToWeekOfDate(today_str, () => {
+        ytsched.scrollToDate(ytsched.url_prefix, today_str);
+        // 読み直さないので、flashUpdated() の代わりにここで点滅させる
+        ytsched.flashDate(today_str);
       });
     } else {
       // double click
@@ -230,7 +191,7 @@
       if (ytsched.isSliding()) {
         ytsched.setActiveWeek(ytsched.ytState.activeWeekOffset, false);
       }
-      reloadHome(monday_str);
+      reloadHome(today_str);
     }
   };
 
@@ -520,12 +481,6 @@
    * 消さないので、リロードでも点滅する (TODO-233)。
    */
   const flashUpdated = () => {
-    // ホームボタンで読み直したあとは、月曜日ではなく今日だけを点滅させる
-    // (TODO-234)。位置は onloadHdr() の scrollToDate() のまま
-    if (takeHomeFlash()) {
-      ytsched.flashDate(ytsched.today_str);
-      return;
-    }
     const url = new URL(location.href);
     const flashDate = url.searchParams.get("flash_date");
     const date = flashDate || linkDate;

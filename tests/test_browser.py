@@ -188,10 +188,9 @@ def test_home_button_moves_the_view(page, server):
     前の週のまま**になった。表示中の週に無い日を指されても
     「スクロールで足りた」と答えてしまい、読み直しが飛んだため。
 
-    移動先は今日ではなく今週の月曜（TODO-105）。
+    移動先は今日（TODO-234）。
     """
     today = datetime.date.today()
-    monday = _monday_of(today)
     far = today - datetime.timedelta(days=70)
 
     _open(page, server, far.strftime("%Y-%m-%d"))
@@ -204,81 +203,12 @@ def test_home_button_moves_the_view(page, server):
 
     # URL が変わるだけでは足りない。今週の欄が実際に出ること
     page.wait_for_selector(today_id, state="visible", timeout=10000)
-    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+    assert _date_in_url(page) == today.strftime("%Y-%m-%d")
 
 
 # 1 週間の表示が画面より長くなる高さ（TODO-199）。予定の無い週でも
 # 7 日ぶんの欄で超える
 SHORT_VIEWPORT = {"width": 412, "height": 300}
-
-
-def _wait_today_above_footer(page, date):
-    """``date`` の欄が、画面の上端からフッターのゲージの上までに収まる
-    のを待つ。直す前は月曜に合わせて止まり、収まらないまま時間切れになる。"""
-    page.wait_for_function(
-        """(id) => {
-            const r = document.getElementById(id).getBoundingClientRect();
-            const g = document.getElementById('footer_gauge_bar');
-            return 0 <= r.top && r.bottom <= g.getBoundingClientRect().top;
-        }""",
-        arg=f"date-{date.strftime('%Y-%m-%d')}",
-        timeout=5000,
-    )
-
-
-def test_home_button_keeps_today_in_view(page, server):
-    """週が画面より長くても、ホームボタンで今日が画面に収まる（TODO-199）。
-
-    月曜を上端に合わせるだけだと、週末の今日が画面の下にはみ出した。
-    今日の欄の下端に合わせても、URL は月曜のまま。
-
-    今日はサーバの日付で決まるので、``today_str`` を書き換えて
-    日曜・月曜の 2 通りを作る。
-    """
-    monday = _monday_of(datetime.date.today())
-    sunday = monday + datetime.timedelta(days=6)
-    page.set_viewport_size(SHORT_VIEWPORT)
-    _open(page, server, monday.strftime("%Y-%m-%d"))
-
-    # 今日が日曜: 日曜の欄が画面の下に収まる
-    page.evaluate(f"ytsched.today_str = '{sunday.strftime('%Y-%m-%d')}'")
-    page.evaluate("scrollTo(0, 0)")
-    page.locator("#home_button").click()
-    _wait_today_above_footer(page, sunday)
-    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
-
-    # 今日が月曜: 今までどおり ``sde_align=top`` と同じ位置に月曜が来る
-    monday_id = f"date-{monday.strftime('%Y-%m-%d')}"
-    page.evaluate(f"ytsched.scrollToId('{monday_id}', 'top', 'instant')")
-    top_expected = page.evaluate(
-        f"document.getElementById('{monday_id}').getBoundingClientRect().top"
-    )
-
-    page.wait_for_timeout(400)  # ダブルクリックと見なされないように
-    page.evaluate(f"ytsched.today_str = '{monday.strftime('%Y-%m-%d')}'")
-    page.evaluate("scrollTo(0, document.body.scrollHeight)")
-    page.locator("#home_button").click()
-    page.wait_for_function(
-        f"() => document.getElementById('{monday_id}')"
-        f".getBoundingClientRect().top === {top_expected}",
-        timeout=5000,
-    )
-
-
-def test_home_reload_keeps_today_in_view(page, server):
-    """ダブルタップの読み直し（``sde_align=home``）でも、今日が画面に
-    収まる（TODO-199）。"""
-    today = datetime.date.today()
-    monday = _monday_of(today)
-    page.set_viewport_size(SHORT_VIEWPORT)
-    page.goto(
-        f"{server}?date={monday.strftime('%Y-%m-%d')}&sde_align=home",
-        wait_until="load",
-    )
-    page.wait_for_selector("#main", state="visible")
-
-    _wait_today_above_footer(page, today)
-    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
 
 
 def test_date_column_and_edit_menu_are_delegated(page, server):
@@ -1431,14 +1361,10 @@ def _double_tap_home_in_search(page, tap, interval_msec=None):
     tap(page)
 
 
-def _wait_for_top_screen(page, monday):
-    """トップ画面（``monday`` の週、``sde_align=home``。TODO-199）に
-    なるまで待つ。"""
+def _wait_for_top_screen(page, date):
+    """トップ画面（``date`` は今日。TODO-234）になるまで待つ。"""
     page.wait_for_url(
-        lambda url: (
-            f"date={monday.strftime('%Y-%m-%d')}" in url
-            and "sde_align=home" in url
-        ),
+        lambda url: f"date={date.strftime('%Y-%m-%d')}" in url,
         timeout=10000,
     )
     page.wait_for_selector("#main", state="visible")
@@ -1465,8 +1391,7 @@ def test_home_button_single_tap_still_reloads_search_screen(
     page.wait_for_function("() => window.__ytsched_mark !== 1", timeout=10000)
     page.wait_for_selector("#main", state="visible")
 
-    monday = _monday_of(today)
-    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+    assert _date_in_url(page) == today.strftime("%Y-%m-%d")
     # ダブルタップではないので sde_align は付かない
     assert "sde_align=" not in page.url
     _assert_search_screen(page)
@@ -1491,7 +1416,7 @@ def test_home_button_double_tap_returns_to_the_top_screen_from_search(
         page, lambda pg: _tap(pg, pg.locator("#home_button"))
     )
 
-    _wait_for_top_screen(page, _monday_of(today))
+    _wait_for_top_screen(page, today)
     _assert_top_screen(page)
 
 
@@ -1522,7 +1447,7 @@ def test_home_button_double_tap_by_touch_returns_to_the_top_screen(
         interval_msec,
     )
 
-    _wait_for_top_screen(page_touch, _monday_of(today))
+    _wait_for_top_screen(page_touch, today)
     _assert_top_screen(page_touch)
 
 
@@ -1540,11 +1465,10 @@ def test_home_button_tap_after_another_operation_is_not_a_double_tap(
     _open_search(page, server, tmp_path, today)
 
     page.locator("#home_button").click()
-    monday = _monday_of(today)
     page.wait_for_selector("#main", state="visible")
     page.wait_for_function(
         "(date) => new URL(location.href).searchParams.get('date') === date",
-        arg=monday.strftime("%Y-%m-%d"),
+        arg=today.strftime("%Y-%m-%d"),
         timeout=10000,
     )
 
@@ -1582,7 +1506,7 @@ def test_home_button_double_tap_keeps_the_tap_record(page, server, tmp_path):
         page, lambda pg: _tap(pg, pg.locator("#home_button"))
     )
 
-    _wait_for_top_screen(page, _monday_of(today))
+    _wait_for_top_screen(page, today)
     assert page.evaluate(
         "() => sessionStorage.getItem('ytsched_search_home_tap')"
     ), "ダブルタップの成立でタップの記録が消えた"
@@ -1604,7 +1528,7 @@ def test_home_button_double_tap_reloads_the_week_view(page, server):
     _tap(page, home)
     _tap(page, home)
 
-    _wait_for_top_screen(page, monday)
+    _wait_for_top_screen(page, today)
     assert not _marked(page), "ダブルタップでページが読み直されなかった"
 
 
@@ -1630,7 +1554,7 @@ def test_home_button_double_tap_returns_to_the_week_view_from_month(
     _tap(page, home)
     _tap(page, home)
 
-    _wait_for_top_screen(page, monday)
+    _wait_for_top_screen(page, today)
     _assert_top_screen(page)
 
 
@@ -2028,7 +1952,7 @@ def test_home_button_in_month_view_moves_the_gauge_needle(page, server):
 
     # 読み直さずに、月間表示のまま針だけが動く
     assert page.locator("#main[data-view='month']").count() == 1
-    assert _date_in_url(page) == _monday_of(today).strftime("%Y-%m-%d")
+    assert _date_in_url(page) == today.strftime("%Y-%m-%d")
 
 
 def test_touch_swipe_in_mini_cal_from_non_monday_moves_by_a_month(
@@ -3124,37 +3048,46 @@ def _open_week_without_flash(page, server):
     page.wait_for_selector("#main", state="visible")
 
 
-def _assert_only_today_flashes(page, today):
-    """今日の欄だけが点滅し、月曜の欄は点滅しない（TODO-234）。
-    今日が月曜のときは、月曜の欄が今日の欄なので見分けられない。"""
-    page.wait_for_selector(
-        f"#date-{today} .my-date-col.my-flash", timeout=10000
-    )
-    assert page.locator(".my-flash").count() == 1
-
-
-def test_home_button_single_click_flashes_today(page, server):
-    """シングルクリックで今日の欄が点滅し、月曜の欄は点滅しない。
-    URL の ``date`` は月曜のまま（TODO-234）。
+def test_home_button_single_click_puts_today_on_top_and_flashes(
+    page, server, tmp_path
+):
+    """シングルクリックで、今日の欄が日付指定の移動と同じ位置（上端）に
+    来て点滅する。月曜の欄は点滅しない（TODO-234）。
 
     今日が月曜だと見分けられないので、``today_str`` を月曜の 2 日後に
     書き換える。
     """
     monday = _monday_of(datetime.date.today())
     day = monday + datetime.timedelta(days=2)
+    # 画面より高くして、スクロールできるようにする
+    _write_many_sched(tmp_path, monday + datetime.timedelta(days=6), 40)
+    page.set_viewport_size({"width": 412, "height": 700})
     _open_week_without_flash(page, server)
     page.evaluate(f"ytsched.today_str = '{day}'")
 
+    day_id = f"date-{day}"
+    page.evaluate(f"ytsched.scrollToId('{day_id}', 'top', 'instant')")
+    top_expected = page.evaluate(
+        f"document.getElementById('{day_id}').getBoundingClientRect().top"
+    )
+    page.evaluate("scrollTo(0, 0)")
+
     page.locator("#home_button").click()
 
-    _assert_only_today_flashes(page, day)
-    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
+    page.wait_for_function(
+        f"() => document.getElementById('{day_id}')"
+        f".getBoundingClientRect().top === {top_expected}",
+        timeout=5000,
+    )
+    page.wait_for_selector(f"#{day_id} .my-date-col.my-flash", timeout=5000)
+    assert page.locator(f"#date-{monday} .my-date-col.my-flash").count() == 0
+    assert _date_in_url(page) == day.strftime("%Y-%m-%d")
 
 
-def test_home_button_double_click_flashes_today_once(page, server):
-    """ダブルクリックで読み直したあと、今日の欄が点滅し、月曜の欄は
-    点滅しない。再読み込みでは、記録が残らず今日はもう点滅しない
-    （TODO-234）。"""
+def test_home_button_double_click_flashes_today_not_monday(page, server):
+    """ダブルクリックで読み直したあと、URL の ``date`` は今日で、今日の
+    欄が点滅し、月曜の欄は点滅しない（TODO-234）。
+    今日が月曜のときは見分けられない。"""
     today = datetime.date.today()
     monday = _monday_of(today)
     _open_week_without_flash(page, server)
@@ -3163,49 +3096,12 @@ def test_home_button_double_click_flashes_today_once(page, server):
     _tap(page, home)
     _tap(page, home)
 
-    _wait_for_top_screen(page, monday)
-    _assert_only_today_flashes(page, today)
-    assert _date_in_url(page) == monday.strftime("%Y-%m-%d")
-
-    # 記録は読んだ時点で消えている。再読み込みの点滅は TODO-233 の月曜日
-    assert (
-        page.evaluate("sessionStorage.getItem('ytsched_home_flash')") is None
+    _wait_for_top_screen(page, today)
+    page.wait_for_selector(
+        f"#date-{today} .my-date-col.my-flash", timeout=10000
     )
-    page.reload(wait_until="load")
-    page.wait_for_selector("#main", state="visible")
-    page.wait_for_timeout(500)
+    assert page.locator(".my-flash").count() == 1
     if today != monday:
         assert (
-            page.locator(f"#date-{today} .my-date-col.my-flash").count() == 0
+            page.locator(f"#date-{monday} .my-date-col.my-flash").count() == 0
         )
-
-
-def test_home_key_flashes_today(page, server):
-    """キーの ``Home`` で今日の欄が点滅し、月曜の欄は点滅しない
-    （TODO-234）。"""
-    today = datetime.date.today()
-    _open_week_without_flash(page, server)
-
-    page.keyboard.press("Home")
-
-    _assert_only_today_flashes(page, today)
-
-
-def test_home_button_double_tap_in_search_flashes_today(
-    page, server, tmp_path
-):
-    """検索画面のホームボタンのダブルタップで週間表示へ戻ったあと、今日の
-    欄が点滅する（TODO-234）。
-
-    1 回目のタップは検索の基準日が月曜になり、検索結果は月曜から
-    遡った分だけなので、今日の欄は出ない（点滅させる欄が無い）。
-    """
-    today = datetime.date.today()
-    _open_search(page, server, tmp_path, today)
-
-    _double_tap_home_in_search(
-        page, lambda pg: _tap(pg, pg.locator("#home_button"))
-    )
-
-    _wait_for_top_screen(page, _monday_of(today))
-    _assert_only_today_flashes(page, today)

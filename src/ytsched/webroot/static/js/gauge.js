@@ -8,8 +8,7 @@
 // あったが、二重に持つのをやめて JavaScript 側だけに寄せた (TODO-078)
 //
 // 外へ出すもの (他ファイル・テンプレートから使うもの):
-//   mondayOf()         -- week.js (weekOffsetOfDate)・
-//                        main-page.js (homeButtonHdr)
+//   mondayOf()         -- week.js (weekOffsetOfDate)
 //   dispGauge()        -- week.js (setActiveWeek)・main-page.js (onloadHdr)
 //   dispGaugeMarks()   -- main-page.js (onloadHdr)
 //   followGauge()      -- week.js (slideToWeekOfDate、TODO-217)
