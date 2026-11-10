@@ -7,6 +7,8 @@
 //
 // 外へ出すもの:
 //   homeButtonHdr() -- main.html の #home_button の onMouseDown
+//   flashDate()     -- 日付の欄を点滅させる。keyboard.js の Home も使う
+//     (TODO-234)
 //   changeSearchN() -- main.html の #search_n_in の onchange (検索モード)
 //   window.ytsched.view_month -- onloadHdr() が #main の data-view から
 //     入れる。week.js・nav.js・swipe.js が読む (TODO-137)
@@ -31,8 +33,6 @@
 //                          activeWeekOffset・activeMonday・elGaugeRs
 //   loadingSpinner() (spinner.js)             -- onloadHdr
 //   doGet() / doPost() / scrollToDate() (nav.js)
-//   getLocaltimeDateString() (nav.js)         -- homeButtonHdr
-//   mondayOf() (gauge.js)                     -- homeButtonHdr
 //   popstateHdr() (nav.js)                    -- popstate に登録
 //   layoutWeeks() / moveToMonday() / moveActiveDate() (week.js)
 //   slideToWeekOfDate() / isSliding() / setActiveWeek() (week.js) --
@@ -102,12 +102,12 @@
    * 今日の下端に。TODO-199) もそのまま効く。``view`` は ``conf.json`` へ
    * 保存されない (``get_view()``) ので、月間表示からも週間表示へ戻る。
    *
-   * @param {String} monday_str
+   * @param {String} today_str
    */
-  const reloadHome = (monday_str) => {
+  const reloadHome = (today_str) => {
     // search_str は URL に載せない (TODO-050)
     ytsched.doPost(ytsched.url_prefix, {
-      date: monday_str,
+      date: today_str,
       search_str: "",
       sde_align: "home",
     });
@@ -134,11 +134,10 @@
   };
 
   window.ytsched.homeButtonHdr = () => {
-    // シングル・ダブルとも、今日ではなく今週の月曜日へ移動する
-    // (TODO-105)。週間表示では週の頭が見えているほうが分かりやすい
-    const monday_str = ytsched.getLocaltimeDateString(
-      ytsched.mondayOf(ytsched.today_str),
-    );
+    // シングル・ダブルとも、今日を日付に指定して移動し、今日の欄を点滅
+    // させる (TODO-234)。画面の位置は scrollToId() の "home" が、今日の週の
+    // 月曜日を上端に合わせる (TODO-105)
+    const today_str = ytsched.today_str;
 
     if (ytsched.search_str0) {
       // 検索画面ではシングルタップ自体がページの読み直しを伴う
@@ -155,7 +154,7 @@
         // 記録は消さずに残す。トップ画面の読み込みが終わる前に 3 回目を
         // 叩かれたとき、消してあると「1 回目」に戻ってしまい、検索語つき
         // の POST が 2 回目の遷移を上書きして検索画面へ引き戻される
-        reloadHome(monday_str);
+        reloadHome(today_str);
         return;
       }
       setSearchHomeTapMsec(now);
@@ -163,7 +162,7 @@
       // 1 回目は待たずに読み直す (検索語はそのまま)。
       // search_str は URL に載せない (TODO-050)
       ytsched.doPost(ytsched.url_prefix, {
-        date: monday_str,
+        date: today_str,
         search_str: document.getElementById("search_str").value,
       });
       return;
@@ -176,8 +175,9 @@
         clickCount = 0;
       }, 350);
       // 今日の週まで横に流してから移る (TODO-217)
-      ytsched.slideToWeekOfDate(monday_str, () => {
-        ytsched.scrollToDate(ytsched.url_prefix, monday_str, "home");
+      ytsched.slideToWeekOfDate(today_str, () => {
+        ytsched.scrollToDate(ytsched.url_prefix, today_str, "home");
+        ytsched.flashDate(today_str);
       });
     } else {
       // double click
@@ -194,7 +194,7 @@
       if (ytsched.isSliding()) {
         ytsched.setActiveWeek(ytsched.ytState.activeWeekOffset, false);
       }
-      reloadHome(monday_str);
+      reloadHome(today_str);
     }
   };
 
@@ -453,6 +453,29 @@
   const linkDate = new URL(location.href).searchParams.get("date");
 
   /**
+   * 要素を点滅させる (``my-flash`` を付ける)。``el`` が無ければ何もしない。
+   */
+  const flashEl = (el) => {
+    if (!el) {
+      return;
+    }
+    el.classList.add("my-flash");
+    // 残すと、週を移って表示し直したときに点滅し直す。
+    // 点滅の途中で隠れると animationend ではなく animationcancel が届く
+    const off = () => el.classList.remove("my-flash");
+    el.addEventListener("animationend", off, { once: true });
+    el.addEventListener("animationcancel", off, { once: true });
+  };
+
+  /**
+   * ``date`` (``YYYY-mm-dd``) の日付の欄を点滅させる (TODO-234)。
+   * 日付の行は背景が中の欄に覆われるので、日付の欄を点滅させる。
+   */
+  window.ytsched.flashDate = (date) => {
+    flashEl(document.querySelector(`#date-${CSS.escape(date)} .my-date-col`));
+  };
+
+  /**
    * 追加・修正・削除の直後に、該当する日付と予定を点滅させる (TODO-213)。
    *
    * POST のリダイレクト先に付く ``flash_date`` / ``flash_sde_id`` を読み、
@@ -507,17 +530,7 @@
       dy = Math.min(dy, r.top - top - margin);
       scrollBy(0, dy);
     }
-    els.forEach((el) => {
-      if (!el) {
-        return;
-      }
-      el.classList.add("my-flash");
-      // 残すと、週を移って表示し直したときに点滅し直す。
-      // 点滅の途中で隠れると animationend ではなく animationcancel が届く
-      const off = () => el.classList.remove("my-flash");
-      el.addEventListener("animationend", off, { once: true });
-      el.addEventListener("animationcancel", off, { once: true });
-    });
+    els.forEach(flashEl);
     url.searchParams.delete("flash_date");
     url.searchParams.delete("flash_sde_id");
     history.replaceState(history.state, "", url);

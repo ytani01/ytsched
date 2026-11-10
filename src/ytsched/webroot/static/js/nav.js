@@ -33,6 +33,7 @@
 //     (月間表示、TODO-137)
 //   window.ytsched.today_str (main-page.js の onloadHdr()) -- scrollToId
 //     (sde_align が "home" のとき、TODO-199)
+//   mondayOf() (gauge.js) -- scrollToId (sde_align が "home" のとき、TODO-234)
 // week.js は base.html でこのあとに読み込まれるが、呼ぶのは実行時なので前方参照でよい
 
 /**
@@ -374,12 +375,18 @@
       });
     }
     if (sde_align == "home") {
-      // ホームボタン (TODO-199)。el (月曜日) は "top" と同じ位置に
+      // ホームボタン (TODO-199)。月曜日は "top" と同じ位置に
       // 合わせるが、週が長くて今日の欄が下にはみ出すなら、今日の欄の
       // 下端を画面の下に固定した帯 (フッターのゲージ、検索画面では
       // 無いのでメニューバー) の上に合わせる。offsetTop は #week_wrap
       // からの位置なので、今日の欄は文書の上端からの位置で測る
-      let top = top_of_el - scroll_offset;
+      // el は ``date`` の欄。ホームボタンは今日を指すので、上端に合わせる
+      // 月曜は今日の週から探す (TODO-234)
+      const el_monday =
+        document.getElementById(
+          `date-${ytsched.getLocaltimeDateString(ytsched.mondayOf(ytsched.today_str))}`,
+        ) || el;
+      let top = el_monday.offsetTop - scroll_offset;
       const el_today = document.getElementById(`date-${ytsched.today_str}`);
       if (el_today) {
         const el_footer =

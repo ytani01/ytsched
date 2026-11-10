@@ -234,7 +234,11 @@ classDiagram
   TODO-050）。リロードで再送信にならないようにするため。追加・修正・削除では、リダイレクト先に
   `flash_date` / `flash_sde_id` を付け、`main-page.js` が該当の日付と
   予定を 5 秒点滅させて URL から消す（TODO-213）。`flash_*` が無く、開いた URL に
-  `date` があれば、その日付を点滅させる（TODO-233）。`cmd` を
+  `date` があれば、その日付を点滅させる（TODO-233）。
+  ホームボタンとキーの `Home` は、今日を `date` に指定して移動し（読み直すときの
+  URL の `date` も今日）、移動後に今日の欄を `ytsched.flashDate()` で点滅させる
+  （TODO-234）。画面の位置は、`scrollToId()` の `"home"` が今日の週の月曜日を
+  上端に合わせる（TODO-105・TODO-199）。`cmd` を
   実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
   `fix`/`update` で送られた `sde_id` が `orig_date` のファイルにもう無い
   （古い編集画面から保存した、同じフォームを 2 回送った）ときは、
