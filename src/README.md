@@ -237,8 +237,11 @@ classDiagram
   `date` があれば、その日付を点滅させる（TODO-233）。
   ホームボタンとキーの `Home` は、今日を `date` に指定して移動し（読み直すときの
   URL の `date` も今日）、移動後に今日の欄を `ytsched.flashDate()` で点滅させる
-  （TODO-234）。画面の位置は、`scrollToId()` の `"home"` が今日の週の月曜日を
-  上端に合わせる（TODO-105・TODO-199）。`cmd` を
+  （TODO-234）。画面の位置は、ボタンでは `scrollToId()` の `"home"` が、渡された
+  `date` の週の月曜日を上端に合わせる（TODO-105・TODO-199）。シングルクリックで
+  積む履歴には `sde_align=home` も書き、戻る/進む（`popstateHdr()`）と読み直しでも
+  同じ位置にする。キーの `Home` は `"home"` を通らず、`"top"` で今日の欄を
+  上端に合わせる。`cmd` を
   実行するのは `post()` だけで、`GET` に `cmd` を付けても効かない。
   `fix`/`update` で送られた `sde_id` が `orig_date` のファイルにもう無い
   （古い編集画面から保存した、同じフォームを 2 回送った）ときは、

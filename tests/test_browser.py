@@ -3198,3 +3198,66 @@ def test_home_button_in_search_flashes_today(page, server, tmp_path):
     page.wait_for_selector(
         f"#date-{today} .my-date-col.my-flash", timeout=10000
     )
+
+
+def test_home_button_aligns_monday_to_top_when_today_fits(
+    page, server, tmp_path
+):
+    """今日が週の途中で画面からはみ出さないときは、ホームボタンで
+    月曜日が上端に合う。F5 と戻る/進むでも同じ位置になる
+    （TODO-105・TODO-234）。
+
+    ``date`` が今日になったので、``scrollToId()`` の ``"home"`` が
+    ``date`` の欄ではなく、その週の月曜日の欄に合わせる。今日の欄に
+    合わせると、月曜日〜前日が画面の上へ隠れる。
+    """
+    monday = _monday_of(datetime.date.today())
+    day = monday + datetime.timedelta(days=2)
+    # 画面より高くして、スクロールできるようにする
+    _write_many_sched(tmp_path, monday + datetime.timedelta(days=6), 40)
+    page.set_viewport_size({"width": 412, "height": 700})
+    page.goto(server, wait_until="load")
+    page.wait_for_selector("#main", state="visible")
+    page.evaluate(f"ytsched.today_str = '{day}'")
+
+    monday_id = f"date-{monday}"
+    page.evaluate(f"ytsched.scrollToId('{monday_id}', 'top', 'instant')")
+    top_expected = page.evaluate(
+        f"document.getElementById('{monday_id}').getBoundingClientRect().top"
+    )
+    day_top = page.evaluate(
+        f"document.getElementById('date-{day}').getBoundingClientRect().top"
+    )
+    # 月曜日と今日が別の位置でないと、取り違えを見分けられない
+    assert day_top > top_expected + 30
+
+    def monday_top():
+        return page.evaluate(
+            f"document.getElementById('{monday_id}')"
+            ".getBoundingClientRect().top"
+        )
+
+    page.evaluate("scrollTo(0, 100)")
+    page.locator("#home_button").click()
+    page.wait_for_function(
+        f"() => document.getElementById('{monday_id}')"
+        f".getBoundingClientRect().top === {top_expected}",
+        timeout=5000,
+    )
+    assert _date_in_url(page) == day.strftime("%Y-%m-%d")
+
+    # F5 ではなく、URL を開き直す（F5 はブラウザがスクロール位置を戻す）
+    page.goto(page.url, wait_until="load")
+    page.wait_for_selector("#main", state="visible")
+    assert monday_top() == top_expected
+
+    # 戻る → 進む（同じページ内の履歴移動）
+    page.go_back()
+    page.wait_for_timeout(500)
+    page.evaluate("scrollTo(0, 200)")
+    page.go_forward()
+    page.wait_for_function(
+        f"() => document.getElementById('{monday_id}')"
+        f".getBoundingClientRect().top === {top_expected}",
+        timeout=5000,
+    )

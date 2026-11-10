@@ -220,11 +220,18 @@
    * 履歴に残らず、**戻るときに途中の日付を飛び越えてしまう**
    * (← を 8回押してから戻ると 3回分が 1つにまとまった)。
    *
+   * ``sde_align`` を渡すと、それも URL に書く。ホームボタンの位置合わせ
+   * (``"home"``) を、戻る/進むと読み直しで再現するため (TODO-234)。
+   *
    * @param {String} date   'YYYY-mm-dd'
+   * @param {String} sde_align
    */
-  window.ytsched.pushDateInUrl = (date) => {
+  window.ytsched.pushDateInUrl = (date, sde_align = undefined) => {
     const url = new URL(location.href);
     url.searchParams.set("date", date);
+    if (sde_align) {
+      url.searchParams.set("sde_align", sde_align);
+    }
     history.pushState({ date: date }, "", url.toString());
   };
 
@@ -290,7 +297,12 @@
     }
 
     // 画面内にあればスクロールで済ませる。無ければ読み直す
-    if (ytsched.scrollToId(`date-${date}`, "top", "auto")) {
+    // ホームボタンで積んだ履歴は ``sde_align=home`` を持つ (TODO-234)
+    const sde_align =
+      new URL(location.href).searchParams.get("sde_align") == "home"
+        ? "home"
+        : "top";
+    if (ytsched.scrollToId(`date-${date}`, sde_align, "auto")) {
       ytsched.ytState.activeMonday = date;
       return;
     }
@@ -380,11 +392,11 @@
       // 下端を画面の下に固定した帯 (フッターのゲージ、検索画面では
       // 無いのでメニューバー) の上に合わせる。offsetTop は #week_wrap
       // からの位置なので、今日の欄は文書の上端からの位置で測る
-      // el は ``date`` の欄。ホームボタンは今日を指すので、上端に合わせる
-      // 月曜は今日の週から探す (TODO-234)
+      // 上端に合わせる月曜日は、``id`` の日付の週のもの。ホームボタンは
+      // 今日を指すので el は月曜日とは限らない (TODO-234)
       const el_monday =
         document.getElementById(
-          `date-${ytsched.getLocaltimeDateString(ytsched.mondayOf(ytsched.today_str))}`,
+          `date-${ytsched.getLocaltimeDateString(ytsched.mondayOf(id.slice(5)))}`,
         ) || el;
       let top = el_monday.offsetTop - scroll_offset;
       const el_today = document.getElementById(`date-${ytsched.today_str}`);
@@ -450,7 +462,7 @@
       // 読み直した直後 (``push_flag``が偽) は履歴に積まない。
       // 読み直しそのもので 1つ増えているため (TODO-050)
       if (push_flag) {
-        ytsched.pushDateInUrl(date);
+        ytsched.pushDateInUrl(date, sde_align == "home" ? "home" : undefined);
       } else {
         replaceDateInUrl(date);
       }

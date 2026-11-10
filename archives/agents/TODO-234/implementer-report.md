@@ -30,3 +30,37 @@
   （完了条件 2 のとおり。既存テストは通っている）。
 - 月間表示のホームボタンも `date` が今日になる（`test_home_button_in_month_view_moves_the_gauge_needle`
   の URL 期待値を今日に直した）。
+
+---
+
+# 追記: レビュー指摘の直し
+
+## 変更
+- `nav.js` `scrollToId()` の `"home"`: 月曜日を `today_str` の週ではなく、`id` の日付の週から探す（指摘 2）。
+- `nav.js` `pushDateInUrl(date, sde_align)`: 第 2 引数を足し、`scrollToDate()` が `sde_align` が
+  `"home"` のときだけ渡す。ホームボタンのシングルクリックが積む履歴に `sde_align=home` が付く。
+  `popstateHdr()` は URL の `sde_align` が `home` なら `"home"`、そうでなければ `"top"`（指摘 1）。
+- `tests/test_browser.py`: `test_home_button_aligns_monday_to_top_when_today_fits` を足した（指摘 3）。
+- `src/README.md`: キーの `Home` は `"top"` と実装どおりに直し、`sde_align=home` の履歴を追記。
+  `gauge.js` の依存コメントを `nav.js (scrollToId)` に直した（指摘 4）。
+
+## 実測（viewport 412x700、今週の日曜に予定 40 件、`today_str` を月曜+2 に書き換え。値は [scrollY, 月曜日の欄の top]）
+| 場面 | 直す前 (56c3000) | e3375c5 | 今回 |
+|---|---|---|---|
+| クリック直後 | [0, 100] | [0, 100] | [0, 100] |
+| URL を開き直す | [0, 100] | [96, 4] | [0, 100] |
+| 戻る→進む | [0, 100] | [96, 4] | [0, 100] |
+| 2 週以上離れた `?date=<月曜>&sde_align=home` | [0, 100] | [0, 100] | [0, 100] |
+
+- 指摘 2 は値では差が出なかった（月曜日の `offsetTop` が小さく、どちらも scrollY 0 に丸まる）。
+  コードは「その週の月曜日」に合わせる形に直してある。
+- F5 は Chrome がスクロール位置を戻すので、測定とテストでは `page.goto(page.url)` を使った。
+
+## 確認
+- 新しいテストは e3375c5 の src に戻すと落ち、`"home"` の `el_monday` を `el` に戻しても落ちる。
+- `uv run pytest tests/test_browser.py -k "home or slide or flash or key or popstate or back"` → 36 passed
+- `mise run fmt` / `lint` 通過。
+
+## 残る懸念（直さず）
+- 履歴に `sde_align=home` が残るので、シングルクリックのあとに週を送って戻ると、`popstateHdr` が
+  `"home"` で合わせる。月曜日の日付なら `"top"` と同じ位置で、今日の週のときだけ今日の下端を見る差。
