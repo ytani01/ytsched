@@ -1373,12 +1373,17 @@ def _wait_for_reload(page):
 
 
 def _wait_for_top_screen(page, date):
-    """トップ画面（``date`` は今日。TODO-234）になるまで待つ。"""
+    """トップ画面（``date`` は今日。TODO-234）になるまで待つ。
+
+    検索画面からは、1 回目のタップの読み直しで URL が ``date=<今日>`` に
+    なる（検索画面のまま）。URL だけでは 2 回目の読み直しを待てないので、
+    検索モードが解けるのも待つ（TODO-235）。
+    """
     page.wait_for_url(
         lambda url: f"date={date.strftime('%Y-%m-%d')}" in url,
         timeout=10000,
     )
-    page.wait_for_selector("#main", state="visible")
+    page.wait_for_selector("#main:not([data-search-date-to])", timeout=10000)
 
 
 def test_home_button_single_tap_still_reloads_search_screen(
