@@ -3105,3 +3105,17 @@ def test_home_button_double_click_flashes_today_not_monday(page, server):
         assert (
             page.locator(f"#date-{monday} .my-date-col.my-flash").count() == 0
         )
+
+
+def test_home_key_flashes_today(page, server):
+    """キーの ``Home`` はホームボタンのシングルクリックと同じく、今日の
+    欄が点滅する（TODO-234）。"""
+    today = datetime.date.today()
+    _open_week_without_flash(page, server)
+
+    page.keyboard.press("Home")
+
+    page.wait_for_selector(
+        f"#date-{today} .my-date-col.my-flash", timeout=5000
+    )
+    assert page.locator(".my-flash").count() == 1

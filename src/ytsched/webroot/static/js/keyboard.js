@@ -13,6 +13,7 @@
 //   getLocaltimeDateString() (nav.js) -- keyHdr (Home)
 //   scrollToDate() (nav.js)           -- keyHdr (Home)
 //   slideToWeekOfDate() (week.js)     -- keyHdr (Home、TODO-217)
+//   flashDate() (main-page.js)        -- keyHdr (Home、TODO-234)
 //   window.ytsched.url_prefix (base.html の <script>) -- keyHdr が moveActiveDate / scrollToDate へ渡す
 // keyHdr 内の today_str はこの関数のローカル変数で、main.html の today_str とは別物
 
@@ -113,6 +114,7 @@
         // 今日の週まで横に流してから移る (TODO-217)
         ytsched.slideToWeekOfDate(today_str, () => {
           ytsched.scrollToDate(ytsched.url_prefix, today_str, "top");
+          ytsched.flashDate(today_str);
         });
         break;
       }

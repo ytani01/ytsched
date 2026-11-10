@@ -132,3 +132,10 @@
 - 検索画面の 1 回目のタップは、`date` が今日になったので、今日を含む期間から検索結果が遡る（今日の予定が出る）。
   検索画面の点滅のテストは足していない（ダブルタップ後の URL と画面は既存テストが見ている）。
 - 今日が月曜日のときは、月曜日が点滅しないことを見分けられない（ダブルクリックのテストは今日が月曜日なら省く）。
+
+## 追記: キーの `Home`
+- `keyboard.js` の `Home` に `ytsched.flashDate(today_str)` を足した（今日の週へ流す→`"top"`→点滅。ホームボタンの
+  シングルクリックと同じ動き）。関数にはまとめていない（ボタンは `ytsched.today_str`、キーは `new Date()` で今日を作る
+  違いがあり、まとめるほうが差分が大きくなるため）。テスト `test_home_key_flashes_today` を足した。`keyboard.js` を戻すと落ちる。
+- `-k "home_key or puts_today or flashes_today_not_monday or key"` → 6 passed。fmt / lint 通過。
+- `TODO.md` は `fd189a7` と見出し・本文が同じ（違うのはチェックボックスだけ）。
