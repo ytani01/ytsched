@@ -153,3 +153,62 @@
   実装と合っている
 
 作り込みすぎ: なし。
+
+---
+
+# 3 回目（最終の方式。`git diff 534930a 898af11 -- src docs tests`）
+
+読んで判断した。テストは流していない。
+
+## 要修正
+
+無し。
+
+## 検討
+
+### T1. `_wait_for_top_screen` が、読み直しの前に通ってしまう
+
+- 場所: `tests/test_browser.py` 1364 行 `_wait_for_top_screen`。これを使う週間表示・月間表示の
+  ダブルタップのテスト（`test_home_button_double_tap_reloads_the_week_view`、
+  `..._returns_to_the_week_view_from_month`、`test_home_button_double_click_flashes_today_not_monday`）
+- 何が起きるか: 前は「URL に `sde_align=home` がある」ことも待っていた。これは読み直したあとに
+  しか付かない目印だった。今は `date=<今日>` だけを見る。ところが週間表示・月間表示では、
+  1 回目のタップ（シングルの経路）が `scrollToDate` / `setActiveBlockOfDate` で、もう
+  `date=<今日>` を URL に積む。そのため `wait_for_url` は、2 回目のタップの POST が終わる前に
+  通りうる
+  - `test_home_button_double_click_flashes_today_not_monday`: 1 回目のタップの `flashDate()` で
+    今日がもう点滅しているので、**ダブルクリックの読み直しが壊れていても通る**。
+    「読み直したあとに TODO-233 が今日を点滅させる」は見ていない
+  - `..._reloads_the_week_view`（`assert not _marked`）と `..._from_month`（`_assert_top_screen`）:
+    読み直しの途中や前に判定が走りうる。待ちが効かないので、落ちたり通ったりする形になる。
+    実害は未確認（ページの遷移が速ければ通る）
+- 検索画面のテストは、1 回目が `doPost` で URL を積まないので、この問題は無い
+- 前の目印に代わるものとしては、`_mark` が消えたことを待つ（`wait_for_function("() =>
+  window.__ytsched_mark !== 1")`。検索画面のテストが使っている）などが考えられる。直し方は
+  main の判断
+
+## 好みの範囲
+
+- `main-page.js` 35 行の依存コメント `getLocaltimeDateString() (nav.js) -- homeButtonHdr` が残っている。
+  今の `homeButtonHdr` は `ytsched.today_str` をそのまま使い、呼んでいない。10 行の `flashDate()` の
+  説明は「homeButtonHdr が使う」だけで、`keyboard.js` が抜けている
+
+## 問題なしの観点
+
+- 方針どおりで、余計な処理は無い: `"home"` の分岐を消し、`date` を今日にして、読み直さない 2 経路で
+  `flashDate()` を呼ぶだけ
+- `sde_align=home` の残り: `src/ytsched` で渡す箇所も読む箇所も無い。古い URL に `sde_align=home` が
+  残っていると、`scrollToId` は `"top"` にも `"bottom"` にも当たらず、スクロールしないで `true` を返す
+  （表示は出て、位置は合わない）。値の検証が無いのは前からで、知らない値と同じ扱い。壊れはしない
+- `homeButtonHdr` の `scrollToDate(url_prefix, today_str)`: 既定は `"top"`・`"smooth"` で、キーの `Home` と
+  同じ位置になる
+- `flashEl` の切り出し: 元の処理と同じで、TODO-213・TODO-233 の点滅は変わらない
+- 戻る/進む（TODO-050）: `popstateHdr` と `pushDateInUrl` は変わっておらず、ホームボタン以外の履歴に
+  変化は無い。ホームのシングルクリックの履歴は `date=<今日>` で、戻る/進むすると `"top"` で今日が上端に
+  来る。押した直後と同じ位置
+- テストの強さ（T1 以外）: シングルクリックのテストは、月曜日を上端に合わせると今日の位置が
+  `top_expected` からずれて落ちる。点滅の有無と月曜日の点滅も見ている。キーの `Home` のテストは、
+  直す前の点滅しないコードで落ちる。TODO-199 のテスト 2 件を消したのは、方針で `"home"` をやめたので妥当
+- `src/README.md` と `docs/UsersGuide.md` の記述: 実装と合っている
+
+作り込みすぎ: なし。

@@ -32,7 +32,6 @@
 //                          activeWeekOffset・activeMonday・elGaugeRs
 //   loadingSpinner() (spinner.js)             -- onloadHdr
 //   doGet() / doPost() / scrollToDate() (nav.js)
-//   getLocaltimeDateString() (nav.js)         -- homeButtonHdr
 //   popstateHdr() (nav.js)                    -- popstate に登録
 //   layoutWeeks() / moveToMonday() / moveActiveDate() (week.js)
 //   slideToWeekOfDate() / isSliding() / setActiveWeek() (week.js) --

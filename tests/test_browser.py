@@ -1361,6 +1361,17 @@ def _double_tap_home_in_search(page, tap, interval_msec=None):
     tap(page)
 
 
+def _wait_for_reload(page):
+    """``_mark`` を置いたあとのページの読み直しが済むのを待つ（TODO-234）。
+
+    週間表示・月間表示では、1 回目のタップがもう URL に ``date=<今日>`` を
+    積む（``pushState``）。URL を待つだけでは、2 回目のタップの読み直しの
+    前に通ってしまう。``pushState`` ではページが作り直されないので、目印が
+    消えるのを待てば読み直しそのものを待てる。
+    """
+    page.wait_for_function("() => window.__ytsched_mark !== 1", timeout=10000)
+
+
 def _wait_for_top_screen(page, date):
     """トップ画面（``date`` は今日。TODO-234）になるまで待つ。"""
     page.wait_for_url(
@@ -1513,8 +1524,8 @@ def test_home_button_double_tap_keeps_the_tap_record(page, server, tmp_path):
 
 
 def test_home_button_double_tap_reloads_the_week_view(page, server):
-    """週間表示のホームボタンのダブルタップは、今までどおり今週の月曜を
-    先頭にして読み直す（TODO-069・TODO-165）。
+    """週間表示のホームボタンのダブルタップは、今日の週を
+    読み直す（TODO-069・TODO-165）。
 
     TODO-165 で ``doGet`` から ``doPost``（``search_str`` を空にする）へ
     変えたが、``MainHandler.post()`` のリダイレクト先は同じ URL になる。
@@ -1528,6 +1539,7 @@ def test_home_button_double_tap_reloads_the_week_view(page, server):
     _tap(page, home)
     _tap(page, home)
 
+    _wait_for_reload(page)
     _wait_for_top_screen(page, today)
     assert not _marked(page), "ダブルタップでページが読み直されなかった"
 
@@ -1549,11 +1561,13 @@ def test_home_button_double_tap_returns_to_the_week_view_from_month(
     )
     page.wait_for_selector("#main", state="visible")
     assert page.locator("#main[data-view='month']").count() == 1
+    _mark(page)
 
     home = page.locator("#home_button")
     _tap(page, home)
     _tap(page, home)
 
+    _wait_for_reload(page)
     _wait_for_top_screen(page, today)
     _assert_top_screen(page)
 
@@ -3091,11 +3105,15 @@ def test_home_button_double_click_flashes_today_not_monday(page, server):
     today = datetime.date.today()
     monday = _monday_of(today)
     _open_week_without_flash(page, server)
+    _mark(page)
 
     home = page.locator("#home_button")
     _tap(page, home)
     _tap(page, home)
 
+    # 1 回目のタップのシングルクリックでも今日は点滅する。読み直した
+    # あとの画面で見る
+    _wait_for_reload(page)
     _wait_for_top_screen(page, today)
     page.wait_for_selector(
         f"#date-{today} .my-date-col.my-flash", timeout=10000

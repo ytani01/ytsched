@@ -145,3 +145,13 @@
   `keyboard.js` の `Home` を足した。
 - `scrollToDate()` の第 3 引数の既定は `sde_align = "top"`（`nav.js` 384 行）なので、`homeButtonHdr` が省いても
   キーの `"top"` と同じ位置合わせ。
+
+## 追記: テストの待ち合わせ（3 回目のレビュー T1）
+- `tests/test_browser.py`: `_wait_for_reload()` を足した（`_mark` の目印が消えるのを待つ。`pushState` ではページが
+  作り直されないので、読み直しそのものを待てる。アプリ側のコードは変えていない）。週間表示・月間表示のダブルタップの
+  2 件と `test_home_button_double_click_flashes_today_not_monday` で、タップの前に `_mark` を置き、`_wait_for_reload()` の
+  あとに `_wait_for_top_screen()` と点滅を見る。`expect_navigation` は `pushState` でも解決するので使わなかった。
+  検索画面のテストは 1 回目の読み直しで URL が `date=<今日>` になるため、この待ち合わせを足していない（変えていない）。
+- `reloadHome(today_str)` の呼び出しをコメントアウトすると、この 3 件とも落ちる。直したあと 3 回続けて 3 件とも通った。
+- 古い docstring（「今週の月曜を先頭にして」）を直した。依存コメントは `main-page.js` の `getLocaltimeDateString`（削除）を直した。
+  `flashDate()` のコメントは `9dcda77` で直し済み。
