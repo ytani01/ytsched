@@ -33,6 +33,8 @@
 //                          activeWeekOffset・activeMonday・elGaugeRs
 //   loadingSpinner() (spinner.js)             -- onloadHdr
 //   doGet() / doPost() / scrollToDate() (nav.js)
+//   getLocaltimeDateString() (nav.js)         -- homeButtonHdr
+//   mondayOf() (gauge.js)                     -- homeButtonHdr
 //   popstateHdr() (nav.js)                    -- popstate に登録
 //   layoutWeeks() / moveToMonday() / moveActiveDate() (week.js)
 //   slideToWeekOfDate() / isSliding() / setActiveWeek() (week.js) --
@@ -89,6 +91,37 @@
     }
   };
 
+  // ホームボタンで読み直すとき、読み直した先で今日の欄を点滅させるための
+  // 記録 (TODO-234)。URL の ``date`` は月曜日なので、そのままでは TODO-233
+  // の点滅が月曜日を光らせる。記録は読んだら消す (再読み込みで点滅し直さない)
+  const HOME_FLASH_KEY = "ytsched_home_flash";
+
+  // 記録が古ければ、読み直しが起きなかったと見て捨てる (msec)
+  const HOME_FLASH_MSEC = 10000;
+
+  const setHomeFlash = () => {
+    try {
+      sessionStorage.setItem(HOME_FLASH_KEY, String(Date.now()));
+    } catch (e) {
+      console.log(`setHomeFlash: ${e}`);
+    }
+  };
+
+  /**
+   * ホームボタンの記録があれば消して、新しいかどうかを返す (TODO-234)。
+   * ``sessionStorage`` が使えないときは、点滅させないだけにする。
+   */
+  const takeHomeFlash = () => {
+    try {
+      const msec = Number(sessionStorage.getItem(HOME_FLASH_KEY));
+      sessionStorage.removeItem(HOME_FLASH_KEY);
+      return Date.now() - msec < HOME_FLASH_MSEC;
+    } catch (e) {
+      console.log(`takeHomeFlash: ${e}`);
+      return false;
+    }
+  };
+
   /**
    * 既定のトップ画面 (今週の週間表示) を読み直す (TODO-165)。
    *
@@ -102,12 +135,13 @@
    * 今日の下端に。TODO-199) もそのまま効く。``view`` は ``conf.json`` へ
    * 保存されない (``get_view()``) ので、月間表示からも週間表示へ戻る。
    *
-   * @param {String} today_str
+   * @param {String} monday_str
    */
-  const reloadHome = (today_str) => {
+  const reloadHome = (monday_str) => {
+    setHomeFlash();
     // search_str は URL に載せない (TODO-050)
     ytsched.doPost(ytsched.url_prefix, {
-      date: today_str,
+      date: monday_str,
       search_str: "",
       sde_align: "home",
     });
@@ -134,10 +168,11 @@
   };
 
   window.ytsched.homeButtonHdr = () => {
-    // シングル・ダブルとも、今日を日付に指定して移動し、今日の欄を点滅
-    // させる (TODO-234)。画面の位置は scrollToId() の "home" が、今日の週の
-    // 月曜日を上端に合わせる (TODO-105)
-    const today_str = ytsched.today_str;
+    // シングル・ダブルとも、今日ではなく今週の月曜日へ移動する
+    // (TODO-105)。週間表示では週の頭が見えているほうが分かりやすい
+    const monday_str = ytsched.getLocaltimeDateString(
+      ytsched.mondayOf(ytsched.today_str),
+    );
 
     if (ytsched.search_str0) {
       // 検索画面ではシングルタップ自体がページの読み直しを伴う
@@ -154,15 +189,16 @@
         // 記録は消さずに残す。トップ画面の読み込みが終わる前に 3 回目を
         // 叩かれたとき、消してあると「1 回目」に戻ってしまい、検索語つき
         // の POST が 2 回目の遷移を上書きして検索画面へ引き戻される
-        reloadHome(today_str);
+        reloadHome(monday_str);
         return;
       }
       setSearchHomeTapMsec(now);
 
       // 1 回目は待たずに読み直す (検索語はそのまま)。
       // search_str は URL に載せない (TODO-050)
+      setHomeFlash();
       ytsched.doPost(ytsched.url_prefix, {
-        date: today_str,
+        date: monday_str,
         search_str: document.getElementById("search_str").value,
       });
       return;
@@ -175,9 +211,9 @@
         clickCount = 0;
       }, 350);
       // 今日の週まで横に流してから移る (TODO-217)
-      ytsched.slideToWeekOfDate(today_str, () => {
-        ytsched.scrollToDate(ytsched.url_prefix, today_str, "home");
-        ytsched.flashDate(today_str);
+      ytsched.slideToWeekOfDate(monday_str, () => {
+        ytsched.scrollToDate(ytsched.url_prefix, monday_str, "home");
+        ytsched.flashDate(ytsched.today_str);
       });
     } else {
       // double click
@@ -194,7 +230,7 @@
       if (ytsched.isSliding()) {
         ytsched.setActiveWeek(ytsched.ytState.activeWeekOffset, false);
       }
-      reloadHome(today_str);
+      reloadHome(monday_str);
     }
   };
 
@@ -484,6 +520,12 @@
    * 消さないので、リロードでも点滅する (TODO-233)。
    */
   const flashUpdated = () => {
+    // ホームボタンで読み直したあとは、月曜日ではなく今日だけを点滅させる
+    // (TODO-234)。位置は onloadHdr() の scrollToDate() のまま
+    if (takeHomeFlash()) {
+      ytsched.flashDate(ytsched.today_str);
+      return;
+    }
     const url = new URL(location.href);
     const flashDate = url.searchParams.get("flash_date");
     const date = flashDate || linkDate;

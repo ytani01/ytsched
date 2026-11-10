@@ -9,7 +9,7 @@
 //
 // 外へ出すもの (他ファイル・テンプレートから使うもの):
 //   mondayOf()         -- week.js (weekOffsetOfDate)・
-//                        nav.js (scrollToId)
+//                        main-page.js (homeButtonHdr)
 //   dispGauge()        -- week.js (setActiveWeek)・main-page.js (onloadHdr)
 //   dispGaugeMarks()   -- main-page.js (onloadHdr)
 //   followGauge()      -- week.js (slideToWeekOfDate、TODO-217)
