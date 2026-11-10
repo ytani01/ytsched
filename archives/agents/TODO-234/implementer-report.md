@@ -139,3 +139,9 @@
   違いがあり、まとめるほうが差分が大きくなるため）。テスト `test_home_key_flashes_today` を足した。`keyboard.js` を戻すと落ちる。
 - `-k "home_key or puts_today or flashes_today_not_monday or key"` → 6 passed。fmt / lint 通過。
 - `TODO.md` は `fd189a7` と見出し・本文が同じ（違うのはチェックボックスだけ）。
+
+## 追記: 依頼の確認（2 回目のキーの `Home`）
+- キーの `Home` の点滅・依存コメント・テストは `898af11` で済み。今回 `main-page.js` の `flashDate()` のコメントに
+  `keyboard.js` の `Home` を足した。
+- `scrollToDate()` の第 3 引数の既定は `sde_align = "top"`（`nav.js` 384 行）なので、`homeButtonHdr` が省いても
+  キーの `"top"` と同じ位置合わせ。

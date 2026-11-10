@@ -7,7 +7,8 @@
 //
 // 外へ出すもの:
 //   homeButtonHdr() -- main.html の #home_button の onMouseDown
-//   flashDate()     -- 日付の欄を点滅させる (TODO-234)。homeButtonHdr が使う
+//   flashDate()     -- 日付の欄を点滅させる (TODO-234)。homeButtonHdr と
+//     keyboard.js の Home が使う
 //   changeSearchN() -- main.html の #search_n_in の onchange (検索モード)
 //   window.ytsched.view_month -- onloadHdr() が #main の data-view から
 //     入れる。week.js・nav.js・swipe.js が読む (TODO-137)
