@@ -110,6 +110,14 @@ sudo loginctl enable-linger $USER
 アプリはローカルの port（既定 10085）で待ち受けるだけにして、外からは
 リバースプロキシ経由でしか届かないようにする。
 
+予定に添付できるファイルの大きさは、アプリの `ytsched webapp --size-limit`
+（既定 100MB）で決まる。変えるときは、systemd のユニットの `ExecStart` の
+行に `--size-limit` をバイト数で足す（200MB なら
+`--size-limit 209715200`）。リバースプロキシにも上限があれば、そちらも
+合わせて上げる（nginx なら `client_max_body_size`）。添付ファイルは
+データディレクトリの `attachments/` に置かれるので、バックアップの
+対象に含める（[data-format.md](data-format.md) の「添付ファイル」）。
+
 ## 6. 日本の祝日を登録する
 
 `ytsched holiday` で、内閣府の CSV から祝日を取り込んで予定として
