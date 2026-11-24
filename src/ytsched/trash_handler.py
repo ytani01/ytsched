@@ -8,6 +8,7 @@ import datetime
 import tornado.web
 
 from . import handler_util
+from .attach import AttachStore
 from .handler import HandlerBase
 from .trash import TrashEntry, TrashFile
 from .ytsched import SchedDataEnt
@@ -138,6 +139,26 @@ class TrashHandler(HandlerBase):
         self._sd.save()
         self.redirect(f"{self._app_info.url_prefix}?date={restored.date}")
 
+    def _remove_orphan_attachments(
+        self, trash: TrashFile, sde_ids: list[str]
+    ) -> None:
+        """同じ UUID の版が予定にもゴミ箱にも残っていなければ、添付の
+        フォルダを消す (TODO-237)。
+
+        ``SchedData.max_version()`` はデータディレクトリを全走査する
+        ので、フォルダがある UUID だけを見る。
+        """
+        store = AttachStore(self._app_info.datadir)
+        uuids = {AttachStore.uuid_of(sde_id) for sde_id in sde_ids}
+        for uuid_part in uuids:
+            if uuid_part is None or not store.has_dir(uuid_part):
+                continue
+            if trash.max_version(uuid_part) or self._sd.max_version(
+                uuid_part
+            ):
+                continue
+            store.remove_dir(uuid_part)
+
     def _delete_many(self) -> None:
         sde_ids = self.get_arguments("sde_id")
         trashed_ats = self.get_arguments("trashed_at")
@@ -159,6 +180,7 @@ class TrashHandler(HandlerBase):
         trash = self._trash()
         if not trash.delete_many(set(zip(sde_ids, trashed_ats, strict=True))):
             raise tornado.web.HTTPError(404, "trash entry not found")
+        self._remove_orphan_attachments(trash, sde_ids)
         query = self._back_query()
         if trash.entries(max_entries=1):
             self.redirect(f"{self._app_info.url_prefix}trash{query}")

@@ -1133,6 +1133,22 @@ textarea {
     font-size: x-small;
 }
 
+/* 詳細の中の添付ファイル (TODO-237)。詳細を開いたときだけ出す。
+   親の ``.my-longtext`` は ``pre-wrap`` なので、ここでは戻す */
+.my-sde-attach {
+    display: none;
+    white-space: normal;
+}
+
+.my-longtext-sw:checked ~ .my-longtext .my-sde-attach {
+    display: block;
+}
+
+.my-sde-attach img {
+    max-width: 100%;
+    height: auto;
+}
+
 /* 取り消し線。この要素の文字に引く */
 .my-canceled {
     text-decoration: line-through;

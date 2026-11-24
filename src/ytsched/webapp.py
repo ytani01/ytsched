@@ -17,6 +17,8 @@ import tornado.web
 from . import __author__ as AUTHOR
 from . import __prog_name__ as PROG_NAME
 from . import __version__ as VERSION
+from .attach import AttachStore
+from .attach_handler import AttachHandler
 from .conf import ConfFile
 from .edit_handler import EditHandler
 from .handler import AppInfo
@@ -105,6 +107,11 @@ class WebServer:
                 (rf"{self._url_prefix}/edit/", EditHandler, handler_kwargs),
                 (rf"{self._url_prefix}/trash", TrashHandler, handler_kwargs),
                 (rf"{self._url_prefix}/trash/", TrashHandler, handler_kwargs),
+                (
+                    rf"{self._url_prefix}/attach/(.*)",
+                    AttachHandler,
+                    {"path": str(self._datadir / AttachStore.DIRNAME)},
+                ),
             ],
             static_path=self._webroot / "static",
             static_url_prefix=self._url_prefix + "/static/",

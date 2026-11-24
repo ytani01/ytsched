@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import tornado.web
 
+from .attach import AttachStore
 from .conf import ConfFile
 from .handler import AppInfo, HandlerBase
 from .main_binder import MainBinder
@@ -44,7 +45,7 @@ class MainHandler(HandlerBase):
         self, sd: SchedData, app_info: AppInfo, conf: ConfFile
     ) -> None:
         super().initialize(sd, app_info, conf)
-        self._updater = SchedUpdater(sd)
+        self._updater = SchedUpdater(sd, AttachStore(app_info.datadir))
         loader = SchedLoader(sd)
         self._binder = MainBinder(cast(Any, self))
         self._view_builder = MainViewBuilder(loader)

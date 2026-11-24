@@ -9,6 +9,7 @@ import re
 from collections.abc import Callable
 from typing import ClassVar, Protocol
 
+import tornado.httputil
 import tornado.web
 
 from . import handler_util
@@ -18,9 +19,13 @@ from .ytsched import normalize
 
 
 class _ArgumentSource(Protocol):
+    request: tornado.httputil.HTTPServerRequest
+
     def get_argument(
         self, name: str, default: str | None = None
     ) -> str | None: ...
+
+    def get_arguments(self, name: str) -> list[str]: ...
 
     def get_conf(self, name: str) -> str | None: ...
 
@@ -223,6 +228,13 @@ class MainBinder:
             deadline_date_str=deadline_date_str,
             deadline_time_start_str=deadline_time_start_str,
             deadline_time_end_str=deadline_time_end_str,
+            # ファイルを選ばずに送ると、名前が空の部分が 1 つ届く
+            attach_files=[
+                (f.filename, f.body)
+                for f in self._source.request.files.get("attach", [])
+                if f.filename
+            ],
+            attach_del=self._source.get_arguments("attach_del"),
         )
 
     def get_date(self, modified_date: datetime.date | None) -> datetime.date:

@@ -13,6 +13,7 @@ from typing import ClassVar
 
 import tornado.web
 
+from .attach import AttachStore
 from .conf import ConfFile
 from .mylog import getLogger
 from .ytsched import SchedData
@@ -88,6 +89,14 @@ class HandlerBase(tornado.web.RequestHandler):
         self._sd: SchedData = sd
         self._app_info = app_info
         self._conf = conf
+
+    def get_template_namespace(self) -> dict:
+        """どのテンプレートからも ``attach_store`` を使えるようにする
+        (TODO-237)。``sde.html`` は一覧とゴミ箱の両方から include される。
+        """
+        namespace = super().get_template_namespace()
+        namespace["attach_store"] = AttachStore(self._app_info.datadir)
+        return namespace
 
     # 利用者に説明を出すエラー (TODO-204)。ここに無いもの (404・500 など)
     # は tornado の既定の画面のまま

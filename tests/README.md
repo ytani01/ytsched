@@ -34,6 +34,10 @@
   変わること・検索中は `view=month` でも週間表示になること・`view` に
   不正な値を渡しても週間表示になることもここで見る（TODO-137・TODO-166）
 - `test_webapp.py` — `WebServer` の組み立てそのもののテスト
+- `test_attach.py` — 添付ファイル（`attach.py` の `AttachStore` と
+  `attach_handler.py` の `AttachHandler`）のテスト（TODO-237）。ファイル名の
+  検証と同名・長すぎる名前の扱い、編集画面からの添付・外す・複製、
+  パス・トラバーサルの拒否、ゴミ箱から消したときのフォルダの削除を見る
 - `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
   移行のテスト
 - `test_holiday.py` — 日本の祝日を内閣府の CSV から取得して登録する

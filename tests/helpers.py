@@ -17,6 +17,8 @@ from unittest import mock
 import tornado.httputil
 import tornado.web
 
+from ytsched.attach import AttachStore
+from ytsched.attach_handler import AttachHandler
 from ytsched.conf import ConfFile
 from ytsched.edit_handler import EditHandler
 from ytsched.handler import AppInfo
@@ -72,6 +74,11 @@ def make_app(datadir):
             (rf"{URL_PREFIX}/edit/", EditHandler, handler_kwargs),
             (rf"{URL_PREFIX}/trash", TrashHandler, handler_kwargs),
             (rf"{URL_PREFIX}/trash/", TrashHandler, handler_kwargs),
+            (
+                rf"{URL_PREFIX}/attach/(.*)",
+                AttachHandler,
+                {"path": str(Path(datadir) / AttachStore.DIRNAME)},
+            ),
         ],
         static_path=Path(webroot) / "static",
         static_url_prefix=URL_PREFIX + "/static/",

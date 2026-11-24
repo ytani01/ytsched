@@ -25,6 +25,8 @@ src/ytsched/
   fix_id.py        # 旧形式から移った sde_id を `{UUID}-{版}` の形へ振り直す（`ytsched fix-id`、TODO-170・TODO-171）
   trash.py         # TrashFile（trash.jsonl への追記・削除・全消去とゴミ箱画面用の読み出し）
   trash_handler.py # TrashHandler（ゴミ箱の表示・復活・削除・空にする）
+  attach.py        # AttachStore（attachments/{UUID}/ の添付ファイルの読み書き。tornado を知らない。TODO-237）
+  attach_handler.py # AttachHandler（添付ファイルを返す。StaticFileHandler を継承し、HandlerBase は継承しない）
   mylog.py         # loguru ラッパ
   click_utils.py   # click の共通オプション（`-h` / `-d` / `-V` `-v`）をまとめたデコレータ
   __main__.py      # click による CLI（`ytsched` コマンド）
@@ -138,6 +140,7 @@ classDiagram
         +set_conf()
         +on_finish()
         +write_error()
+        +get_template_namespace()
     }
     class AppInfo {
         <<frozen dataclass>>
@@ -177,7 +180,25 @@ classDiagram
     class WebServer {
         +main()
     }
+    class StaticFileHandler {
+        <<tornado.web>>
+    }
+    class AttachHandler {
+        +parse_url_path()
+        +get_content_type()
+        +set_extra_headers()
+    }
+    class AttachStore {
+        +list_files()
+        +add()
+        +remove()
+        +remove_dir()
+    }
     RequestHandler <|-- HandlerBase
+    RequestHandler <|-- StaticFileHandler
+    StaticFileHandler <|-- AttachHandler
+    HandlerBase ..> AttachStore : テンプレートへ attach_store として渡す
+    SchedUpdater --> AttachStore : 添付を外し、足す
     HandlerBase <|-- MainHandler
     HandlerBase <|-- EditHandler
     HandlerBase ..> AppInfo : initialize() で受け取る
@@ -188,6 +209,7 @@ classDiagram
     MainViewBuilder ..> SchedLoader : 一覧の組み立て
     WebServer ..> MainHandler : "/", url_prefix, url_prefix/
     WebServer ..> EditHandler : url_prefix/edit, url_prefix/edit/
+    WebServer ..> AttachHandler : url_prefix/attach/UUID/ファイル名
     WebServer --> AppInfo : 1 つ作る
     WebServer --> ConfFile : 1 つ作り、全ハンドラで共有する
 ```
@@ -225,7 +247,17 @@ classDiagram
   403 は CSRF 対策の `xsrf_cookies` が出す（TODO-206）。**POST のフォームには
   `{% module xsrf_form_html() %}` を入れる。** `nav.js` の `doPost()` は
   `_xsrf` cookie を読んで hidden に足す。`_xsrf` cookie は 365 日持たせる。
-  テストの `WebTestBase.fetch()` は POST のときだけトークンを付ける
+  テストの `WebTestBase.fetch()` は POST のときだけトークンを付ける。
+  `get_template_namespace()` で、どのテンプレートからも `attach_store`
+  （`AttachStore`）を使えるようにしている。`sde.html` は一覧とゴミ箱の
+  両方から include されるので、ハンドラごとに渡さずここで足す（TODO-237）
+- **`AttachHandler`**（`attach_handler.py`）が添付ファイルを返す。
+  `HandlerBase` ではなく `tornado.web.StaticFileHandler` を継承する。
+  `parse_url_path()` で UUID とファイル名（`AttachStore.is_valid_name()`）を
+  検証し、通らなければ 404 にして、`attachments/` の外を読ませない。
+  画像（`attach.py` の `IMAGE_TYPES`）だけをその場に表示させ、それ以外は
+  `application/octet-stream` のダウンロードにする。HTML や SVG を同じ
+  オリジンで描画させないため（TODO-237）
 - **`MainHandler`**（`main_handler.py`）が一覧表示と、追加・修正・削除の
   受け取り（`cmd=add/fix/update/del`）を兼ねる。`MainBinder` がフォーム・
   クエリ引数の解析と検証を、`MainViewBuilder` が週データとテンプレートへ
@@ -323,8 +355,11 @@ classDiagram
 
 `WebServer`（`webapp.py`）がこの 2 つを `tornado.web.Application` に
 組み立てる。URL は既定で `/ytsched`（`WebServer.DEF_URL_PREFIX`）配下。
-5 つの `URLSpec` はどれも同じ `{"sd": ..., "app_info": ..., "conf":
-...}` を渡すので、1 つの dict を作って使い回す（TODO-090）。
+`AttachHandler` 以外の `URLSpec` はどれも同じ `{"sd": ..., "app_info": ...,
+"conf": ...}` を渡すので、1 つの dict を作って使い回す（TODO-090）。
+`AttachHandler`（`url_prefix/attach/{UUID}/{ファイル名}`）だけは
+`StaticFileHandler` の流儀で `{"path": ...}`（`attachments/` のフォルダ）
+を渡す（TODO-237）。
 
 ## リクエストが来てから画面が出るまでの流れ
 

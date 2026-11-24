@@ -140,7 +140,8 @@
       
     </div>
   </div>
-  {% if detail %}
+  {% set attach_names = attach_store.list_files(sde.sde_id) %}
+  {% if detail or attach_names %}
   <div class="my-sde-row">
     <input id="{{ sw_id }}"
       type="checkbox"
@@ -157,8 +158,23 @@
          タグとの間の改行やインデントもそのまま見える。前後に空行を
          作らないよう、``{{ detail }}`` を開始タグ・終了タグに詰めて
          置いている (TODO-045)。 -->
+    <!-- 添付 (TODO-237) は閉じているあいだ出さない (``display: none``
+         のあいだは ``loading="lazy"`` の画像を読み込まない)。詳細が
+         空なら、閉じた行に件数だけ出す -->
     <div class="my-longtext my-sde-detail {{ class_canceled }}"
-      tabindex="0">{{ detail }}</div>
+      tabindex="0">{{ detail }}{% if attach_names and not detail %}添付 {{ len(attach_names) }} 件{% end %}{% if attach_names %}<div class="my-sde-attach">
+        {% for name in attach_names %}
+        {% set attach_url = url_prefix + attach_store.url_path(sde.sde_id, name) %}
+        <div>
+          {% if attach_store.is_image(name) %}
+          <a href="{{ attach_url }}" target="_blank" rel="noopener"><img
+             src="{{ attach_url }}" alt="{{ name }}" loading="lazy"></a>
+          {% else %}
+          <a href="{{ attach_url }}">{{ name }}</a>
+          {% end %}
+        </div>
+        {% end %}
+      </div>{% end %}</div>
   </div>
   {% end %}
 </div><!-- my-sde -->

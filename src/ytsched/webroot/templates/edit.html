@@ -35,7 +35,8 @@
     </svg>
   </div>
   <form id="input_form" name="input_form"
-        action="{{ post_url }}" method="POST">
+        action="{{ post_url }}" method="POST"
+        enctype="multipart/form-data">
     {% module xsrf_form_html() %}
 
     {% if orig_date %}
@@ -154,6 +155,21 @@
             {{ sde.detail }}</textarea>
         </div><!-- my-edit-detail-col -->
       </div><!-- my-edit-detail-row -->
+
+      <!-- 添付ファイル (TODO-237)。外すものに印を付けて保存する -->
+      <div class="my-edit-attach-row">
+        {% for name in attach_store.list_files(sde.sde_id) %}
+        <div class="my-edit-attach-file">
+          <label>
+            <input type="checkbox" name="attach_del" value="{{ name }}">
+            外す
+          </label>
+          <a href="{{ url_prefix }}{{ attach_store.url_path(sde.sde_id, name) }}"
+             target="_blank" rel="noopener">{{ name }}</a>
+        </div>
+        {% end %}
+        <input id="attach" name="attach" type="file" multiple>
+      </div><!-- my-edit-attach-row -->
 
       <!-- ID -->
       {# 新規では空で送る。仮の ID を送ると、どのファイルにも無い

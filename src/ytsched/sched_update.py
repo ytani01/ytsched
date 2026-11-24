@@ -12,6 +12,7 @@ import dataclasses
 import datetime
 import re
 
+from .attach import AttachStore
 from .mylog import getLogger
 from .ytsched import SchedData, SchedDataEnt
 
@@ -33,6 +34,11 @@ class SchedUpdateForm:
     deadline_date_str: str
     deadline_time_start_str: str
     deadline_time_end_str: str
+    # 添付ファイル (TODO-237)。``(ファイル名, 中身)`` と、外すファイル名
+    attach_files: list[tuple[str, bytes]] = dataclasses.field(
+        default_factory=list
+    )
+    attach_del: list[str] = dataclasses.field(default_factory=list)
 
 
 class SchedUpdater:
@@ -45,15 +51,20 @@ class SchedUpdater:
     # ``[0-9]`` で半角だけに絞る
     TITLE_COUNTER_RE = re.compile(r"#([0-9]+)$")
 
-    def __init__(self, sd: SchedData) -> None:
+    def __init__(
+        self, sd: SchedData, attach: AttachStore | None = None
+    ) -> None:
         """Constructor
 
         Parameters
         ----------
         sd: SchedData
+        attach: AttachStore | None
+            ``None`` なら、フォームの添付ファイルは扱わない
 
         """
         self._sd = sd
+        self._attach = attach
 
     def exec_update(
         self, form: SchedUpdateForm
@@ -148,12 +159,27 @@ class SchedUpdater:
 
         if new_sde:
             modified_sde_id = new_sde.sde_id
+            self.update_attachments(form, modified_sde_id)
             date = new_sde.date
             if new_sde.is_todo():
                 date = None
 
         self.__log.debug(f"date={date}, modified_sde_id={modified_sde_id}")
         return date, modified_sde_id
+
+    def update_attachments(self, form: SchedUpdateForm, sde_id: str) -> None:
+        """保存した ``sde_id`` の UUID の側で、添付を外し、足す (TODO-237)。
+
+        旧形式の ID は ``next_id()`` が新しい UUID を振るので、新しい
+        UUID の側に置かれる。``add`` (複製) は別の UUID になるので、
+        外す対象は新しい (まだ空の) フォルダで、元の予定の添付は残る。
+        """
+        if self._attach is None:
+            return
+        for name in form.attach_del:
+            self._attach.remove(sde_id, name)
+        for filename, body in form.attach_files:
+            self._attach.add(sde_id, filename, body)
 
     def is_conflict(self, form: SchedUpdateForm) -> bool:
         """``fix``/``update`` で送られた ``sde_id`` が、``orig_date`` の
