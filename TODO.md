@@ -1,22 +1,9 @@
 # TODO
 
-**残っている項目: TODO-238、TODO-239。** これまでに 237 件を完了させた。
+**残っている項目: TODO-239。** これまでに 238 件を完了させた。
 新しく足すときは「完了済み」の上に節を作る。**番号は `TODO-240` から。**
 
 着手する項目は利用者が指定する。**並び順に優先度の意味は無い。**
-
-## TODO-238. テストの説明文書の一覧に、載っていない 3 つのテストを足す
-
-|      | main | 担当 |
-|------|------|------|
-| 見込み | Opus 5.5 / effort medium | main（文書）+ reviewer（Sonnet 5.5 / medium）+ verifier（Haiku 5.5 / low） |
-
-- [ ] `tests/README.md` の一覧に `test_fix_id.py`・`test_notify.py`・`test_trash.py` を足し、
-  それぞれが何を見ているかを書く
-
-**無駄を省く工夫:** 文書だけの変更なので、verifier は一覧と `tests/` のファイルが一致するかだけを見る。
-
-TODO-237 の作業中に implementer が見つけた（`archives/agents/TODO-237/implementer-report.md`）。
 
 ## TODO-239. 添付ファイルを外して同じ名前で付け直したとき、古い画像が表示され続けないかを確かめる
 

@@ -38,11 +38,22 @@
   `attach_handler.py` の `AttachHandler`）のテスト（TODO-237）。ファイル名の
   検証と同名・長すぎる名前の扱い、編集画面からの添付・外す・複製、
   パス・トラバーサルの拒否、ゴミ箱から消したときのフォルダの削除を見る
+- `test_trash.py` — ゴミ箱（`trash.py` の `TrashFile`）のテスト。
+  追加・絞り込み・件数・選んだものだけを消すこと、壊れた行や読めない
+  バイト列を残すこと、削除や編集（`SchedUpdater`）で元の内容が
+  ゴミ箱に入ることを見る
 - `test_migrate.py` — 旧形式（タブ区切り `.cgi`）から JSON Lines への
   移行のテスト
+- `test_fix_id.py` — `sde_id` を `{UUID}-{版}` の形へ振り直す
+  `ytsched fix-id`（`fix_id.py`）のテスト。古い ID の振り直し、
+  すでに新しい形の行を変えないこと、読めない行を残すこと、ゴミ箱の
+  ファイルも対象になること、`--dry-run` で書き込まないことを見る
 - `test_holiday.py` — 日本の祝日を内閣府の CSV から取得して登録する
   `ytsched holiday`（`holiday.py`）のテスト（TODO-126）。取得はネットに
   出るので呼ばず、`tests/data/syukujitsu-sample.csv` を解析させる
+- `test_notify.py` — `ytsched notify` が送る文面を作る
+  `build_notify_text()`（`notify.py`）のテスト。予定と期限の近い ToDo の
+  整形、複数日の並べ方、空の日を省くこと、URL の付け方とエスケープを見る
 - `test_mylog.py` — `mylog.py` のテスト
 - `test_browser.py` — chromium を実際に動かして、`static/js/` の
   スクリプトの動きを見るテスト（TODO-056）。ホームボタンと週送りを押して、URL だけで
