@@ -150,6 +150,9 @@ class TestAttachWeb(WebTestBase):
             URL_PREFIX + "/edit/", date=DATE1_STR, sde_id=f"{UUID_A}-2"
         )
         assert 'name="attach_del" value="memo.pdf"' in edit
+        # 編集画面でも画像だけサムネイルを出す (TODO-241)
+        assert re.search(rf'<img\s+src="{url}/photo\.png"', edit)
+        assert f'src="{url}/memo.pdf"' not in edit
 
     def test_update_removes_checked_file(self):
         self.write_data(DATE1, [mk_dataline(sde_id=f"{UUID_A}-1")])

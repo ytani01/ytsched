@@ -164,8 +164,9 @@
             <input type="checkbox" name="attach_del" value="{{ name }}">
             外す
           </label>
-          <a href="{{ url_prefix }}{{ attach_store.url_path(sde.sde_id, name) }}"
-             target="_blank" rel="noopener">{{ name }}</a>
+          {% set attach_url = url_prefix + attach_store.url_path(sde.sde_id, name) %}
+          <a href="{{ attach_url }}" target="_blank" rel="noopener">{% if attach_store.is_image(name) %}<img
+             src="{{ attach_url }}" alt="" loading="lazy"> {% end %}{{ name }}</a>
         </div>
         {% end %}
         <input id="attach" name="attach" type="file" multiple>

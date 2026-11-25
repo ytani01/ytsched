@@ -1149,6 +1149,13 @@ textarea {
     height: auto;
 }
 
+/* 編集画面の添付画像のサムネイル (TODO-241)。元の画像を縮めて出す */
+.my-edit-attach-file img {
+    max-width: 6em;
+    max-height: 6em;
+    vertical-align: middle;
+}
+
 /* 取り消し線。この要素の文字に引く */
 .my-canceled {
     text-decoration: line-through;
